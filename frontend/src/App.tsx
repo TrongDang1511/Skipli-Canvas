@@ -1,8 +1,28 @@
+import { FC } from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './hooks/useAuth';
+import { AuthPage } from './pages/AuthPage';
+import { WorkspacePreviewPage } from './pages/WorkspacePreviewPage';
+import { LoadingScreen } from './components/ui/LoadingScreen';
+
+const MainApp: FC = () => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return <WorkspacePreviewPage />;
+};
+
 export default function App() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Skipli Canvas Frontend</h1>
-      <p className="mt-2 text-gray-600">Frontend initialized successfully.</p>
-    </div>
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
