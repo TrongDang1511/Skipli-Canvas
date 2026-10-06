@@ -1,8 +1,13 @@
 import { useState, useRef, useCallback } from 'react';
 import { ChatMessage } from '../types/chat.types';
+import { SessionMessage } from '../types/session.types';
 import { chatService } from '../services/chat.service';
 
-export function useChatStream() {
+interface UseChatStreamOptions {
+  onTurnComplete?: (sessionId?: string, newHtml?: string) => void;
+}
+
+export function useChatStream(options?: UseChatStreamOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasStartedChat, setHasStartedChat] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
@@ -13,8 +18,38 @@ export function useChatStream() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentContentRef = useRef('');
 
+  const loadSession = useCallback((sessionMessages: SessionMessage[], html: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsStreaming(false);
+    setStreamingContent('');
+    setError(null);
+    setExtractedHtml(html || '');
+
+    const formatted: ChatMessage[] = sessionMessages.map((m) => {
+      const timeStr = m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      return {
+        id: m.id,
+        sender: m.sender,
+        text: m.text,
+        time: timeStr,
+        version: m.version,
+        extractedHtml: m.extractedHtml,
+        thinkingContent: m.thinkingContent,
+        isStreaming: false,
+      };
+    });
+
+    setMessages(formatted);
+    setHasStartedChat(formatted.length > 0);
+  }, []);
+
   const sendPrompt = useCallback(
-    async (promptText: string) => {
+    async (promptText: string, targetSessionId?: string) => {
       if (!promptText.trim() || isStreaming) return;
 
       setError(null);
@@ -77,7 +112,7 @@ export function useChatStream() {
               setExtractedHtml(html);
             }
           },
-          onComplete: (fullContent: string, finalHtml: string) => {
+          onComplete: (fullContent: string, finalHtml: string, returnedSessionId?: string, returnedVersion?: string) => {
             setIsStreaming(false);
             const resolvedHtml = finalHtml || chatService.extractHtml(fullContent);
             const thinking = chatService.extractThinking(fullContent);
@@ -94,11 +129,16 @@ export function useChatStream() {
                       text: fullContent,
                       thinkingContent: thinking,
                       extractedHtml: resolvedHtml,
+                      version: returnedVersion || msg.version,
                       isStreaming: false,
                     }
                   : msg
               )
             );
+
+            if (options?.onTurnComplete) {
+              options.onTurnComplete(returnedSessionId || targetSessionId, resolvedHtml);
+            }
           },
           onError: (errMsg: string) => {
             setIsStreaming(false);
@@ -129,10 +169,11 @@ export function useChatStream() {
             );
           },
         },
+        targetSessionId,
         controller.signal
       );
     },
-    [isStreaming, messages]
+    [isStreaming, messages, options]
   );
 
   const stopGeneration = useCallback(() => {
@@ -168,5 +209,6 @@ export function useChatStream() {
     sendPrompt,
     stopGeneration,
     resetCanvas,
+    loadSession,
   };
 }

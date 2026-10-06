@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
+import { SessionProvider } from './contexts/SessionContext';
 import { useAuth } from './hooks/useAuth';
 import { AuthPage } from './pages/AuthPage';
 import { WorkspacePreviewPage } from './pages/WorkspacePreviewPage';
@@ -22,7 +23,9 @@ const MainApp: FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <SessionProvider>
+        <MainApp />
+      </SessionProvider>
     </AuthProvider>
   );
 }

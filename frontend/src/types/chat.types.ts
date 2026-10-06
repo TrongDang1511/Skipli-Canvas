@@ -17,5 +17,5 @@ export type ViewMode = 'preview' | 'code';
 
 export type SSEEvent =
   | { type: 'token'; token: string }
-  | { type: 'complete'; fullContent: string; extractedHtml: string }
+  | { type: 'complete'; fullContent: string; extractedHtml: string; sessionId?: string; version?: string }
   | { type: 'error'; error: string };
