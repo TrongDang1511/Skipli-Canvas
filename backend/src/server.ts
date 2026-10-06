@@ -3,6 +3,9 @@ import { env } from './config/env.config';
 
 const PORT = env.port || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[Server] Skipli Canvas Backend running on http://localhost:${PORT}`);
 });
+
+server.setTimeout(0);
+server.keepAliveTimeout = 0;
