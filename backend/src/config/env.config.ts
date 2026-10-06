@@ -9,7 +9,7 @@ export const env = {
   goclawUrl: process.env.GOCLAW_URL || 'http://localhost:18790',
   goclawGatewayToken: process.env.GOCLAW_GATEWAY_TOKEN || '',
   firebaseServiceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './serviceAccountKey.json',
-  
+
   // JWT Configuration
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET || 'default_jwt_access_secret_key_2026',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'default_jwt_refresh_secret_key_2026',

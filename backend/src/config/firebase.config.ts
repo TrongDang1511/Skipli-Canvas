@@ -8,24 +8,24 @@ let isFirebaseInitialized = false;
 
 try {
   const serviceAccountPath = path.resolve(__dirname, '../../', env.firebaseServiceAccountPath);
-  
+
   if (fs.existsSync(serviceAccountPath)) {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    
+
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
     }
-    
+
     db = admin.firestore();
     isFirebaseInitialized = true;
     console.log('[Firebase] Initialized successfully with service account credentials.');
   } else {
     console.warn(`[Firebase Warning] Service account file not found at ${serviceAccountPath}. Database features will be disabled or mocked.`);
   }
-} catch (error) {
-  console.error('[Firebase Error] Failed to initialize Firebase Admin SDK:', error);
+} catch {
+  isFirebaseInitialized = false;
 }
 
 export { db, isFirebaseInitialized };

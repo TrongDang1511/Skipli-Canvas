@@ -19,10 +19,11 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
     const payload = authService.verifyAccessToken(token);
     req.user = payload;
     next();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Invalid or expired access token';
     res.status(401).json({
       success: false,
-      error: error.message || 'Invalid or expired access token'
+      error: message
     });
   }
 }
@@ -35,8 +36,8 @@ export function optionalAuth(req: AuthenticatedRequest, res: Response, next: Nex
     try {
       const payload = authService.verifyAccessToken(token);
       req.user = payload;
-    } catch (e) {
-      // Ignored for optional auth
+    } catch {
+      // Ignore invalid token in optional auth
     }
   }
 

@@ -8,10 +8,6 @@ export interface ChatMessage {
 }
 
 export class GoClawService {
-  /**
-   * Gửi request stream tới GoClaw AI Engine (OpenAI-compatible endpoint)
-   * Trả về ReadableStream để Controller pipe ra response SSE cho client.
-   */
   public async streamChatCompletion(
     prompt: string,
     history: ChatMessage[] = []
@@ -35,6 +31,9 @@ export class GoClawService {
           model: goclawConfig.agentId,
           messages,
           stream: true,
+          max_tokens: 8192,
+          tools: [],
+          tool_choice: 'none',
         },
         {
           headers: {
@@ -44,7 +43,7 @@ export class GoClawService {
             'X-GoClaw-Agent-Id': goclawConfig.agentId,
           },
           responseType: 'stream',
-          timeout: 300000, // 5 phút (300 giây)
+          timeout: 300000,
         }
       );
 
@@ -60,9 +59,6 @@ export class GoClawService {
     }
   }
 
-  /**
-   * Tiện ích trích xuất nội dung mã HTML hoàn chỉnh từ toàn bộ text phản hồi
-   */
   public extractHtml(fullContent: string): string {
     const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/i;
     const match = fullContent.match(htmlBlockRegex);
@@ -70,7 +66,6 @@ export class GoClawService {
       return match[1].trim();
     }
 
-    // Nếu không có bọc markdown ```html, kiểm tra thẻ <html> hoặc <body> hoặc <div>
     if (fullContent.includes('<html') || fullContent.includes('<div')) {
       return fullContent.trim();
     }

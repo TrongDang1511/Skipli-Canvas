@@ -2,20 +2,19 @@ import { Request, Response, NextFunction } from 'express';
 import { goclawService } from '../services/goclaw.service';
 import { ChatStreamDto } from '../dtos/chat.dto';
 
+interface FlushableResponse extends Response {
+  flush?: () => void;
+}
+
 export class ChatController {
-  /**
-   * POST /api/chat/stream
-   * Khởi tạo luồng Server-Sent Events (SSE) phát token real-time từ GoClaw về client.
-   * Controller sạch 100%, dữ liệu đã được validateBody(chatStreamSchema) bảo đảm tính hợp lệ.
-   */
   public streamChat = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     const { prompt } = req.body as ChatStreamDto;
+    const flushableRes = res as FlushableResponse;
 
-    // Thiết lập HTTP Header chuẩn Server-Sent Events (SSE)
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
@@ -25,15 +24,12 @@ export class ChatController {
     let accumulatedContent = '';
     let isAborted = false;
 
-    // Chỉ ngắt luồng nếu client chủ động gửi tín hiệu abort (hủy stream)
     req.on('aborted', () => {
       isAborted = true;
     });
 
     try {
-      console.log(`[ChatController] Khởi tạo stream với prompt: "${prompt.substring(0, 50)}..."`);
       const stream = await goclawService.streamChatCompletion(prompt);
-
       let buffer = '';
 
       stream.on('data', (chunk: Buffer) => {
@@ -42,39 +38,49 @@ export class ChatController {
           return;
         }
 
-        const chunkStr = chunk.toString('utf-8');
-        buffer += chunkStr;
+        buffer += chunk.toString('utf-8');
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Giữ lại phần chưa đủ 1 dòng hoàn chỉnh
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith('data:')) continue;
 
           const dataStr = trimmed.replace(/^data:\s*/, '');
-          if (dataStr === '[DONE]') {
-            continue;
-          }
+          if (dataStr === '[DONE]') continue;
 
           try {
             const parsed = JSON.parse(dataStr);
             const deltaToken = parsed.choices?.[0]?.delta?.content || '';
 
             if (deltaToken) {
+              if (
+                deltaToken.startsWith('Error:') ||
+                deltaToken.includes('failover candidates exhausted') ||
+                deltaToken.includes('rate-limited')
+              ) {
+                res.write(
+                  `data: ${JSON.stringify({
+                    type: 'error',
+                    error: '⚠️ OpenRouter AI Engine đang tạm thời chạm giới hạn lượt gọi miễn phí (Rate Limit). Vui lòng thử lại sau giây lát hoặc gửi lại prompt!',
+                  })}\n\n`
+                );
+                return;
+              }
+
               accumulatedContent += deltaToken;
-              // Phát token về client
               res.write(
                 `data: ${JSON.stringify({
                   type: 'token',
                   token: deltaToken,
                 })}\n\n`
               );
-              if (typeof (res as any).flush === 'function') {
-                (res as any).flush();
+              if (typeof flushableRes.flush === 'function') {
+                flushableRes.flush();
               }
             }
           } catch {
-            // Bỏ qua nếu dòng data không phải JSON chuẩn
+            // ignore non-json frames
           }
         }
       });
@@ -82,11 +88,8 @@ export class ChatController {
       stream.on('end', () => {
         if (isAborted) return;
 
-        console.log(`[ChatController] Stream hoàn tất, tổng ký tự: ${accumulatedContent.length}`);
-        // Trích xuất mã HTML hoàn chỉnh khi kết thúc luồng
         const extractedHtml = goclawService.extractHtml(accumulatedContent);
 
-        // Bắn sự kiện kết thúc kèm mã HTML trích xuất được
         res.write(
           `data: ${JSON.stringify({
             type: 'complete',
@@ -101,7 +104,6 @@ export class ChatController {
 
       stream.on('error', (err: Error) => {
         if (isAborted) return;
-        console.error('[ChatController] Stream error:', err.message);
         res.write(
           `data: ${JSON.stringify({
             type: 'error',
@@ -111,7 +113,6 @@ export class ChatController {
         res.end();
       });
     } catch (error: unknown) {
-      console.error('[ChatController] Exception:', error);
       if (!res.headersSent) {
         next(error);
       } else {
