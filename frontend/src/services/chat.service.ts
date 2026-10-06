@@ -149,6 +149,14 @@ export class ChatService {
       return isStreaming ? 'Đang phân tích và xử lý giao diện...' : '';
     }
 
+    if (
+      content.includes("Agent couldn't generate a response") ||
+      content.includes('failover candidates exhausted') ||
+      content.includes('rate_limit')
+    ) {
+      return '⚠️ AI Engine tạm thời gián đoạn ở lượt này do OpenRouter bị nghẽn mạng. Vui lòng bấm "Tạo Web" hoặc gửi lại câu lệnh để AI tiếp tục cập nhật giao diện!';
+    }
+
     let textOnly = content.replace(/<think>[\s\S]*?<\/think>/gi, '');
     textOnly = textOnly.replace(/<think>[\s\S]*/gi, '');
 
