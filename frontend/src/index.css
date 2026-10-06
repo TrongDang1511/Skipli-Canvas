@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Dark Navy Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070F1E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E3E62;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1E3E62 #070F1E;
+}
+
 @keyframes loading {
   0% {
     left: -50%;
@@ -10,4 +34,3 @@
     left: 100%;
   }
 }
-

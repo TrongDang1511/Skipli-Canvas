@@ -28,7 +28,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   }, []);
 
-  // Tải thông tin user từ token lưu sẵn khi mở web
   useEffect(() => {
     const initAuth = async () => {
       const accessToken = localStorage.getItem('skipli_access_token');
@@ -40,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const userProfile = await getMeApi();
         setUser(userProfile);
-      } catch (err) {
+      } catch {
         localStorage.removeItem('skipli_access_token');
         localStorage.removeItem('skipli_refresh_token');
         setUser(null);
@@ -60,8 +59,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('skipli_access_token', authData.accessToken);
       localStorage.setItem('skipli_refresh_token', authData.refreshToken);
       setUser(authData.user);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || 'Đăng nhập không thành công';
+    } catch (err: unknown) {
+      const errorMsg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Đăng nhập không thành công'
+          : err instanceof Error
+          ? err.message
+          : 'Đăng nhập không thành công';
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {
@@ -77,8 +81,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('skipli_access_token', authData.accessToken);
       localStorage.setItem('skipli_refresh_token', authData.refreshToken);
       setUser(authData.user);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || 'Đăng ký không thành công';
+    } catch (err: unknown) {
+      const errorMsg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Đăng ký không thành công'
+          : err instanceof Error
+          ? err.message
+          : 'Đăng ký không thành công';
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {

@@ -15,6 +15,9 @@ export class ChatController {
     const { prompt } = req.body as ChatStreamDto;
     const flushableRes = res as FlushableResponse;
 
+    req.socket.setTimeout(0);
+    if (res.socket) res.socket.setTimeout(0);
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
