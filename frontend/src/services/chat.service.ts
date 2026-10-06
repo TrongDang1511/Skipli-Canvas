@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface StreamChatCallbacks {
   onToken: (token: string) => void;
-  onComplete: (fullContent: string, extractedHtml: string) => void;
+  onComplete: (fullContent: string, extractedHtml: string, sessionId?: string, version?: string) => void;
   onError: (errorMessage: string) => void;
 }
 
@@ -13,6 +13,7 @@ export class ChatService {
   public async streamChat(
     prompt: string,
     callbacks: StreamChatCallbacks,
+    sessionId?: string,
     signal?: AbortSignal,
     isRetryAfterRefresh = false
   ): Promise<void> {
@@ -25,7 +26,7 @@ export class ChatService {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, sessionId }),
         signal,
       });
 
@@ -40,7 +41,7 @@ export class ChatService {
             if (newAccessToken && newRefreshToken) {
               localStorage.setItem('skipli_access_token', newAccessToken);
               localStorage.setItem('skipli_refresh_token', newRefreshToken);
-              return this.streamChat(prompt, callbacks, signal, true);
+              return this.streamChat(prompt, callbacks, sessionId, signal, true);
             }
           } catch {
             localStorage.removeItem('skipli_access_token');
@@ -90,7 +91,7 @@ export class ChatService {
             if (event.type === 'token') {
               callbacks.onToken(event.token);
             } else if (event.type === 'complete') {
-              callbacks.onComplete(event.fullContent, event.extractedHtml);
+              callbacks.onComplete(event.fullContent, event.extractedHtml, event.sessionId, event.version);
             } else if (event.type === 'error') {
               callbacks.onError(event.error);
             }

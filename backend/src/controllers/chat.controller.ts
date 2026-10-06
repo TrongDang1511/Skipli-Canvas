@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { goclawService } from '../services/goclaw.service';
+import { sessionService } from '../services/session.service';
 import { ChatStreamDto } from '../dtos/chat.dto';
 
 interface FlushableResponse extends Response {
@@ -12,7 +13,8 @@ export class ChatController {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const { prompt } = req.body as ChatStreamDto;
+    const { prompt, sessionId } = req.body as ChatStreamDto;
+    const userId = req.user?.id;
     const flushableRes = res as FlushableResponse;
 
     req.socket.setTimeout(0);
@@ -88,14 +90,38 @@ export class ChatController {
         }
       });
 
-      stream.on('end', () => {
+      stream.on('end', async () => {
         if (isAborted) return;
 
         const extractedHtml = goclawService.extractHtml(accumulatedContent);
+        const thinkingMatch = accumulatedContent.match(/<think>([\s\S]*?)(?:<\/think>|$)/i);
+        const thinkingContent = thinkingMatch && thinkingMatch[1] ? thinkingMatch[1].trim() : '';
+
+        let savedSessionId = sessionId;
+        let savedVersion = 'v1.1';
+
+        if (userId) {
+          try {
+            const saved = await sessionService.saveStreamTurn(
+              userId,
+              sessionId || '',
+              prompt,
+              accumulatedContent,
+              thinkingContent,
+              extractedHtml
+            );
+            savedSessionId = saved.session.id;
+            savedVersion = saved.aiMsg.version || 'v1.1';
+          } catch (err) {
+            console.error('[ChatController] Failed to auto-save stream turn:', err);
+          }
+        }
 
         res.write(
           `data: ${JSON.stringify({
             type: 'complete',
+            sessionId: savedSessionId,
+            version: savedVersion,
             fullContent: accumulatedContent,
             extractedHtml,
           })}\n\n`
