@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Session, SessionMessage } from '../models/session.model';
 import { sessionRepository } from '../repositories/session.repository';
+import { storageService } from './storage.service';
 
 export class SessionService {
   public async getUserSessions(userId: string): Promise<Session[]> {
@@ -99,6 +100,21 @@ export class SessionService {
       updatedAt: now,
     });
 
+    // Tự động lưu snapshot file HTML vào kho Storage (hỗ trợ cả mã inline và file .html sinh ra trên ổ cứng)
+    if (extractedHtml && extractedHtml.trim()) {
+      try {
+        await storageService.saveHtmlSnapshot(
+          userId,
+          session.id,
+          session.title,
+          versionStr,
+          extractedHtml
+        );
+      } catch (storageErr) {
+        console.warn('[SessionService] Auto-save storage snapshot error:', storageErr);
+      }
+    }
+
     return {
       session: updatedSession || session,
       userMsg,
@@ -108,3 +124,4 @@ export class SessionService {
 }
 
 export const sessionService = new SessionService();
+

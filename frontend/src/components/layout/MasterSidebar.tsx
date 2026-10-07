@@ -1,6 +1,7 @@
 import { FC, useState, MouseEvent } from 'react';
 import { useSession } from '../../contexts/SessionContext';
 import { useAuth } from '../../hooks/useAuth';
+import { storageService } from '../../services/storage.service';
 import { cn } from '../../utils/cn';
 import {
   PanelLeftClose,
@@ -21,17 +22,17 @@ import {
 interface MasterSidebarProps {
   onNewWeb: () => void;
   onSelectSession: (id: string) => void;
-  onExportHtml?: (html: string, title: string) => void;
 }
 
 export const MasterSidebar: FC<MasterSidebarProps> = ({
   onNewWeb,
   onSelectSession,
-  onExportHtml,
 }) => {
+
   const { user, logout } = useAuth();
   const {
     sessions,
+    storageFiles,
     activeSessionId,
     isSidebarOpen,
     toggleSidebar,
@@ -39,11 +40,13 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
     setActiveTab,
     renameSession,
     deleteSession,
+    deleteStorageFile,
   } = useSession();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingStorageId, setDeletingStorageId] = useState<string | null>(null);
 
   const handleStartRename = (e: MouseEvent, id: string, currentTitle: string) => {
     e.stopPropagation();
@@ -70,23 +73,27 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
     setDeletingId(null);
   };
 
-  const handleDownloadHtml = (e: MouseEvent, html: string, title: string) => {
+  const handleConfirmDeleteStorage = async (e: MouseEvent, fileId: string) => {
     e.stopPropagation();
-    if (!html) return;
-    if (onExportHtml) {
-      onExportHtml(html, title);
-    } else {
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_website.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+    await deleteStorageFile(fileId);
+    setDeletingStorageId(null);
   };
+
+  const handleDownloadStorageFile = async (e: MouseEvent, fileId: string, fileName: string) => {
+    e.stopPropagation();
+    await storageService.downloadStorageFile(fileId, fileName);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return '0 KB';
+    const kb = bytes / 1024;
+    if (kb < 1024) {
+      return `${kb.toFixed(1)} KB`;
+    }
+    return `${(kb / 1024).toFixed(1)} MB`;
+  };
+
+
 
   if (!isSidebarOpen) {
     return (
@@ -330,7 +337,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
           )
         ) : (
           /* TAB 2: Storage (Mã nguồn HTML đã tạo) */
-          sessions.filter((s) => Boolean(s.latestHtml)).length === 0 ? (
+          storageFiles.length === 0 ? (
             <div className="py-12 px-4 text-center text-stone-500 text-xs">
               <Code2 className="w-6 h-6 mx-auto mb-2 text-stone-500/60" />
               <p className="font-medium text-stone-400">Chưa có file HTML nào</p>
@@ -339,12 +346,13 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
               </p>
             </div>
           ) : (
-            sessions
-              .filter((s) => Boolean(s.latestHtml))
-              .map((session) => (
+            storageFiles.map((file) => {
+              const isDeletingStorage = deletingStorageId === file.id;
+
+              return (
                 <div
-                  key={`storage-${session.id}`}
-                  onClick={() => onSelectSession(session.id)}
+                  key={`storage-${file.id}`}
+                  onClick={() => onSelectSession(file.sessionId)}
                   className="group flex items-center justify-between p-2.5 rounded-xl border border-slate-800/90 bg-[#0F1D32] hover:border-[#D4AF37] hover:bg-[#152744] hover:shadow-xs text-xs transition cursor-pointer"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
@@ -354,30 +362,67 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-xs text-stone-200 truncate">
-                          {session.title || 'Mã nguồn Web'}
+                          {file.sessionTitle || file.fileName}
                         </span>
                         <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1 py-0.2 rounded">
-                          v1.{session.versionCount || 1}
+                          {file.version}
                         </span>
                       </div>
-                      <span className="text-[10px] text-stone-400 truncate">
-                        {new Date(session.updatedAt || session.createdAt).toLocaleDateString('vi-VN')}
-                      </span>
+                      <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                        <span>{new Date(file.createdAt).toLocaleDateString('vi-VN')}</span>
+                        <span>•</span>
+                        <span className="font-mono text-stone-400">{formatFileSize(file.sizeBytes)}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    onClick={(e) => handleDownloadHtml(e, session.latestHtml, session.title)}
-                    title="Tải mã nguồn HTML về máy"
-                    className="p-1.5 text-stone-300 bg-slate-800 hover:bg-[#D4AF37] hover:text-[#0B192C] rounded-lg transition cursor-pointer shrink-0 font-semibold border border-slate-700/60"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
+                  {isDeletingStorage ? (
+                    <div className="flex items-center gap-1 shrink-0 bg-red-950/60 px-1.5 py-0.5 rounded border border-red-500/40">
+                      <span className="text-[10px] font-semibold text-red-400">Xóa?</span>
+                      <button
+                        onClick={(e) => handleConfirmDeleteStorage(e, file.id)}
+                        className="text-red-400 hover:text-red-300 font-bold text-[11px] cursor-pointer ml-1"
+                      >
+                        Có
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingStorageId(null);
+                        }}
+                        className="text-stone-400 hover:text-stone-200 text-[11px] cursor-pointer ml-1"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => handleDownloadStorageFile(e, file.id, file.fileName)}
+                        title="Tải file HTML về máy"
+                        className="p-1.5 text-stone-300 bg-slate-800 hover:bg-[#D4AF37] hover:text-[#0B192C] rounded-lg transition cursor-pointer shrink-0 font-semibold border border-slate-700/60"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingStorageId(file.id);
+                        }}
+                        title="Xóa file khỏi kho"
+                        className="p-1.5 text-stone-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition cursor-pointer opacity-0 group-hover:opacity-100 shrink-0"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))
+              );
+            })
           )
         )}
       </div>
+
 
       {/* 5. User Profile Footer */}
       <div className="p-3 border-t border-slate-800/80 bg-[#070F1E] flex items-center justify-between">

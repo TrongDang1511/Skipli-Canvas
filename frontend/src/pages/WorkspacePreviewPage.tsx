@@ -18,6 +18,7 @@ export const WorkspacePreviewPage: FC = () => {
     setActiveSessionId,
     selectSession,
     fetchSessions,
+    fetchStorageFiles,
     setSidebarOpen,
     updateActiveSessionLatestHtml,
   } = useSession();
@@ -36,7 +37,7 @@ export const WorkspacePreviewPage: FC = () => {
     loadSession,
   } = useChatStream({
     onTurnComplete: async (newOrExistingSessionId, newHtml) => {
-      await fetchSessions();
+      await Promise.all([fetchSessions(), fetchStorageFiles()]);
       if (newOrExistingSessionId) {
         setActiveSessionId(newOrExistingSessionId);
       }
@@ -82,27 +83,15 @@ export const WorkspacePreviewPage: FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportCustomHtml = (html: string, title: string) => {
-    const filename = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_website.html`;
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="h-screen w-full bg-[#0B192C] text-stone-100 flex overflow-hidden font-sans">
       {/* 1. Master Collapsible History Sidebar (ChatGPT / Gemini Style) */}
       <MasterSidebar
         onNewWeb={handleNewWeb}
         onSelectSession={handleSelectSession}
-        onExportHtml={handleExportCustomHtml}
       />
+
+
 
       {/* 2. Main Workspace Layout */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
