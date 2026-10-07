@@ -1,23 +1,29 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, FC } from 'react';
 import { Session, SessionDetail } from '../types/session.types';
+import { StorageFileItem } from '../types/storage.types';
 import { sessionApi } from '../services/session.api';
+import { storageService } from '../services/storage.service';
 import { useAuth } from '../hooks/useAuth';
 
 interface SessionContextType {
   sessions: Session[];
+  storageFiles: StorageFileItem[];
   activeSessionId: string | null;
   activeSession: Session | null;
   isLoadingSessions: boolean;
+  isLoadingStorage: boolean;
   isSidebarOpen: boolean;
   activeTab: 'chats' | 'storage';
   setActiveTab: (tab: 'chats' | 'storage') => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   fetchSessions: () => Promise<void>;
+  fetchStorageFiles: () => Promise<void>;
   selectSession: (sessionId: string) => Promise<SessionDetail | null>;
   createNewSession: (title?: string, initialPrompt?: string) => Promise<Session>;
   renameSession: (id: string, title: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
+  deleteStorageFile: (fileId: string) => Promise<boolean>;
   updateActiveSessionLatestHtml: (html: string) => void;
   setActiveSessionId: (id: string | null) => void;
 }
@@ -27,9 +33,11 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [storageFiles, setStorageFiles] = useState<StorageFileItem[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
+  const [isLoadingStorage, setIsLoadingStorage] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'chats' | 'storage'>('chats');
 
@@ -52,9 +60,33 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [user]);
 
+  const fetchStorageFiles = useCallback(async () => {
+    if (!user) {
+      setStorageFiles([]);
+      return;
+    }
+
+    try {
+      setIsLoadingStorage(true);
+      const files = await storageService.getStorageFiles();
+      setStorageFiles(files || []);
+    } catch (err) {
+      console.error('[SessionContext] Failed to fetch storage files:', err);
+    } finally {
+      setIsLoadingStorage(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchSessions();
-  }, [fetchSessions]);
+    fetchStorageFiles();
+  }, [fetchSessions, fetchStorageFiles]);
+
+  useEffect(() => {
+    if (activeTab === 'storage') {
+      fetchStorageFiles();
+    }
+  }, [activeTab, fetchStorageFiles]);
 
   useEffect(() => {
     if (activeSessionId) {
@@ -138,6 +170,22 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
     [activeSessionId]
   );
 
+  const deleteStorageFile = useCallback(
+    async (fileId: string): Promise<boolean> => {
+      try {
+        const ok = await storageService.deleteStorageFile(fileId);
+        if (ok) {
+          setStorageFiles((prev) => prev.filter((f) => f.id !== fileId));
+        }
+        return ok;
+      } catch (err) {
+        console.error('[SessionContext] Failed to delete storage file:', err);
+        return false;
+      }
+    },
+    []
+  );
+
   const updateActiveSessionLatestHtml = useCallback((html: string) => {
     setActiveSession((prev) => (prev ? { ...prev, latestHtml: html } : null));
     setSessions((prev) =>
@@ -149,19 +197,23 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
     <SessionContext.Provider
       value={{
         sessions,
+        storageFiles,
         activeSessionId,
         activeSession,
         isLoadingSessions,
+        isLoadingStorage,
         isSidebarOpen,
         activeTab,
         setActiveTab,
         toggleSidebar,
         setSidebarOpen: setIsSidebarOpen,
         fetchSessions,
+        fetchStorageFiles,
         selectSession,
         createNewSession,
         renameSession,
         deleteSession,
+        deleteStorageFile,
         updateActiveSessionLatestHtml,
         setActiveSessionId,
       }}
@@ -178,3 +230,4 @@ export function useSession() {
   }
   return context;
 }
+
