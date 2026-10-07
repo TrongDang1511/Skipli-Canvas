@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const chatStreamSchema = z.object({
+export const chatRequestSchema = z.object({
   prompt: z
     .string({ message: 'Yêu cầu (prompt) phải là chuỗi văn bản' })
     .min(1, 'Yêu cầu (prompt) không được để trống')
@@ -9,4 +9,5 @@ export const chatStreamSchema = z.object({
   projectId: z.string().optional(),
 });
 
-export type ChatStreamDto = z.infer<typeof chatStreamSchema>;
+export type ChatRequestDto = z.infer<typeof chatRequestSchema>;
+

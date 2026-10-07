@@ -50,12 +50,11 @@ export class SessionService {
     return sessionRepository.deleteSession(sessionId, userId);
   }
 
-  public async saveStreamTurn(
+  public async saveChatTurn(
     userId: string,
     sessionId: string,
     prompt: string,
     fullAiResponse: string,
-    thinkingContent?: string,
     extractedHtml?: string
   ): Promise<{ session: Session; userMsg: SessionMessage; aiMsg: SessionMessage }> {
     let session: Session | null = null;
@@ -86,7 +85,6 @@ export class SessionService {
       userId,
       sender: 'ai',
       text: fullAiResponse,
-      thinkingContent: thinkingContent || '',
       extractedHtml: extractedHtml || '',
       version: versionStr,
       createdAt: now,

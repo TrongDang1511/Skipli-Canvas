@@ -11,19 +11,16 @@ export function useChatStream(options?: UseChatStreamOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasStartedChat, setHasStartedChat] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [streamingContent, setStreamingContent] = useState<string>('');
   const [extractedHtml, setExtractedHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const currentContentRef = useRef('');
 
   const loadSession = useCallback((sessionMessages: SessionMessage[], html: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     setIsStreaming(false);
-    setStreamingContent('');
     setError(null);
     setExtractedHtml(html || '');
 
@@ -39,8 +36,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
         time: timeStr,
         version: m.version,
         extractedHtml: m.extractedHtml,
-        thinkingContent: m.thinkingContent,
-        isStreaming: false,
+        isLoading: false,
       };
     });
 
@@ -73,105 +69,78 @@ export function useChatStream(options?: UseChatStreamOptions) {
         text: '',
         time: timestamp,
         version: versionNum,
-        isStreaming: true,
-        thinkingContent: '',
+        isLoading: true,
       };
 
       setMessages((prev) => [...prev, userMsg, aiMsg]);
       setIsStreaming(true);
-      setStreamingContent('');
-      currentContentRef.current = '';
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      await chatService.streamChat(
-        promptText,
-        {
-          onToken: (token: string) => {
-            currentContentRef.current += token;
-            const updatedContent = currentContentRef.current;
-            setStreamingContent(updatedContent);
+      try {
+        const result = await chatService.sendChat(
+          promptText,
+          targetSessionId,
+          controller.signal
+        );
 
-            const thinking = chatService.extractThinking(updatedContent);
-            const html = chatService.extractHtml(updatedContent);
+        setIsStreaming(false);
+        const resolvedHtml = result.extractedHtml || chatService.extractHtml(result.fullContent);
+        if (resolvedHtml) {
+          setExtractedHtml(resolvedHtml);
+        }
 
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === aiMsgId
-                  ? {
-                      ...msg,
-                      text: updatedContent,
-                      thinkingContent: thinking,
-                    }
-                  : msg
-              )
-            );
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiMsgId
+              ? {
+                  ...msg,
+                  text: result.fullContent,
+                  extractedHtml: resolvedHtml,
+                  version: result.version || msg.version,
+                  isLoading: false,
+                }
+              : msg
+          )
+        );
 
-            if (html && !isStreaming) {
-              setExtractedHtml(html);
-            }
-          },
-          onComplete: (fullContent: string, finalHtml: string, returnedSessionId?: string, returnedVersion?: string) => {
-            setIsStreaming(false);
-            const resolvedHtml = finalHtml || chatService.extractHtml(fullContent);
-            const thinking = chatService.extractThinking(fullContent);
+        if (options?.onTurnComplete) {
+          options.onTurnComplete(result.sessionId || targetSessionId, resolvedHtml);
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
 
-            if (resolvedHtml) {
-              setExtractedHtml(resolvedHtml);
-            }
+        setIsStreaming(false);
+        const errMsg = err instanceof Error ? err.message : 'Lỗi kết nối máy chủ AI';
 
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === aiMsgId
-                  ? {
-                      ...msg,
-                      text: fullContent,
-                      thinkingContent: thinking,
-                      extractedHtml: resolvedHtml,
-                      version: returnedVersion || msg.version,
-                      isStreaming: false,
-                    }
-                  : msg
-              )
-            );
+        let friendlyError = errMsg;
+        if (
+          errMsg.includes('429') ||
+          errMsg.includes('rate-limit') ||
+          errMsg.includes('rate-limited') ||
+          errMsg.includes('failover candidates exhausted') ||
+          errMsg.includes('model_not_found')
+        ) {
+          friendlyError =
+            '⚠️ OpenRouter AI Engine đang tạm thời quá tải lượt gọi miễn phí (Rate Limit 429). Hệ thống đang tự động điều hướng, vui lòng thử lại sau 10 - 20 giây!';
+        }
 
-            if (options?.onTurnComplete) {
-              options.onTurnComplete(returnedSessionId || targetSessionId, resolvedHtml);
-            }
-          },
-          onError: (errMsg: string) => {
-            setIsStreaming(false);
-
-            let friendlyError = errMsg;
-            if (
-              errMsg.includes('429') ||
-              errMsg.includes('rate-limit') ||
-              errMsg.includes('rate-limited') ||
-              errMsg.includes('failover candidates exhausted') ||
-              errMsg.includes('model_not_found')
-            ) {
-              friendlyError =
-                '⚠️ OpenRouter AI Engine đang tạm thời quá tải lượt gọi miễn phí (Rate Limit 429). Hệ thống đang tự động điều hướng, vui lòng thử lại sau 10 - 20 giây!';
-            }
-
-            setError(friendlyError);
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === aiMsgId
-                  ? {
-                      ...msg,
-                      text: friendlyError,
-                      isStreaming: false,
-                    }
-                  : msg
-              )
-            );
-          },
-        },
-        targetSessionId,
-        controller.signal
-      );
+        setError(friendlyError);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiMsgId
+              ? {
+                  ...msg,
+                  text: friendlyError,
+                  isLoading: false,
+                }
+              : msg
+          )
+        );
+      }
     },
     [isStreaming, messages, options]
   );
@@ -182,8 +151,8 @@ export function useChatStream(options?: UseChatStreamOptions) {
       setIsStreaming(false);
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.isStreaming
-            ? { ...msg, text: msg.text + ' [Đã dừng sinh mã]', isStreaming: false }
+          msg.isLoading
+            ? { ...msg, text: '⚠️ Đã dừng xử lý theo yêu cầu người dùng.', isLoading: false }
             : msg
         )
       );
@@ -195,7 +164,6 @@ export function useChatStream(options?: UseChatStreamOptions) {
     setHasStartedChat(false);
     setMessages([]);
     setExtractedHtml('');
-    setStreamingContent('');
     setError(null);
   }, [stopGeneration]);
 
@@ -203,7 +171,6 @@ export function useChatStream(options?: UseChatStreamOptions) {
     messages,
     hasStartedChat,
     isStreaming,
-    streamingContent,
     extractedHtml,
     error,
     sendPrompt,
@@ -212,3 +179,4 @@ export function useChatStream(options?: UseChatStreamOptions) {
     loadSession,
   };
 }
+
