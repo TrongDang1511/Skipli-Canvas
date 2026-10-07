@@ -15,6 +15,7 @@ interface ChatSidebarProps {
   isStreaming: boolean;
   onSendPrompt: (prompt: string) => void;
   onStopGeneration: () => void;
+  sessionTitle?: string;
 }
 
 export const ChatSidebar: FC<ChatSidebarProps> = ({
@@ -22,6 +23,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   isStreaming,
   onSendPrompt,
   onStopGeneration,
+  sessionTitle,
 }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,12 +57,23 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
 
   return (
     <aside className="w-[400px] max-w-[400px] bg-white dark:bg-[#0B192C] border-r border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-stone-100 flex flex-col h-full shrink-0 select-none shadow-xs dark:shadow-xl z-20 transition-colors duration-200">
-      <div className="h-12 px-4 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-stone-300 bg-slate-50/80 dark:bg-[#070F1E]/80">
-        <div className="flex items-center gap-2">
-          <Layers className="w-3.5 h-3.5 text-amber-500 dark:text-[#D4AF37]" />
-          <span>Lịch Sử Tương Tác & Lệnh Prompt</span>
+      <div className="h-12 px-3.5 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-stone-300 bg-slate-50/80 dark:bg-[#070F1E]/80">
+        <div className="flex items-center gap-2 min-w-0 pr-2">
+          {sessionTitle ? (
+            <>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-[#D4AF37] shrink-0" />
+              <span className="truncate text-navy-900 dark:text-white font-bold" title={sessionTitle}>
+                {sessionTitle}
+              </span>
+            </>
+          ) : (
+            <>
+              <Layers className="w-3.5 h-3.5 text-amber-500 dark:text-[#D4AF37] shrink-0" />
+              <span className="truncate">Lịch Sử Tương Tác & Lệnh Prompt</span>
+            </>
+          )}
         </div>
-        <span className="text-[10px] text-slate-600 dark:text-stone-400 bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 px-1.5 py-0.5 rounded font-mono">
+        <span className="text-[10px] text-slate-600 dark:text-stone-400 bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded font-mono shrink-0">
           {messages.length} bước
         </span>
       </div>

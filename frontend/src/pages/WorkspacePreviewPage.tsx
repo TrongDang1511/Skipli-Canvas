@@ -4,7 +4,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useChatStream } from '../hooks/useChatStream';
 import { ViewportMode, ViewMode } from '../types/chat.types';
 import { MasterSidebar } from '../components/layout/MasterSidebar';
-import { WorkspaceHeader } from '../components/features/workspace/WorkspaceHeader';
 import { HomeDashboard } from '../components/features/workspace/HomeDashboard';
 import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
@@ -99,21 +98,8 @@ export const WorkspacePreviewPage: FC = () => {
         onSelectSession={handleSelectSession}
       />
 
-
-
       {/* 2. Main Workspace Layout */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Top Bar Header */}
-        <WorkspaceHeader
-          hasStartedChat={hasStartedChat}
-          viewport={viewport}
-          setViewport={setViewport}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          onExport={handleExportHtml}
-          sessionTitle={activeSession?.title}
-        />
-
         {/* Dynamic Workspace Body */}
         {!hasStartedChat ? (
           /* Home Dashboard khi chưa chọn hoặc bắt đầu phiên */
@@ -131,6 +117,7 @@ export const WorkspacePreviewPage: FC = () => {
               isStreaming={isStreaming}
               onSendPrompt={handleSendPrompt}
               onStopGeneration={stopGeneration}
+              sessionTitle={activeSession?.title}
             />
 
             {/* Khung Live Preview Canvas hoặc Code Viewer Bên Phải */}
@@ -138,10 +125,18 @@ export const WorkspacePreviewPage: FC = () => {
               <CanvasPreview
                 htmlContent={extractedHtml}
                 viewport={viewport}
+                setViewport={setViewport}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                onExport={handleExportHtml}
                 isStreaming={isStreaming}
               />
             ) : (
-              <CodeViewer code={extractedHtml} />
+              <CodeViewer
+                code={extractedHtml}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
             )}
           </div>
         )}
