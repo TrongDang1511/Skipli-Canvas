@@ -1,17 +1,19 @@
 import { FC, useState } from 'react';
 import { useSession } from '../contexts/SessionContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useChatStream } from '../hooks/useChatStream';
 import { ViewportMode, ViewMode } from '../types/chat.types';
 import { MasterSidebar } from '../components/layout/MasterSidebar';
-import { WorkspaceHeader } from '../components/features/workspace/WorkspaceHeader';
 import { HomeDashboard } from '../components/features/workspace/HomeDashboard';
 import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
 import { CodeViewer } from '../components/features/workspace/CodeViewer';
 import { useAuth } from '../hooks/useAuth';
+import { cn } from '../utils/cn';
 
 export const WorkspacePreviewPage: FC = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const {
     activeSession,
     activeSessionId,
@@ -84,28 +86,20 @@ export const WorkspacePreviewPage: FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#0B192C] text-stone-100 flex overflow-hidden font-sans">
+    <div
+      className={cn(
+        'h-screen w-full flex overflow-hidden font-sans transition-colors duration-200',
+        theme === 'dark' ? 'dark bg-[#0B192C] text-stone-100' : 'light bg-[#FAF9F6] text-slate-900'
+      )}
+    >
       {/* 1. Master Collapsible History Sidebar (ChatGPT / Gemini Style) */}
       <MasterSidebar
         onNewWeb={handleNewWeb}
         onSelectSession={handleSelectSession}
       />
 
-
-
       {/* 2. Main Workspace Layout */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Top Bar Header */}
-        <WorkspaceHeader
-          hasStartedChat={hasStartedChat}
-          viewport={viewport}
-          setViewport={setViewport}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          onExport={handleExportHtml}
-          sessionTitle={activeSession?.title}
-        />
-
         {/* Dynamic Workspace Body */}
         {!hasStartedChat ? (
           /* Home Dashboard khi chưa chọn hoặc bắt đầu phiên */
@@ -123,6 +117,7 @@ export const WorkspacePreviewPage: FC = () => {
               isStreaming={isStreaming}
               onSendPrompt={handleSendPrompt}
               onStopGeneration={stopGeneration}
+              sessionTitle={activeSession?.title}
             />
 
             {/* Khung Live Preview Canvas hoặc Code Viewer Bên Phải */}
@@ -130,10 +125,18 @@ export const WorkspacePreviewPage: FC = () => {
               <CanvasPreview
                 htmlContent={extractedHtml}
                 viewport={viewport}
+                setViewport={setViewport}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                onExport={handleExportHtml}
                 isStreaming={isStreaming}
               />
             ) : (
-              <CodeViewer code={extractedHtml} />
+              <CodeViewer
+                code={extractedHtml}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
             )}
           </div>
         )}

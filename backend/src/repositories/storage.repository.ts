@@ -22,16 +22,19 @@ export class StorageRepository {
         const snapshot = await db
           .collection('storage_files')
           .where('userId', '==', userId)
-          .orderBy('createdAt', 'desc')
           .get();
 
         if (!snapshot.empty) {
-          return snapshot.docs.map((doc) => {
+          const files = snapshot.docs.map((doc) => {
             const data = doc.data() as StorageFile;
             const { htmlContent, ...meta } = data;
             return meta;
           });
+          return files.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         }
+        return [];
       } catch (error) {
         console.warn('[StorageRepository] Firestore query failed, reading from in-memory:', error);
       }

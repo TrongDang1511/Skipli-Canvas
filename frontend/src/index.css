@@ -2,18 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Dark Navy Scrollbar */
+@layer base {
+  body {
+    background-color: #FAF9F6;
+    color: #0F172A;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  html.dark body,
+  body.dark {
+    background-color: #070F1E;
+    color: #F8FAFC;
+  }
+}
+
+/* Light Scrollbar (Default) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #070F1E;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E3E62;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
@@ -23,6 +38,27 @@
 
 * {
   scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F1F5F9;
+}
+
+/* Dark Mode Scrollbar */
+.dark ::-webkit-scrollbar-track,
+html.dark ::-webkit-scrollbar-track {
+  background: #070F1E;
+}
+
+.dark ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1E3E62;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+}
+
+.dark *,
+html.dark * {
   scrollbar-color: #1E3E62 #070F1E;
 }
 
