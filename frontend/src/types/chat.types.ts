@@ -6,16 +6,20 @@ export interface ChatMessage {
   text: string;
   time: string;
   version?: string;
-  steps?: string[];
   extractedHtml?: string;
-  thinkingContent?: string;
-  isStreaming?: boolean;
+  isLoading?: boolean;
 }
 
 export type ViewportMode = 'desktop' | 'tablet' | 'mobile';
 export type ViewMode = 'preview' | 'code';
 
-export type SSEEvent =
-  | { type: 'token'; token: string }
-  | { type: 'complete'; fullContent: string; extractedHtml: string; sessionId?: string; version?: string }
-  | { type: 'error'; error: string };
+export interface ChatApiResponse {
+  success: boolean;
+  data: {
+    sessionId: string;
+    version: string;
+    fullContent: string;
+    extractedHtml: string;
+  };
+}
+

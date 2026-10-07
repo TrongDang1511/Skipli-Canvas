@@ -8,9 +8,6 @@ import {
   Square,
   Wand2,
   Layers,
-  Brain,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 interface ChatSidebarProps {
@@ -27,21 +24,12 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   onStopGeneration,
 }) => {
   const [inputText, setInputText] = useState('');
-  const [isThinkingExpanded, setIsThinkingExpanded] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const thinkingScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
-
-  useEffect(() => {
-    if (thinkingScrollRef.current) {
-      thinkingScrollRef.current.scrollTop = thinkingScrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const handleSend = () => {
     if (!inputText.trim() || isStreaming) return;
@@ -63,15 +51,6 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
     setInputText(e.target.value);
     e.target.style.height = 'auto';
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
-  };
-
-  const formatThinkingPreview = (thinkingText?: string) => {
-    if (!thinkingText) return 'Đang xử lý luồng suy luận...';
-    const trimmed = thinkingText.trim();
-    if (trimmed.length <= 300) {
-      return trimmed;
-    }
-    return `... ${trimmed.slice(-300)}`;
   };
 
   return (
@@ -118,39 +97,22 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
                       )}
                     </div>
 
-                    {msg.isStreaming && (
-                      <div className="bg-[#112240] border border-slate-700 rounded-xl overflow-hidden transition-all duration-200">
-                        <button
-                          type="button"
-                          onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
-                          className="w-full px-3 py-2 flex items-center justify-between text-xs text-stone-300 hover:text-white bg-[#0f1d33] transition cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Brain className="w-3.5 h-3.5 text-[#D4AF37] animate-pulse" />
-                            <span className="font-medium text-[11px] text-stone-200">Thinking...</span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-ping" />
-                          </div>
-                          {isThinkingExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
-                          )}
-                        </button>
-
-                        {isThinkingExpanded && (
-                          <div
-                            ref={thinkingScrollRef}
-                            className="p-2.5 bg-[#091326] text-[11px] font-mono text-stone-300 leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap select-text border-t border-slate-800"
-                          >
-                            {formatThinkingPreview(msg.thinkingContent)}
-                          </div>
-                        )}
+                    {msg.isLoading && (
+                      <div className="flex items-center gap-3 p-3 bg-[#112240] border border-slate-700/80 rounded-xl">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-bounce" />
+                        </div>
+                        <span className="text-xs font-medium text-stone-200">
+                          Skipli AI đang xử lý và kiến tạo giao diện...
+                        </span>
                       </div>
                     )}
 
-                    {!msg.isStreaming && (
+                    {!msg.isLoading && (
                       <div className="text-stone-300 leading-relaxed select-text whitespace-pre-wrap text-xs">
-                        {chatService.formatChatDisplay(msg.text, msg.version, msg.isStreaming)}
+                        {chatService.formatChatDisplay(msg.text, msg.version, msg.isLoading)}
                       </div>
                     )}
 
@@ -219,3 +181,4 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
     </aside>
   );
 };
+

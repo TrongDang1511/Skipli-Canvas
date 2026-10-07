@@ -1,160 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
 import { goclawService } from '../services/goclaw.service';
 import { sessionService } from '../services/session.service';
-import { ChatStreamDto } from '../dtos/chat.dto';
-
-interface FlushableResponse extends Response {
-  flush?: () => void;
-}
+import { ChatRequestDto } from '../dtos/chat.dto';
 
 export class ChatController {
-  public streamChat = async (
+  public sendChat = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const { prompt, sessionId } = req.body as ChatStreamDto;
+    const { prompt, sessionId } = req.body as ChatRequestDto;
     const userId = req.user?.id;
-    const flushableRes = res as FlushableResponse;
-
-    req.socket.setTimeout(0);
-    if (res.socket) res.socket.setTimeout(0);
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    let accumulatedContent = '';
-    let isAborted = false;
-
-    req.on('aborted', () => {
-      isAborted = true;
-    });
 
     try {
-      const stream = await goclawService.streamChatCompletion(prompt);
-      let buffer = '';
+      const response = await goclawService.chatCompletion(prompt);
+      const fullContent = response.text;
+      const extractedHtml = goclawService.extractHtml(fullContent);
 
-      stream.on('data', (chunk: Buffer) => {
-        if (isAborted) {
-          stream.destroy();
-          return;
+      let savedSessionId = sessionId;
+      let savedVersion = 'v1.1';
+
+      if (userId) {
+        try {
+          const saved = await sessionService.saveChatTurn(
+            userId,
+            sessionId || '',
+            prompt,
+            fullContent,
+            extractedHtml
+          );
+          savedSessionId = saved.session.id;
+          savedVersion = saved.aiMsg.version || 'v1.1';
+        } catch (err) {
+          console.error('[ChatController] Failed to auto-save chat turn:', err);
         }
+      }
 
-        buffer += chunk.toString('utf-8');
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) continue;
-
-          const dataStr = trimmed.replace(/^data:\s*/, '');
-          if (dataStr === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(dataStr);
-            const deltaToken = parsed.choices?.[0]?.delta?.content || '';
-
-            if (deltaToken) {
-              if (
-                deltaToken.startsWith('Error:') ||
-                deltaToken.includes('failover candidates exhausted') ||
-                deltaToken.includes('rate-limited')
-              ) {
-                res.write(
-                  `data: ${JSON.stringify({
-                    type: 'error',
-                    error: '⚠️ OpenRouter AI Engine đang tạm thời chạm giới hạn lượt gọi miễn phí (Rate Limit). Vui lòng thử lại sau giây lát hoặc gửi lại prompt!',
-                  })}\n\n`
-                );
-                return;
-              }
-
-              accumulatedContent += deltaToken;
-              res.write(
-                `data: ${JSON.stringify({
-                  type: 'token',
-                  token: deltaToken,
-                })}\n\n`
-              );
-              if (typeof flushableRes.flush === 'function') {
-                flushableRes.flush();
-              }
-            }
-          } catch {
-            // ignore non-json frames
-          }
-        }
-      });
-
-      stream.on('end', async () => {
-        if (isAborted) return;
-
-        const extractedHtml = goclawService.extractHtml(accumulatedContent);
-        const thinkingMatch = accumulatedContent.match(/<think>([\s\S]*?)(?:<\/think>|$)/i);
-        const thinkingContent = thinkingMatch && thinkingMatch[1] ? thinkingMatch[1].trim() : '';
-
-        let savedSessionId = sessionId;
-        let savedVersion = 'v1.1';
-
-        if (userId) {
-          try {
-            const saved = await sessionService.saveStreamTurn(
-              userId,
-              sessionId || '',
-              prompt,
-              accumulatedContent,
-              thinkingContent,
-              extractedHtml
-            );
-            savedSessionId = saved.session.id;
-            savedVersion = saved.aiMsg.version || 'v1.1';
-          } catch (err) {
-            console.error('[ChatController] Failed to auto-save stream turn:', err);
-          }
-        }
-
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'complete',
-            sessionId: savedSessionId,
-            version: savedVersion,
-            fullContent: accumulatedContent,
-            extractedHtml,
-          })}\n\n`
-        );
-
-        res.write('data: [DONE]\n\n');
-        res.end();
-      });
-
-      stream.on('error', (err: Error) => {
-        if (isAborted) return;
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'error',
-            error: err.message || 'Lỗi luồng AI Stream',
-          })}\n\n`
-        );
-        res.end();
+      res.status(200).json({
+        success: true,
+        data: {
+          sessionId: savedSessionId,
+          version: savedVersion,
+          fullContent,
+          extractedHtml,
+        },
       });
     } catch (error: unknown) {
-      if (!res.headersSent) {
-        next(error);
-      } else {
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Lỗi kết nối GoClaw AI Engine',
-          })}\n\n`
-        );
-        res.end();
-      }
+      next(error);
     }
   };
 }
 
 export const chatController = new ChatController();
+

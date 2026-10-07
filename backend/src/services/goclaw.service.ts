@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
 import { goclawConfig } from '../config/goclaw.config';
@@ -9,11 +8,15 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatCompletionResponse {
+  text: string;
+}
+
 export class GoClawService {
-  public async streamChatCompletion(
+  public async chatCompletion(
     prompt: string,
     history: ChatMessage[] = []
-  ): Promise<Readable> {
+  ): Promise<ChatCompletionResponse> {
     const messages: ChatMessage[] = [
       ...history,
       {
@@ -28,7 +31,7 @@ export class GoClawService {
         {
           model: goclawConfig.agentId,
           messages,
-          stream: true,
+          stream: false,
           max_tokens: 8192,
           tools: [],
           tool_choice: 'none',
@@ -40,12 +43,17 @@ export class GoClawService {
             'X-GoClaw-User-Id': goclawConfig.userId,
             'X-GoClaw-Agent-Id': goclawConfig.agentId,
           },
-          responseType: 'stream',
           timeout: 0,
         }
       );
 
-      return response.data as Readable;
+      const responseData = response.data;
+      const content =
+        responseData?.choices?.[0]?.message?.content ||
+        responseData?.content ||
+        '';
+
+      return { text: content };
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data
@@ -60,121 +68,77 @@ export class GoClawService {
   public extractHtml(fullContent: string): string {
     if (!fullContent) return '';
 
-    let cleaned = fullContent.replace(/<think>[\s\S]*?<\/think>/gi, '');
-    cleaned = cleaned.replace(/<think>[\s\S]*/gi, '');
-
+    // Trường hợp 1: Nhả ra code HTML trong phản hồi (Markdown ```html ... ``` hoặc <!DOCTYPE html>)
     const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/i;
-    const match = cleaned.match(htmlBlockRegex);
+    const match = fullContent.match(htmlBlockRegex);
     if (match && match[1] && match[1].trim()) {
       return match[1].trim();
     }
 
-    if (cleaned.includes('<!DOCTYPE') || cleaned.includes('<html') || cleaned.includes('<body') || cleaned.includes('<div')) {
-      const startIdx = cleaned.search(/<(?:!DOCTYPE|html|body|div)/i);
+    if (fullContent.includes('<!DOCTYPE') || fullContent.includes('<html') || fullContent.includes('<body')) {
+      const startIdx = fullContent.search(/<(?:!DOCTYPE|html|body)/i);
       if (startIdx !== -1) {
-        const candidate = cleaned.substring(startIdx).replace(/```\s*$/i, '').trim();
+        const candidate = fullContent.substring(startIdx).replace(/```\s*$/i, '').trim();
         if (candidate.length > 50) {
           return candidate;
         }
       }
     }
 
+    // Trường hợp 2: AI sinh 1 file .html ra ổ cứng (Đọc trực tiếp nội dung file .html)
     try {
-      const systemDir = 'C:\\Users\\HP\\system';
-
-      const pathMatch = fullContent.match(/[C-Z]:\\[^\s"'\n\r<>*?]+/i);
+      const pathMatch = fullContent.match(/[C-Z]:\\[^\s"'\n\r<>*?]+\.html/i);
       if (pathMatch) {
-        const matchedPath = pathMatch[0].replace(/[.,;:)]+$/, '');
-        if (fs.existsSync(matchedPath)) {
-          const stat = fs.statSync(matchedPath);
-          if (stat.isDirectory()) {
-            const indexPath = path.join(matchedPath, 'index.html');
-            if (fs.existsSync(indexPath)) {
-              return this.bundleHtmlFile(indexPath);
-            }
-          } else if (stat.isFile() && matchedPath.endsWith('.html')) {
-            return this.bundleHtmlFile(matchedPath);
-          }
+        const filePath = pathMatch[0].replace(/[.,;:)]+$/, '');
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          return fs.readFileSync(filePath, 'utf-8');
         }
       }
 
+      const systemDir = 'C:\\Users\\HP\\system';
       if (fs.existsSync(systemDir)) {
         const entries = fs.readdirSync(systemDir, { withFileTypes: true });
-        let newestHtml = '';
+        let newestHtmlPath = '';
         let newestTime = 0;
 
         for (const entry of entries) {
           const fullPath = path.join(systemDir, entry.name);
-          if (entry.isDirectory()) {
+          if (entry.isFile() && entry.name.endsWith('.html')) {
+            const stat = fs.statSync(fullPath);
+            if (stat.mtimeMs > newestTime) {
+              newestTime = stat.mtimeMs;
+              newestHtmlPath = fullPath;
+            }
+          } else if (entry.isDirectory()) {
             try {
-              const files = fs.readdirSync(fullPath);
-              for (const f of files) {
-                if (f.endsWith('.html')) {
-                  const htmlFilePath = path.join(fullPath, f);
-                  const stat = fs.statSync(htmlFilePath);
+              const subFiles = fs.readdirSync(fullPath);
+              for (const sf of subFiles) {
+                if (sf.endsWith('.html')) {
+                  const sfPath = path.join(fullPath, sf);
+                  const stat = fs.statSync(sfPath);
                   if (stat.mtimeMs > newestTime) {
                     newestTime = stat.mtimeMs;
-                    newestHtml = htmlFilePath;
+                    newestHtmlPath = sfPath;
                   }
                 }
               }
             } catch {
-              // skip unreadable folder
-            }
-          } else if (entry.name.endsWith('.html')) {
-            const stat = fs.statSync(fullPath);
-            if (stat.mtimeMs > newestTime) {
-              newestTime = stat.mtimeMs;
-              newestHtml = fullPath;
+              // Ignore unreadable subfolders
             }
           }
         }
 
-        if (newestHtml && Date.now() - newestTime < 600000) {
-          return this.bundleHtmlFile(newestHtml);
+        if (newestHtmlPath && Date.now() - newestTime < 600000) {
+          return fs.readFileSync(newestHtmlPath, 'utf-8');
         }
       }
     } catch {
-      // ignore filesystem scan errors
+      // Ignore filesystem read errors
     }
 
     return '';
   }
-
-  private bundleHtmlFile(htmlFilePath: string): string {
-    try {
-      let content = fs.readFileSync(htmlFilePath, 'utf-8');
-      const folder = path.dirname(htmlFilePath);
-
-      content = content.replace(/<link\s+[^>]*href=["']([^"']+)["'][^>]*>/gi, (match, href) => {
-        if (!href.startsWith('http') && !href.startsWith('//') && !href.startsWith('data:')) {
-          const cleanHref = href.split('?')[0];
-          const cssPath = path.join(folder, cleanHref);
-          if (fs.existsSync(cssPath)) {
-            const cssContent = fs.readFileSync(cssPath, 'utf-8');
-            return `<style>\n${cssContent}\n</style>`;
-          }
-        }
-        return match;
-      });
-
-      content = content.replace(/<script\s+[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (match, src) => {
-        if (!src.startsWith('http') && !src.startsWith('//') && !src.startsWith('data:')) {
-          const cleanSrc = src.split('?')[0];
-          const jsPath = path.join(folder, cleanSrc);
-          if (fs.existsSync(jsPath)) {
-            const jsContent = fs.readFileSync(jsPath, 'utf-8');
-            return `<script>\n${jsContent}\n</script>`;
-          }
-        }
-        return match;
-      });
-
-      return content;
-    } catch {
-      return '';
-    }
-  }
 }
 
 export const goclawService = new GoClawService();
+
