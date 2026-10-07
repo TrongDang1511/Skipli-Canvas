@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { useAuth } from './hooks/useAuth';
@@ -22,10 +23,12 @@ const MainApp: FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SessionProvider>
-        <MainApp />
-      </SessionProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <SessionProvider>
+          <MainApp />
+        </SessionProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -132,39 +132,39 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   const getContainerStyles = () => {
     switch (viewport) {
       case 'mobile':
-        return 'w-[375px] h-[85vh] rounded-[36px] border-[6px] border-slate-700 shadow-2xl my-auto';
+        return 'w-[375px] h-[85vh] rounded-[36px] border-[6px] border-slate-300 dark:border-slate-700 shadow-2xl my-auto';
       case 'tablet':
-        return 'w-[768px] h-[90vh] rounded-2xl border-4 border-slate-700 shadow-2xl my-auto';
+        return 'w-[768px] h-[90vh] rounded-2xl border-4 border-slate-300 dark:border-slate-700 shadow-2xl my-auto';
       case 'desktop':
       default:
-        return 'w-full h-full rounded-lg border border-slate-800 shadow-md';
+        return 'w-full h-full rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs';
     }
   };
 
   return (
-    <main className="flex-1 bg-[#070F1E] flex flex-col h-full overflow-hidden p-3 relative text-stone-200">
-      <div className="h-9 bg-[#0B192C] border border-slate-800 rounded-lg px-3 flex items-center justify-between text-xs text-stone-300 mb-2 shrink-0 shadow-md">
+    <main className="flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] flex flex-col h-full overflow-hidden p-3 relative text-slate-800 dark:text-stone-200 transition-colors duration-200">
+      <div className="h-9 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-3 flex items-center justify-between text-xs text-slate-700 dark:text-stone-300 mb-2 shrink-0 shadow-xs dark:shadow-md">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400 dark:bg-red-500/80" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 dark:bg-amber-500/80" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 dark:bg-emerald-500/80" />
           </div>
           <button
             onClick={handleRefresh}
             title="Tải lại trang"
-            className="p-1 text-stone-400 hover:text-white rounded transition cursor-pointer"
+            className="p-1 text-slate-400 hover:text-navy-900 dark:text-stone-400 dark:hover:text-white rounded transition cursor-pointer"
           >
             <RotateCw className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="flex-1 max-w-md mx-4 bg-[#112240] border border-slate-700/80 rounded-md px-3 py-1 flex items-center gap-2 text-[11px] text-stone-300 font-mono">
-          <Globe className="w-3 h-3 text-[#D4AF37]" />
+        <div className="flex-1 max-w-md mx-4 bg-slate-100 dark:bg-[#112240] border border-slate-200 dark:border-slate-700/80 rounded-md px-3 py-1 flex items-center gap-2 text-[11px] text-slate-700 dark:text-stone-300 font-mono">
+          <Globe className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
           <span className="truncate">https://preview.skipli-canvas.app/landing-page</span>
           {isStreaming && (
-            <span className="ml-auto flex items-center gap-1 text-[10px] text-[#D4AF37] font-sans font-medium">
-              <Loader2 className="w-3 h-3 animate-spin text-[#D4AF37]" />
+            <span className="ml-auto flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#D4AF37] font-sans font-medium">
+              <Loader2 className="w-3 h-3 animate-spin text-amber-500 dark:text-[#D4AF37]" />
               <span>Đang kiến tạo...</span>
             </span>
           )}
@@ -175,23 +175,23 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             onClick={handleOpenNewTab}
             disabled={!htmlContent}
             title="Mở toàn màn hình"
-            className="flex items-center gap-1 text-[11px] text-stone-300 hover:text-[#D4AF37] font-medium transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-[#D4AF37] font-medium transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span>Toàn màn hình</span>
-            <ExternalLink className="w-3 h-3 text-stone-400" />
+            <ExternalLink className="w-3 h-3 text-slate-400 dark:text-stone-400" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 bg-[#091326] rounded-xl border border-slate-800/80 flex items-center justify-center p-2 overflow-hidden relative">
+      <div className="flex-1 bg-slate-200/50 dark:bg-[#091326] rounded-xl border border-slate-200/90 dark:border-slate-800/80 flex items-center justify-center p-2 overflow-hidden relative">
         {isStreaming && (
-          <div className="absolute inset-0 z-40 bg-[#0B192C]/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fadeIn">
-            <Loader2 className="w-9 h-9 text-[#D4AF37] animate-spin mb-3" />
-            <h3 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+          <div className="absolute inset-0 z-40 bg-white/80 dark:bg-[#0B192C]/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fadeIn">
+            <Loader2 className="w-9 h-9 text-amber-500 dark:text-[#D4AF37] animate-spin mb-3" />
+            <h3 className="text-sm font-semibold text-navy-900 dark:text-white tracking-wide flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500 dark:text-[#D4AF37]" />
               <span>Skipli AI Engine đang kiến tạo giao diện...</span>
             </h3>
-            <p className="text-xs text-stone-300 mt-1 font-sans">
+            <p className="text-xs text-slate-600 dark:text-stone-300 mt-1 font-sans">
               Đang phân tích yêu cầu và render trực tiếp lên Live Preview
             </p>
           </div>

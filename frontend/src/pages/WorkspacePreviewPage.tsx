@@ -1,5 +1,6 @@
 import { FC, useState } from 'react';
 import { useSession } from '../contexts/SessionContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useChatStream } from '../hooks/useChatStream';
 import { ViewportMode, ViewMode } from '../types/chat.types';
 import { MasterSidebar } from '../components/layout/MasterSidebar';
@@ -9,9 +10,11 @@ import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
 import { CodeViewer } from '../components/features/workspace/CodeViewer';
 import { useAuth } from '../hooks/useAuth';
+import { cn } from '../utils/cn';
 
 export const WorkspacePreviewPage: FC = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const {
     activeSession,
     activeSessionId,
@@ -84,7 +87,12 @@ export const WorkspacePreviewPage: FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#0B192C] text-stone-100 flex overflow-hidden font-sans">
+    <div
+      className={cn(
+        'h-screen w-full flex overflow-hidden font-sans transition-colors duration-200',
+        theme === 'dark' ? 'dark bg-[#0B192C] text-stone-100' : 'light bg-[#FAF9F6] text-slate-900'
+      )}
+    >
       {/* 1. Master Collapsible History Sidebar (ChatGPT / Gemini Style) */}
       <MasterSidebar
         onNewWeb={handleNewWeb}
