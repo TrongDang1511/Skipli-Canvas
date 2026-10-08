@@ -163,10 +163,10 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
 
   return (
     <main className="flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] flex flex-col h-full overflow-hidden p-3 relative text-slate-800 dark:text-stone-200 transition-colors duration-200">
-      <div className="h-10 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-3 flex items-center justify-between text-xs text-slate-700 dark:text-stone-300 mb-2 shrink-0 shadow-xs dark:shadow-md">
+      <div className="h-10 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-2.5 flex items-center justify-between text-xs text-slate-700 dark:text-stone-300 mb-2 shrink-0 shadow-xs dark:shadow-md min-w-0 gap-2">
         {/* Left: Window Dots + Refresh + View Mode Switcher + Viewport Switcher */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 mr-1">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 mr-0.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-400 dark:bg-red-500/80" />
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 dark:bg-amber-500/80" />
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 dark:bg-emerald-500/80" />
@@ -180,7 +180,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             <RotateCw className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
           {/* View Mode Toggle: Xem Trước / Mã Nguồn */}
           <div className="flex items-center bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -188,32 +188,32 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
               type="button"
               onClick={() => setViewMode('preview')}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
+                'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
                 viewMode === 'preview'
                   ? 'bg-white dark:bg-[#1E3E62] text-navy-900 dark:text-white shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-stone-400 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               <Eye className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Xem Trước</span>
+              <span className="hidden sm:inline">Xem Trước</span>
             </button>
 
             <button
               type="button"
               onClick={() => setViewMode('code')}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
+                'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
                 viewMode === 'code'
                   ? 'bg-white dark:bg-[#1E3E62] text-navy-900 dark:text-white shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-stone-400 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               <Code2 className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Mã Nguồn</span>
+              <span className="hidden sm:inline">Mã Nguồn</span>
             </button>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
           {/* Viewport Modes */}
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -260,27 +260,27 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
         </div>
 
         {/* Center: Address Bar */}
-        <div className="flex-1 max-w-sm mx-3 bg-slate-100 dark:bg-[#112240] border border-slate-200 dark:border-slate-700/80 rounded-md px-3 py-1 flex items-center gap-2 text-[11px] text-slate-700 dark:text-stone-300 font-mono">
+        <div className="hidden lg:flex flex-1 max-w-[200px] xl:max-w-xs min-w-0 mx-2 bg-slate-100 dark:bg-[#112240] border border-slate-200 dark:border-slate-700/80 rounded-md px-2.5 py-1 items-center gap-1.5 text-[11px] text-slate-700 dark:text-stone-300 font-mono">
           <Globe className="w-3 h-3 text-amber-500 dark:text-[#D4AF37] shrink-0" />
           <span className="truncate">https://preview.skipli-canvas.app/landing-page</span>
           {isStreaming && (
             <span className="ml-auto flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#D4AF37] font-sans font-medium shrink-0">
               <Loader2 className="w-3 h-3 animate-spin text-amber-500 dark:text-[#D4AF37]" />
-              <span>Đang tạo...</span>
+              <span className="hidden 2xl:inline">Đang tạo...</span>
             </span>
           )}
         </div>
 
         {/* Right: Fullscreen + Export HTML */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <button
             onClick={handleOpenNewTab}
             disabled={!htmlContent}
             title="Mở toàn màn hình"
-            className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-[#D4AF37] font-medium transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-[#D4AF37] font-medium transition cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>Toàn màn hình</span>
-            <ExternalLink className="w-3 h-3 text-slate-400 dark:text-stone-400" />
+            <span className="hidden md:inline">Toàn màn hình</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-stone-400" />
           </button>
 
           <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
@@ -289,9 +289,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             onClick={onExport}
             disabled={!htmlContent}
             title="Tải mã HTML về máy"
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <Download className="w-3 h-3" />
+            <Download className="w-3.5 h-3.5" />
             <span>Tải HTML</span>
           </button>
         </div>
