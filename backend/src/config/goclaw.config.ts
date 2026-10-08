@@ -3,8 +3,8 @@ import { env } from './env.config';
 export const goclawConfig = {
   baseUrl: env.goclawUrl,
   gatewayToken: env.goclawGatewayToken,
-  agentId: process.env.GOCLAW_AGENT_ID || 'tho-xay-web',
-  userId: 'system',
+  agentId: process.env.GOCLAW_AGENT_ID || 'tho-xay-web-2',
+  userId: process.env.GOCLAW_AGENT_ID || 'tho-xay-web-2',
   completionsEndpoint: `${env.goclawUrl}/v1/chat/completions`,
 
   systemPrompt: `Bạn là Skipli Canvas AI - Chuyên gia kiến tạo giao diện Frontend hàng đầu.

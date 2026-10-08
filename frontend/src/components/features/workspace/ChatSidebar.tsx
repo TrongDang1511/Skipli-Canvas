@@ -1,6 +1,7 @@
 import { FC, useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { ChatMessage } from '../../../types/chat.types';
 import { chatService } from '../../../services/chat.service';
+import { FormattedChatMessage } from '../../ui/FormattedChatMessage';
 import { cn } from '../../../utils/cn';
 import {
   Sparkles,
@@ -124,9 +125,9 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
                     )}
 
                     {!msg.isLoading && (
-                      <div className="text-slate-700 dark:text-stone-300 leading-relaxed select-text whitespace-pre-wrap text-xs">
-                        {chatService.formatChatDisplay(msg.text, msg.version, msg.isLoading)}
-                      </div>
+                      <FormattedChatMessage
+                        content={chatService.formatChatDisplay(msg.text, msg.version, msg.isLoading)}
+                      />
                     )}
 
                     <div className="pt-1.5 flex items-center justify-end text-[10px] text-slate-400 dark:text-stone-500 border-t border-slate-200/80 dark:border-slate-800">
