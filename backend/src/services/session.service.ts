@@ -17,6 +17,39 @@ export class SessionService {
     return { session, messages };
   }
 
+  public async getSessionContext(
+    userId: string,
+    sessionId: string
+  ): Promise<{
+    session: Session | null;
+    latestHtml: string;
+    history: { role: 'user' | 'assistant'; content: string }[];
+  }> {
+    if (!sessionId || !sessionId.trim()) {
+      return { session: null, latestHtml: '', history: [] };
+    }
+
+    const session = await sessionRepository.findSessionById(sessionId.trim(), userId);
+    if (!session) {
+      return { session: null, latestHtml: '', history: [] };
+    }
+
+    const messages = await sessionRepository.findMessagesBySessionId(sessionId.trim(), userId);
+
+    // Lấy tối đa 6 tin nhắn gần nhất để giữ context gọn gàng và chuẩn xác
+    const recentMessages = messages.slice(-6);
+    const history = recentMessages.map((msg) => ({
+      role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
+      content: msg.text || '',
+    }));
+
+    return {
+      session,
+      latestHtml: session.latestHtml || '',
+      history,
+    };
+  }
+
   public async createSession(userId: string, title?: string, initialPrompt?: string): Promise<Session> {
     const id = randomUUID();
     const now = new Date().toISOString();

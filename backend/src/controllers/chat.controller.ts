@@ -13,7 +13,24 @@ export class ChatController {
     const userId = req.user?.id;
 
     try {
-      const response = await goclawService.chatCompletion(prompt);
+      let contextOptions: { history?: any[]; currentHtml?: string; sessionTitle?: string } = {};
+
+      if (userId && sessionId && typeof sessionId === 'string' && sessionId.trim()) {
+        try {
+          const sessionCtx = await sessionService.getSessionContext(userId, sessionId.trim());
+          if (sessionCtx) {
+            contextOptions = {
+              history: sessionCtx.history,
+              currentHtml: sessionCtx.latestHtml,
+              sessionTitle: sessionCtx.session?.title,
+            };
+          }
+        } catch (ctxErr) {
+          console.warn('[ChatController] Failed to fetch session context:', ctxErr);
+        }
+      }
+
+      const response = await goclawService.chatCompletion(prompt, contextOptions);
       const rawContent = response.text;
       const extractedHtml = goclawService.extractHtml(rawContent);
       const fullContent = goclawService.cleanTextResponse(rawContent);

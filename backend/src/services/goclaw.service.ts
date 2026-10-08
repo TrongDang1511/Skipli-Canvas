@@ -12,12 +12,42 @@ export interface ChatCompletionResponse {
   text: string;
 }
 
+export interface ChatCompletionOptions {
+  history?: ChatMessage[];
+  currentHtml?: string;
+  sessionTitle?: string;
+}
+
 export class GoClawService {
   public async chatCompletion(
     prompt: string,
-    history: ChatMessage[] = []
+    options: ChatCompletionOptions = {}
   ): Promise<ChatCompletionResponse> {
-    const systemDirective = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
+    const { history = [], currentHtml, sessionTitle } = options;
+
+    let finalPrompt = '';
+
+    if (currentHtml && currentHtml.trim()) {
+      // INCREMENTAL EDITING (Turn 2+)
+      finalPrompt = `[SKIPLI INCREMENTAL EDIT & UPGRADE DIRECTIVE]:
+You are continuing work on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
+
+CURRENT HTML CODE:
+\`\`\`html
+${currentHtml.trim()}
+\`\`\`
+
+USER'S MODIFICATION REQUEST:
+${prompt}
+
+MANDATORY RULES:
+1. Carefully update and enhance the EXISTING HTML source code above according to the user's new request.
+2. PRESERVE 100% of all existing 8 sections, style aesthetics, Unsplash images, copywriting, and Vanilla JS interactivity unless explicitly requested to remove or change them.
+3. Write the updated, complete single-file HTML (>250 lines) to disk via tool call 'write_file'.
+4. In your chat response, briefly summarize in polite Vietnamese the exact enhancements made.`;
+    } else {
+      // INITIAL CREATION (Turn 1)
+      finalPrompt = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
 You MUST strictly follow all 4 active Skipli Skills:
 1. 'skipli-adaptive-design-systems': Apply industry-matched color palettes, Google Fonts (Outfit / Playfair Display / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
 2. 'skipli-copywriting-seo': High-converting headlines, outcome-oriented CTAs, social proof, single H1, and SEO meta tags.
@@ -33,12 +63,13 @@ You MUST strictly follow all 4 active Skipli Skills:
 4. 'skipli-media-sourcing': Use unique, high-resolution Unsplash photo URLs for EVERY single item card and avatar. Never reuse the exact same photo ID across cards.
 
 User Request: ${prompt}`;
+    }
 
     const messages: ChatMessage[] = [
       ...history,
       {
         role: 'user',
-        content: systemDirective,
+        content: finalPrompt,
       },
     ];
 
