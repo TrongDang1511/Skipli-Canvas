@@ -33,8 +33,6 @@ export class GoClawService {
           messages,
           stream: false,
           max_tokens: 8192,
-          tools: [],
-          tool_choice: 'none',
         },
         {
           headers: {
@@ -65,10 +63,99 @@ export class GoClawService {
     }
   }
 
+  public cleanTextResponse(rawText: string): string {
+    if (!rawText) return '';
+    let cleaned = rawText;
+
+    // 1. Loại bỏ toàn bộ các khối mã ```html ... ``` hoặc ``` ... ```
+    cleaned = cleaned.replace(/```(?:html|xml|css|javascript|js)?[\s\S]*?```/gi, '');
+    // 2. Loại bỏ khối mã chưa đóng nếu có ở cuối
+    cleaned = cleaned.replace(/```(?:html|xml)?[\s\S]*$/gi, '');
+    // 3. Loại bỏ các câu dẫn mã nguồn kỹ thuật (VD: "Dưới đây là mã nguồn hoàn chỉnh...")
+    cleaned = cleaned.replace(/(?:Dưới đây là|Sau đây là|Here is the|Mã nguồn|Source code)[^\n]*?(?:mã nguồn|source code|code|trang web|HTML)[^\n]*:?/gi, '');
+    // 4. Loại bỏ các dòng thông báo tool hệ thống (VD: `write_file` đã được thực thi thành công...)
+    cleaned = cleaned.replace(/`?write_file`?[^\n]*?(?:thành công|hoàn tất|được tạo|delivered|workspace)[^\n]*/gi, '');
+    cleaned = cleaned.replace(/\*\(?(?:Mình đã lưu|Đã lưu|File will be delivered|Tôi đã lưu)[^\n]*\)?\*/gi, '');
+    // 5. Loại bỏ comment block
+    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+    // 6. Xóa các dòng trống liên tiếp
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+
+    return cleaned || rawText;
+  }
+
   public extractHtml(fullContent: string): string {
     if (!fullContent) return '';
 
-    // Trường hợp 1: Nhả ra code HTML trong phản hồi (Markdown ```html ... ``` hoặc <!DOCTYPE html>)
+    // =========================================================================
+    // ƯU TIÊN 1: NẾU AI ĐÃ SINH FILE .HTML TRÊN Ổ CỨNG / WORKSPACE
+    // Đọc trực tiếp 100% nội dung file nguyên bản từ workspace đĩa cứng của agent
+    // =========================================================================
+    try {
+      // 1.1 Kiểm tra xem trong phản hồi có nhắc đến đường dẫn file .html cụ thể nào không
+      const pathMatch = fullContent.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
+                        fullContent.match(/([a-zA-Z0-9_\-./\\]+\.html)/i);
+      if (pathMatch) {
+        const candidatePath = pathMatch[1].replace(/[.,;:)]+$/, '').trim();
+        if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
+          const fileContent = fs.readFileSync(candidatePath, 'utf-8');
+          if (fileContent && fileContent.includes('<html')) {
+            return fileContent;
+          }
+        }
+      }
+
+      // 1.2 Ưu tiên quét thư mục workspace chuẩn C:\Users\HP\.goclaw\workspace\tho-xay-web-2\tho-xay-web-2
+      const searchDirs = [
+        'C:\\Users\\HP\\.goclaw\\workspace\\tho-xay-web-2\\tho-xay-web-2',
+        'C:\\Users\\HP\\.goclaw\\workspace\\tho-xay-web-2',
+        'C:\\Users\\HP\\.goclaw\\workspace',
+        process.cwd()
+      ];
+
+      let newestHtmlPath = '';
+      let newestTime = 0;
+
+      const scanDirectory = (dirPath: string) => {
+        if (!fs.existsSync(dirPath)) return;
+        try {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            if (entry.isFile() && entry.name.endsWith('.html')) {
+              const stat = fs.statSync(fullPath);
+              if (stat.mtimeMs > newestTime) {
+                newestTime = stat.mtimeMs;
+                newestHtmlPath = fullPath;
+              }
+            } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+              scanDirectory(fullPath);
+            }
+          }
+        } catch {
+          // Bỏ qua thư mục không có quyền truy cập
+        }
+      };
+
+      for (const dir of searchDirs) {
+        scanDirectory(dir);
+      }
+
+      // Nếu tìm thấy file .html mới nhất vừa được AI tạo/ghi đè trong vòng 10 phút (600,000ms)
+      if (newestHtmlPath && Date.now() - newestTime < 600000) {
+        const fileContent = fs.readFileSync(newestHtmlPath, 'utf-8');
+        if (fileContent && fileContent.includes('<html')) {
+          return fileContent;
+        }
+      }
+    } catch (fsErr) {
+      console.warn('[GoClawService] Lỗi khi đọc file .html từ ổ cứng:', fsErr);
+    }
+
+    // =========================================================================
+    // ƯU TIÊN 2: NẾU AI TRẢ VỀ ĐOẠN CODE HTML INLINE (Markdown ```html ... ```)
+    // Bóc tách đoạn mã HTML hoàn chỉnh từ phản hồi text nếu không tìm thấy file
+    // =========================================================================
     const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/i;
     const match = fullContent.match(htmlBlockRegex);
     if (match && match[1] && match[1].trim()) {
@@ -83,57 +170,6 @@ export class GoClawService {
           return candidate;
         }
       }
-    }
-
-    // Trường hợp 2: AI sinh 1 file .html ra ổ cứng (Đọc trực tiếp nội dung file .html)
-    try {
-      const pathMatch = fullContent.match(/[C-Z]:\\[^\s"'\n\r<>*?]+\.html/i);
-      if (pathMatch) {
-        const filePath = pathMatch[0].replace(/[.,;:)]+$/, '');
-        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-          return fs.readFileSync(filePath, 'utf-8');
-        }
-      }
-
-      const systemDir = 'C:\\Users\\HP\\system';
-      if (fs.existsSync(systemDir)) {
-        const entries = fs.readdirSync(systemDir, { withFileTypes: true });
-        let newestHtmlPath = '';
-        let newestTime = 0;
-
-        for (const entry of entries) {
-          const fullPath = path.join(systemDir, entry.name);
-          if (entry.isFile() && entry.name.endsWith('.html')) {
-            const stat = fs.statSync(fullPath);
-            if (stat.mtimeMs > newestTime) {
-              newestTime = stat.mtimeMs;
-              newestHtmlPath = fullPath;
-            }
-          } else if (entry.isDirectory()) {
-            try {
-              const subFiles = fs.readdirSync(fullPath);
-              for (const sf of subFiles) {
-                if (sf.endsWith('.html')) {
-                  const sfPath = path.join(fullPath, sf);
-                  const stat = fs.statSync(sfPath);
-                  if (stat.mtimeMs > newestTime) {
-                    newestTime = stat.mtimeMs;
-                    newestHtmlPath = sfPath;
-                  }
-                }
-              }
-            } catch {
-              // Ignore unreadable subfolders
-            }
-          }
-        }
-
-        if (newestHtmlPath && Date.now() - newestTime < 600000) {
-          return fs.readFileSync(newestHtmlPath, 'utf-8');
-        }
-      }
-    } catch {
-      // Ignore filesystem read errors
     }
 
     return '';

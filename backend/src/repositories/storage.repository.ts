@@ -5,18 +5,22 @@ export class StorageRepository {
   private inMemoryStorage: Map<string, StorageFile> = new Map();
 
   public async createStorageFile(file: StorageFile): Promise<StorageFile> {
+    this.inMemoryStorage.set(file.id, file);
+
     if (isFirebaseInitialized && db) {
       try {
         await db.collection('storage_files').doc(file.id).set(file);
       } catch (error) {
-        console.warn('[StorageRepository] Firestore set failed, saving to in-memory:', error);
+        console.warn('[StorageRepository] Firestore set failed, saved to in-memory:', error);
       }
     }
-    this.inMemoryStorage.set(file.id, file);
     return file;
   }
 
   public async findFilesByUserId(userId: string): Promise<StorageFileMetadata[]> {
+    const fileMap = new Map<string, StorageFileMetadata>();
+
+    // 1. Prioritize querying Firestore if initialized
     if (isFirebaseInitialized && db) {
       try {
         const snapshot = await db
@@ -25,30 +29,27 @@ export class StorageRepository {
           .get();
 
         if (!snapshot.empty) {
-          const files = snapshot.docs.map((doc) => {
+          snapshot.docs.forEach((doc) => {
             const data = doc.data() as StorageFile;
             const { htmlContent, ...meta } = data;
-            return meta;
+            fileMap.set(meta.id, meta);
           });
-          return files.sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
         }
-        return [];
       } catch (error) {
         console.warn('[StorageRepository] Firestore query failed, reading from in-memory:', error);
       }
     }
 
-    const memoryFiles: StorageFileMetadata[] = [];
+    // 2. Merge with in-memory storage files for this user
     for (const file of this.inMemoryStorage.values()) {
-      if (file.userId === userId) {
+      if (file.userId === userId && !fileMap.has(file.id)) {
         const { htmlContent, ...meta } = file;
-        memoryFiles.push(meta);
+        fileMap.set(meta.id, meta);
       }
     }
 
-    return memoryFiles.sort(
+    const files = Array.from(fileMap.values());
+    return files.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
@@ -79,6 +80,14 @@ export class StorageRepository {
   public async deleteFile(id: string, userId: string): Promise<boolean> {
     let deleted = false;
 
+    if (this.inMemoryStorage.has(id)) {
+      const memory = this.inMemoryStorage.get(id);
+      if (memory?.userId === userId) {
+        this.inMemoryStorage.delete(id);
+        deleted = true;
+      }
+    }
+
     if (isFirebaseInitialized && db) {
       try {
         const docRef = db.collection('storage_files').doc(id);
@@ -92,16 +101,9 @@ export class StorageRepository {
       }
     }
 
-    if (this.inMemoryStorage.has(id)) {
-      const memory = this.inMemoryStorage.get(id);
-      if (memory?.userId === userId) {
-        this.inMemoryStorage.delete(id);
-        deleted = true;
-      }
-    }
-
     return deleted;
   }
 }
 
 export const storageRepository = new StorageRepository();
+

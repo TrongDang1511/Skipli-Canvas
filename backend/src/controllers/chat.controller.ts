@@ -14,8 +14,9 @@ export class ChatController {
 
     try {
       const response = await goclawService.chatCompletion(prompt);
-      const fullContent = response.text;
-      const extractedHtml = goclawService.extractHtml(fullContent);
+      const rawContent = response.text;
+      const extractedHtml = goclawService.extractHtml(rawContent);
+      const fullContent = goclawService.cleanTextResponse(rawContent);
 
       let savedSessionId = sessionId;
       let savedVersion = 'v1.1';
