@@ -17,11 +17,28 @@ export class GoClawService {
     prompt: string,
     history: ChatMessage[] = []
   ): Promise<ChatCompletionResponse> {
+    const systemDirective = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
+You MUST strictly follow all 4 active Skipli Skills:
+1. 'skipli-adaptive-design-systems': Apply industry-matched color palettes, Google Fonts (Outfit / Playfair Display / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
+2. 'skipli-copywriting-seo': High-converting headlines, outcome-oriented CTAs, social proof, single H1, and SEO meta tags.
+3. 'skipli-ecommerce-interactivity': MUST execute tool 'write_file' with path="[brand_slug]_[timestamp].html" to generate a single-file HTML (>250 lines) containing ALL 8 MANDATORY SECTIONS:
+   - Section 1: Sticky Glassmorphism Header & Navbar with floating Cart Icon & item count badge.
+   - Section 2: High-Impact Hero Banner with dual CTAs, trust rating pill (4.9/5★), and featured dish/product badge.
+   - Section 3: Brand Story / Artisan Quality Bento Grid with 3 metric highlight cards.
+   - Section 4: Categorized Product Grid with Category Tab Filters ("All", "Signatures", "Side Dishes", "Beverages"), real price tags, Quick View, and Add to Cart.
+   - Section 5: Value Proposition / Key Features Grid with Lucide stroke icons.
+   - Section 6: Customer Testimonials with 5-star gold ratings & authentic portrait avatars.
+   - Section 7: Interactive Reservation / Order Form with submit Toast notification & Map Card.
+   - Section 8: Luxury 4-Column Footer & Slide-Over Cart Drawer with 100% Vanilla JS interactivity (Cart state, quantity adjustment, subtotal calculation, checkout simulation).
+4. 'skipli-media-sourcing': Use unique, high-resolution Unsplash photo URLs for EVERY single item card and avatar. Never reuse the exact same photo ID across cards.
+
+User Request: ${prompt}`;
+
     const messages: ChatMessage[] = [
       ...history,
       {
         role: 'user',
-        content: prompt,
+        content: systemDirective,
       },
     ];
 
