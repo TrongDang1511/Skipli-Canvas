@@ -359,17 +359,17 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
                     </div>
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-xs text-slate-800 dark:text-stone-200 truncate">
-                          {file.sessionTitle || file.fileName}
+                        <span className="font-mono font-bold text-xs text-slate-800 dark:text-[#D4AF37] truncate" title={file.fileName || file.sessionTitle}>
+                          {file.fileName || file.sessionTitle}
                         </span>
-                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1 py-0.2 rounded">
+                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1 py-0.2 rounded shrink-0">
                           {file.version}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-stone-400 mt-0.5">
-                        <span>{new Date(file.createdAt).toLocaleDateString('vi-VN')}</span>
+                        <span className="truncate max-w-[110px]" title={file.sessionTitle}>{file.sessionTitle}</span>
                         <span>•</span>
-                        <span className="font-mono">{formatFileSize(file.sizeBytes)}</span>
+                        <span className="font-mono shrink-0">{formatFileSize(file.sizeBytes)}</span>
                       </div>
                     </div>
                   </div>

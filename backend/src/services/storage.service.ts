@@ -1,18 +1,50 @@
 import { randomUUID } from 'crypto';
+import path from 'path';
 import { StorageFile, StorageFileMetadata } from '../models/storage.model';
 import { storageRepository } from '../repositories/storage.repository';
 
-function slugifyFileName(title: string, version: string): string {
-  const cleanTitle = title
+function extractHtmlTitle(htmlContent: string): string | null {
+  if (!htmlContent) return null;
+  const match = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
+  if (match && match[1] && match[1].trim()) {
+    const rawTitle = match[1].replace(/<[^>]*>?/gm, '').trim();
+    if (rawTitle && rawTitle.length > 2) {
+      return rawTitle;
+    }
+  }
+  return null;
+}
+
+function resolveFileName(
+  sessionTitle: string,
+  version: string,
+  htmlContent: string,
+  customFileName?: string
+): string {
+  if (customFileName && customFileName.trim()) {
+    const clean = customFileName.trim().replace(/^['"`]+|['"`]+$/g, '');
+    const base = path.basename(clean);
+    if (base && base.endsWith('.html')) {
+      return base;
+    }
+    if (base) {
+      return `${base}.html`;
+    }
+  }
+
+  const htmlTitle = extractHtmlTitle(htmlContent);
+  const titleToUse = htmlTitle || sessionTitle || 'skipli_canvas_website';
+
+  const cleanTitle = titleToUse
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
-  const base = cleanTitle || 'skipli_canvas_website';
+  const baseSlug = cleanTitle || 'skipli_canvas_website';
   const cleanVer = (version || 'v1.1').replace(/[^a-z0-9.]/gi, '');
-  return `${base}_${cleanVer}.html`;
+  return `${baseSlug}_${cleanVer}.html`;
 }
 
 export class StorageService {
@@ -21,7 +53,8 @@ export class StorageService {
     sessionId: string,
     sessionTitle: string,
     version: string,
-    htmlContent: string
+    htmlContent: string,
+    customFileName?: string
   ): Promise<StorageFile | null> {
     if (!htmlContent || !htmlContent.trim()) {
       return null;
@@ -29,7 +62,7 @@ export class StorageService {
 
     const id = randomUUID();
     const now = new Date().toISOString();
-    const fileName = slugifyFileName(sessionTitle, version);
+    const fileName = resolveFileName(sessionTitle, version, htmlContent, customFileName);
     const sizeBytes = Buffer.byteLength(htmlContent, 'utf-8');
 
     const newFile: StorageFile = {

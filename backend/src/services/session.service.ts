@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import path from 'path';
 import { Session, SessionMessage } from '../models/session.model';
 import { sessionRepository } from '../repositories/session.repository';
 import { storageService } from './storage.service';
@@ -100,15 +101,28 @@ export class SessionService {
       updatedAt: now,
     });
 
-    // Tự động lưu snapshot file HTML vào kho Storage (hỗ trợ cả mã inline và file .html sinh ra trên ổ cứng)
+    // Tự động lưu snapshot file HTML vào kho Storage với tên file thực tế AI đã đặt
     if (extractedHtml && extractedHtml.trim()) {
       try {
+        let detectedFileName: string | undefined;
+
+        const fileMatch =
+          fullAiResponse.match(/`([a-zA-Z0-9_\-]+\.html)`/i) ||
+          fullAiResponse.match(/path=["']?([a-zA-Z0-9_\-]+\.html)["']?/i) ||
+          fullAiResponse.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
+          fullAiResponse.match(/([a-zA-Z0-9_\-]+\.html)/i);
+
+        if (fileMatch && fileMatch[1]) {
+          detectedFileName = path.basename(fileMatch[1].trim());
+        }
+
         await storageService.saveHtmlSnapshot(
           userId,
           session.id,
           session.title,
           versionStr,
-          extractedHtml
+          extractedHtml,
+          detectedFileName
         );
       } catch (storageErr) {
         console.warn('[SessionService] Auto-save storage snapshot error:', storageErr);
