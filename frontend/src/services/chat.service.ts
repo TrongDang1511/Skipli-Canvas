@@ -1,7 +1,6 @@
 import { ChatApiResponse } from '../types/chat.types';
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+import { API_BASE_URL, STORAGE_KEYS } from '../config/env.config';
 
 export class ChatService {
   public async sendChat(
@@ -10,7 +9,7 @@ export class ChatService {
     signal?: AbortSignal,
     isRetryAfterRefresh = false
   ): Promise<ChatApiResponse['data']> {
-    const token = localStorage.getItem('skipli_access_token');
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
     try {
       const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -24,7 +23,7 @@ export class ChatService {
       });
 
       if (response.status === 401 && !isRetryAfterRefresh) {
-        const refreshToken = localStorage.getItem('skipli_refresh_token');
+        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
         if (refreshToken) {
           try {
             const refreshRes = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
@@ -32,13 +31,13 @@ export class ChatService {
             const newRefreshToken = refreshRes.data?.data?.refreshToken;
 
             if (newAccessToken && newRefreshToken) {
-              localStorage.setItem('skipli_access_token', newAccessToken);
-              localStorage.setItem('skipli_refresh_token', newRefreshToken);
+              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+              localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
               return this.sendChat(prompt, sessionId, signal, true);
             }
           } catch {
-            localStorage.removeItem('skipli_access_token');
-            localStorage.removeItem('skipli_refresh_token');
+            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
             window.location.reload();
             throw new Error('Phiên làm việc hết hạn.');
           }

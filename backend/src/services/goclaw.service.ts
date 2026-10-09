@@ -1,6 +1,8 @@
 import axios from 'axios';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { env } from '../config/env.config';
 import { goclawConfig } from '../config/goclaw.config';
 
 export interface ChatMessage {
@@ -153,13 +155,18 @@ User Request: ${prompt}`;
         }
       }
 
-      // 1.2 Ưu tiên quét thư mục workspace chuẩn C:\Users\HP\.goclaw\workspace\tho-xay-web-2\tho-xay-web-2
+      // 1.2 Ưu tiên quét thư mục workspace chuẩn của GoClaw Agent (Đường dẫn động theo OS & Config)
+      const userHome = os.homedir();
+      const agentId = env.goclawAgentId;
+      const customWorkspace = env.goclawWorkspaceDir;
+
       const searchDirs = [
-        'C:\\Users\\HP\\.goclaw\\workspace\\tho-xay-web-2\\tho-xay-web-2',
-        'C:\\Users\\HP\\.goclaw\\workspace\\tho-xay-web-2',
-        'C:\\Users\\HP\\.goclaw\\workspace',
+        customWorkspace,
+        agentId ? path.join(userHome, '.goclaw', 'workspace', agentId, agentId) : '',
+        agentId ? path.join(userHome, '.goclaw', 'workspace', agentId) : '',
+        path.join(userHome, '.goclaw', 'workspace'),
         process.cwd()
-      ];
+      ].filter((dir): dir is string => Boolean(dir && dir.trim()));
 
       let newestHtmlPath = '';
       let newestTime = 0;

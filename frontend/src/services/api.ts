@@ -1,6 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+import { API_BASE_URL, STORAGE_KEYS } from '../config/env.config';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -12,7 +11,7 @@ export const apiClient = axios.create({
 // Request Interceptor: Tự động đính kèm accessToken vào Header
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('skipli_access_token');
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -68,12 +67,12 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('skipli_refresh_token');
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       if (!refreshToken) {
         isRefreshing = false;
-        localStorage.removeItem('skipli_access_token');
-        localStorage.removeItem('skipli_refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         return Promise.reject(error);
       }
 
@@ -81,8 +80,8 @@ apiClient.interceptors.response.use(
         const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = res.data.data;
 
-        localStorage.setItem('skipli_access_token', newAccessToken);
-        localStorage.setItem('skipli_refresh_token', newRefreshToken);
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
 
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -92,8 +91,8 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr as AxiosError, null);
-        localStorage.removeItem('skipli_access_token');
-        localStorage.removeItem('skipli_refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         window.location.reload();
         return Promise.reject(refreshErr);
       } finally {
