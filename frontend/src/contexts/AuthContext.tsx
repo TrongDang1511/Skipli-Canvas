@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '../types/auth';
 import { loginApi, registerApi, logoutApi, getMeApi } from '../services/auth.api';
+import { STORAGE_KEYS } from '../config/env.config';
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const accessToken = localStorage.getItem('skipli_access_token');
+      const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (!accessToken) {
         setIsLoading(false);
         return;
@@ -40,8 +41,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userProfile = await getMeApi();
         setUser(userProfile);
       } catch {
-        localStorage.removeItem('skipli_access_token');
-        localStorage.removeItem('skipli_refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -56,8 +57,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     try {
       const authData = await loginApi({ email, password });
-      localStorage.setItem('skipli_access_token', authData.accessToken);
-      localStorage.setItem('skipli_refresh_token', authData.refreshToken);
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
       setUser(authData.user);
     } catch (err: unknown) {
       const errorMsg =
@@ -78,8 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     try {
       const authData = await registerApi({ email, password, displayName });
-      localStorage.setItem('skipli_access_token', authData.accessToken);
-      localStorage.setItem('skipli_refresh_token', authData.refreshToken);
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
       setUser(authData.user);
     } catch (err: unknown) {
       const errorMsg =
@@ -100,8 +101,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await logoutApi();
     } finally {
-      localStorage.removeItem('skipli_access_token');
-      localStorage.removeItem('skipli_refresh_token');
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       setUser(null);
       setIsLoading(false);
     }

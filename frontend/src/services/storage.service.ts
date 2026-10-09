@@ -1,11 +1,10 @@
 import axios from 'axios';
 import { StorageFileItem, StorageApiResponse } from '../types/storage.types';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+import { API_BASE_URL, STORAGE_KEYS } from '../config/env.config';
 
 export class StorageService {
   private getAuthHeader() {
-    const token = localStorage.getItem('skipli_access_token');
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
@@ -23,7 +22,7 @@ export class StorageService {
 
   public async downloadStorageFile(fileId: string, fileName: string): Promise<void> {
     try {
-      const token = localStorage.getItem('skipli_access_token');
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       const response = await fetch(`${API_BASE_URL}/storage/files/${fileId}/download`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
