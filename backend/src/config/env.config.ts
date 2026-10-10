@@ -16,5 +16,13 @@ export const env = {
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET || '',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || '',
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+
+  // S3 / MinIO Storage Configuration
+  s3Endpoint: process.env.S3_ENDPOINT || '',
+  s3Region: process.env.S3_REGION || 'us-east-1',
+  s3BucketName: process.env.S3_BUCKET_NAME || 'skipli-canvas-storage',
+  s3AccessKeyId: process.env.S3_ACCESS_KEY_ID || '',
+  s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
+  s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true' || process.env.S3_FORCE_PATH_STYLE === '1'
 };

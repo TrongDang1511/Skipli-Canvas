@@ -66,20 +66,6 @@ export class ChatService {
 
   public extractHtml(content: string): string {
     if (!content) return '';
-
-    const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/i;
-    const match = content.match(htmlBlockRegex);
-    if (match && match[1] && match[1].trim()) {
-      return match[1].trim();
-    }
-
-    if (content.includes('<!DOCTYPE') || content.includes('<html') || content.includes('<body')) {
-      const startIdx = content.search(/<(?:!DOCTYPE|html|body)/i);
-      if (startIdx !== -1) {
-        return content.substring(startIdx).replace(/```\s*$/i, '').trim();
-      }
-    }
-
     return '';
   }
 

@@ -5,6 +5,9 @@ export interface StorageFile {
   sessionTitle: string;
   fileName: string;
   htmlContent: string;
+  s3Key?: string;
+  presignedUrl?: string;
+  presignedExpiresAt?: number;
   sizeBytes: number;
   version: string;
   createdAt: string;
@@ -16,6 +19,9 @@ export interface StorageFileMetadata {
   sessionId: string;
   sessionTitle: string;
   fileName: string;
+  s3Key?: string;
+  presignedUrl?: string;
+  presignedExpiresAt?: number;
   sizeBytes: number;
   version: string;
   createdAt: string;

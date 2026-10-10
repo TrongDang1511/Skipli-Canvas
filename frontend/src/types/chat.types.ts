@@ -20,6 +20,8 @@ export interface ChatApiResponse {
     version: string;
     fullContent: string;
     extractedHtml: string;
+    presignedUrl?: string;
+    s3Key?: string;
   };
 }
 

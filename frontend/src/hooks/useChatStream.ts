@@ -12,17 +12,19 @@ export function useChatStream(options?: UseChatStreamOptions) {
   const [hasStartedChat, setHasStartedChat] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [extractedHtml, setExtractedHtml] = useState<string>('');
+  const [presignedUrl, setPresignedUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const loadSession = useCallback((sessionMessages: SessionMessage[], html: string) => {
+  const loadSession = useCallback((sessionMessages: SessionMessage[], html: string, url?: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     setIsStreaming(false);
     setError(null);
     setExtractedHtml(html || '');
+    setPresignedUrl(url || '');
 
     const formatted: ChatMessage[] = sessionMessages.map((m) => {
       const timeStr = m.createdAt
@@ -89,6 +91,9 @@ export function useChatStream(options?: UseChatStreamOptions) {
         const resolvedHtml = result.extractedHtml || chatService.extractHtml(result.fullContent);
         if (resolvedHtml) {
           setExtractedHtml(resolvedHtml);
+        }
+        if (result.presignedUrl) {
+          setPresignedUrl(result.presignedUrl);
         }
 
         setMessages((prev) =>
@@ -164,6 +169,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
     setHasStartedChat(false);
     setMessages([]);
     setExtractedHtml('');
+    setPresignedUrl('');
     setError(null);
   }, [stopGeneration]);
 
@@ -172,6 +178,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
     hasStartedChat,
     isStreaming,
     extractedHtml,
+    presignedUrl,
     error,
     sendPrompt,
     stopGeneration,

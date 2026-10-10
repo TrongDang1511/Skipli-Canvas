@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 interface CanvasPreviewProps {
-  htmlContent: string;
+  presignedUrl?: string;
   viewport: ViewportMode;
   setViewport: (mode: ViewportMode) => void;
   viewMode: ViewMode;
@@ -25,106 +25,8 @@ interface CanvasPreviewProps {
   isStreaming: boolean;
 }
 
-function prepareSafePreviewHtml(rawHtml: string): string {
-  if (!rawHtml) return '';
-
-  const interceptorScript = `
-    <style>
-      #skipli-toast-container {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 999999;
-        pointer-events: none;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-      .skipli-toast-msg {
-        background: #0B192C;
-        color: #F8F9FA;
-        border: 1px solid #D4AF37;
-        padding: 10px 16px;
-        border-radius: 12px;
-        font-size: 13px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        margin-top: 8px;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .skipli-toast-msg.show {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    </style>
-    <div id="skipli-toast-container"></div>
-    <script>
-      (function() {
-        function showToast(message) {
-          var container = document.getElementById('skipli-toast-container');
-          if (!container) return;
-          var toast = document.createElement('div');
-          toast.className = 'skipli-toast-msg';
-          toast.innerHTML = '✨ <span style="color:#D4AF37; font-weight:600;">[Bản Xem Thử]</span> ' + message;
-          container.appendChild(toast);
-          setTimeout(function() { toast.classList.add('show'); }, 10);
-          setTimeout(function() {
-            toast.classList.remove('show');
-            setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
-          }, 3000);
-        }
-
-        document.addEventListener('click', function(e) {
-          var a = e.target.closest('a');
-          if (a) {
-            var href = a.getAttribute('href');
-            if (href && href.startsWith('#') && href.length > 1) {
-              e.preventDefault();
-              try {
-                var target = document.querySelector(href);
-                if (target) target.scrollIntoView({ behavior: 'smooth' });
-              } catch(err) {}
-              return;
-            } else if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-              e.preventDefault();
-              window.open(href, '_blank');
-              return;
-            } else {
-              e.preventDefault();
-              showToast('Liên kết này sẽ chuyển hướng trên website thực tế!');
-              return;
-            }
-          }
-
-          var btn = e.target.closest('button, input[type="submit"], input[type="button"], [role="button"]');
-          if (btn) {
-            if (btn.type === 'submit') {
-              e.preventDefault();
-            }
-            showToast('Nút bấm đã phản hồi tương tác trong giao diện xem thử!');
-          }
-        }, true);
-
-        document.addEventListener('submit', function(e) {
-          e.preventDefault();
-          showToast('Đã ghi nhận dữ liệu biểu mẫu trong bản xem thử!');
-        }, true);
-
-        window.onbeforeunload = function() { return null; };
-      })();
-    </script>
-  `;
-
-  if (rawHtml.includes('</body>')) {
-    return rawHtml.replace('</body>', `${interceptorScript}</body>`);
-  }
-  return rawHtml + interceptorScript;
-}
-
 export const CanvasPreview: FC<CanvasPreviewProps> = ({
-  htmlContent,
+  presignedUrl,
   viewport,
   setViewport,
   viewMode,
@@ -134,19 +36,22 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const safeHtml = prepareSafePreviewHtml(htmlContent);
-
   const handleRefresh = () => {
-    if (iframeRef.current) {
-      iframeRef.current.srcdoc = safeHtml;
+    if (iframeRef.current && presignedUrl) {
+      try {
+        const urlObj = new URL(presignedUrl);
+        urlObj.searchParams.set('_r', Date.now().toString());
+        iframeRef.current.src = urlObj.toString();
+      } catch {
+        iframeRef.current.src = presignedUrl;
+      }
     }
   };
 
   const handleOpenNewTab = () => {
-    if (!htmlContent) return;
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    if (presignedUrl) {
+      window.open(presignedUrl, '_blank');
+    }
   };
 
   const getContainerStyles = () => {
@@ -275,7 +180,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <button
             onClick={handleOpenNewTab}
-            disabled={!htmlContent}
+            disabled={!presignedUrl}
             title="Mở toàn màn hình"
             className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-[#D4AF37] font-medium transition cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -287,7 +192,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
 
           <button
             onClick={onExport}
-            disabled={!htmlContent}
+            disabled={!presignedUrl}
             title="Tải mã HTML về máy"
             className="flex items-center gap-1.5 px-3 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
           >
@@ -312,12 +217,12 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
         )}
 
         <div className={cn('transition-all duration-300 ease-out bg-white overflow-hidden flex flex-col relative', getContainerStyles())}>
-          {safeHtml ? (
+          {presignedUrl ? (
             <iframe
               ref={iframeRef}
               title="Skipli Live Preview"
-              srcDoc={safeHtml}
-              sandbox="allow-scripts allow-forms allow-popups"
+              src={presignedUrl}
+              sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
               className="w-full h-full border-none bg-white"
             />
           ) : (

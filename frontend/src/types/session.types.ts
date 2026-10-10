@@ -3,6 +3,9 @@ export interface Session {
   userId: string;
   title: string;
   latestHtml: string;
+  s3Key?: string;
+  presignedUrl?: string;
+  presignedExpiresAt?: number;
   versionCount: number;
   createdAt: string;
   updatedAt: string;

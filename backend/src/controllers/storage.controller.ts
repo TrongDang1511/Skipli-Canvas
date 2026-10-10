@@ -38,8 +38,8 @@ export class StorageController {
     }
 
     try {
-      const file = await storageService.getFileForDownload(userId, id);
-      if (!file) {
+      const result = await storageService.getFileForDownload(userId, id);
+      if (!result || !result.file) {
         res.status(404).json({
           success: false,
           message: 'Không tìm thấy tệp lưu trữ trong kho',
@@ -47,9 +47,15 @@ export class StorageController {
         return;
       }
 
+      // Nếu có S3 Presigned Download URL, chuyển hướng trực tiếp tải từ S3 (0 tải cho Backend)
+      if (result.downloadUrl) {
+        res.redirect(result.downloadUrl);
+        return;
+      }
+
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
-      res.status(200).send(file.htmlContent);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.file.fileName)}"`);
+      res.status(200).send(result.file.htmlContent || '');
     } catch (error: unknown) {
       next(error);
     }
