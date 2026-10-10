@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
 import { ViewMode } from '../../../types/chat.types';
 import { cn } from '../../../utils/cn';
-import { Copy, Check, FileCode, Eye, Code2, Loader2 } from 'lucide-react';
+import { Copy, Check, FileCode, Eye, Code2, Loader2, FileQuestion } from 'lucide-react';
 
 interface CodeViewerProps {
   code?: string;
@@ -14,14 +14,26 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
   const [copied, setCopied] = useState(false);
   const [fetchedCode, setFetchedCode] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!propCode && presignedUrl) {
       setIsLoading(true);
+      setHasError(false);
       fetch(presignedUrl)
-        .then((res) => res.text())
-        .then((text) => setFetchedCode(text))
-        .catch((err) => console.warn('[CodeViewer] Fetch code error:', err))
+        .then(async (res) => {
+          if (!res.ok) {
+            setHasError(true);
+            return;
+          }
+          const text = await res.text();
+          if (text.includes('<Error>') && text.includes('<Code>NoSuchKey</Code>')) {
+            setHasError(true);
+          } else {
+            setFetchedCode(text);
+          }
+        })
+        .catch(() => setHasError(true))
         .finally(() => setIsLoading(false));
     }
   }, [propCode, presignedUrl]);
@@ -107,9 +119,19 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
       {/* 2. Code Body with Line Numbers */}
       <div className="flex-1 bg-white dark:bg-[#070F1E] border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-auto p-4 font-mono text-xs leading-relaxed select-text shadow-xs relative">
         {isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 select-none">
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-            <span className="text-xs font-sans">Đang tải mã nguồn từ MinIO S3...</span>
+            <span className="text-xs font-sans">Đang tải mã nguồn...</span>
+          </div>
+        ) : hasError ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 select-none bg-[#FAF9F6] dark:bg-[#081220] rounded-lg border border-slate-200 dark:border-slate-800">
+            <FileQuestion className="w-12 h-12 text-amber-500 dark:text-[#D4AF37] mb-3" />
+            <h4 className="text-sm font-bold text-slate-800 dark:text-stone-200 mb-1 font-sans">
+              Không Thể Nạp Mã Nguồn
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-stone-400 font-sans max-w-sm">
+              Tệp HTML của phiên bản này không còn tồn tại trên hệ thống lưu trữ.
+            </p>
           </div>
         ) : (
           <table className="w-full border-collapse">
