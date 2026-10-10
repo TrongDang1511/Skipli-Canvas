@@ -295,7 +295,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
 
               <button
                 onClick={handleRefresh}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-[#D4AF37] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] rounded-xl font-semibold text-xs transition border border-amber-500/30 cursor-pointer shadow-xs active:scale-95"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-[#D4AF37] rounded-xl font-bold text-xs transition border border-amber-400/60 cursor-pointer shadow-xs active:scale-95"
               >
                 <RotateCw className="w-3.5 h-3.5" />
                 <span>Thử Kiểm Tra Lai</span>

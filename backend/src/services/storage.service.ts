@@ -1,5 +1,4 @@
 import { StorageFileMetadata } from '../models/storage.model';
-import { storageRepository } from '../repositories/storage.repository';
 import { s3Service } from './s3.service';
 
 export class StorageService {
@@ -18,23 +17,13 @@ export class StorageService {
     userId: string,
     fileIdOrS3Key: string
   ): Promise<{ downloadUrl: string; fileName: string } | null> {
-    // 1. Tìm file trong danh sách thực tế của S3
     const userFiles = await s3Service.listUserFiles(userId);
     const target = userFiles.find(
       (f) => f.id === fileIdOrS3Key || f.s3Key === fileIdOrS3Key
     );
 
-    let s3KeyToUse = target ? target.s3Key : fileIdOrS3Key;
-    let fileNameToUse = target ? target.fileName : 'skipli_canvas_website.html';
-
-    // 2. Nếu không có trong s3 list trực tiếp, thử tra cứu trong repository
-    if (!target) {
-      const repoFile = await storageRepository.findFileById(fileIdOrS3Key, userId);
-      if (repoFile && repoFile.s3Key) {
-        s3KeyToUse = repoFile.s3Key;
-        fileNameToUse = repoFile.fileName || fileNameToUse;
-      }
-    }
+    const s3KeyToUse = target ? target.s3Key : fileIdOrS3Key;
+    const fileNameToUse = target ? target.fileName : 'skipli_canvas_website.html';
 
     try {
       const downloadUrl = await s3Service.getPresignedDownloadUrl(s3KeyToUse, fileNameToUse);
@@ -46,7 +35,7 @@ export class StorageService {
   }
 
   /**
-   * Xóa file vật lý khỏi MinIO / S3 và dọn dẹp metadata
+   * Xóa file vật lý khỏi MinIO / S3
    */
   public async deleteStorageFile(userId: string, fileIdOrS3Key: string): Promise<boolean> {
     const userFiles = await s3Service.listUserFiles(userId);
@@ -56,14 +45,11 @@ export class StorageService {
 
     const s3KeyToDelete = target ? target.s3Key : fileIdOrS3Key;
     const deletedS3 = await s3Service.deleteObject(s3KeyToDelete);
-
-    // Đồng thời xóa bản ghi lưu ở repository nếu có
-    await storageRepository.deleteFile(fileIdOrS3Key, userId);
-
     return deletedS3;
   }
 }
 
 export const storageService = new StorageService();
+
 
 

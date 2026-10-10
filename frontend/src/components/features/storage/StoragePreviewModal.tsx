@@ -78,24 +78,24 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
         )}
       >
         {/* 1. Modal Top Bar (Light Luxury Theme Header) */}
-        <div className="h-14 px-5 flex items-center justify-between bg-[#0B192C] dark:bg-[#070F1E] border-b border-amber-500/30 text-white shrink-0">
+        <div className="h-14 px-5 flex items-center justify-between bg-white dark:bg-[#070F1E] border-b border-amber-500/30 text-slate-900 dark:text-white shrink-0">
           <div className="flex items-center gap-3 min-w-0 pr-4">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-              <Code2 className="w-4 h-4 text-[#D4AF37]" />
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+              <Code2 className="w-4 h-4 text-amber-600 dark:text-[#D4AF37]" />
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm text-white truncate max-w-xs md:max-w-md">
+                <span className="font-mono font-bold text-sm text-slate-900 dark:text-white truncate max-w-xs md:max-w-md">
                   {file.fileName}
                 </span>
-                <span className="text-[10px] font-bold text-[#D4AF37] bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded shrink-0">
+                <span className="text-[10px] font-bold text-amber-700 dark:text-[#D4AF37] bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded shrink-0">
                   {file.version}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-slate-300 mt-0.5">
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-300 mt-0.5">
                 <span className="truncate max-w-[150px]">{file.sessionTitle}</span>
                 <span>•</span>
-                <span className="font-mono text-amber-300">{formatFileSize(file.sizeBytes)}</span>
+                <span className="font-mono text-amber-700 dark:text-amber-300 font-semibold">{formatFileSize(file.sizeBytes)}</span>
               </div>
             </div>
           </div>
@@ -108,7 +108,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Mở tab mới"
-                className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span className="hidden sm:inline">Mở Tab Mới</span>
@@ -132,7 +132,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
             <button
               onClick={onClose}
               title="Đóng cửa sổ"
-              className="p-2 text-slate-400 hover:text-white hover:bg-red-500/20 rounded-xl transition cursor-pointer ml-1"
+              className="p-2 text-slate-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-white hover:bg-red-50 dark:hover:bg-red-500/20 rounded-xl transition cursor-pointer ml-1"
             >
               <X className="w-5 h-5" />
             </button>
