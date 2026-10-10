@@ -20,26 +20,23 @@ export class StorageService {
     }
   }
 
-  public async downloadStorageFile(fileId: string, fileName: string): Promise<void> {
+  public async downloadStorageFile(fileId: string, fileName?: string): Promise<void> {
     try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await fetch(`${API_BASE_URL}/storage/files/${fileId}/download`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await axios.get<{ success: boolean; downloadUrl: string; fileName: string }>(
+        `${API_BASE_URL}/storage/files/${encodeURIComponent(fileId)}/download`,
+        { headers: this.getAuthHeader() }
+      );
 
-      if (!response.ok) {
-        throw new Error(`Download failed with status ${response.status}`);
+      if (response.data?.downloadUrl) {
+        const a = document.createElement('a');
+        a.href = response.data.downloadUrl;
+        a.download = response.data.fileName || fileName || 'skipli_canvas_website.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        throw new Error('No download URL returned');
       }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName || 'skipli_canvas_website.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('[StorageService] Download error:', error);
       alert('Không thể tải file HTML. Vui lòng thử lại sau!');

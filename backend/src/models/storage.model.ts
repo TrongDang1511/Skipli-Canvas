@@ -4,8 +4,7 @@ export interface StorageFile {
   sessionId: string;
   sessionTitle: string;
   fileName: string;
-  htmlContent: string;
-  s3Key?: string;
+  s3Key: string;
   presignedUrl?: string;
   presignedExpiresAt?: number;
   sizeBytes: number;
@@ -19,10 +18,11 @@ export interface StorageFileMetadata {
   sessionId: string;
   sessionTitle: string;
   fileName: string;
-  s3Key?: string;
+  s3Key: string;
   presignedUrl?: string;
   presignedExpiresAt?: number;
   sizeBytes: number;
   version: string;
   createdAt: string;
 }
+
