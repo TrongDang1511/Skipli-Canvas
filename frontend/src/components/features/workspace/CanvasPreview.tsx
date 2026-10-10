@@ -1,4 +1,4 @@
-import { FC, useRef } from 'react';
+import { FC, useRef, useState, useEffect } from 'react';
 import { ViewportMode, ViewMode } from '../../../types/chat.types';
 import { cn } from '../../../utils/cn';
 import {
@@ -13,6 +13,7 @@ import {
   Tablet,
   Smartphone,
   Download,
+  FileQuestion,
 } from 'lucide-react';
 
 interface CanvasPreviewProps {
@@ -35,21 +36,73 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   isStreaming,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [hasStorageError, setHasStorageError] = useState<boolean>(false);
+  const [isCheckingS3, setIsCheckingS3] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!presignedUrl) {
+      setHasStorageError(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsCheckingS3(true);
+    setHasStorageError(false);
+
+    fetch(presignedUrl)
+      .then(async (res) => {
+        if (!isMounted) return;
+        if (!res.ok) {
+          setHasStorageError(true);
+          return;
+        }
+        const text = await res.text();
+        if (text.includes('<Error>') && text.includes('<Code>NoSuchKey</Code>')) {
+          setHasStorageError(true);
+        } else {
+          setHasStorageError(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setHasStorageError(false);
+      })
+      .finally(() => {
+        if (isMounted) setIsCheckingS3(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [presignedUrl]);
 
   const handleRefresh = () => {
-    if (iframeRef.current && presignedUrl) {
-      try {
-        const urlObj = new URL(presignedUrl);
-        urlObj.searchParams.set('_r', Date.now().toString());
-        iframeRef.current.src = urlObj.toString();
-      } catch {
-        iframeRef.current.src = presignedUrl;
-      }
+    if (presignedUrl) {
+      setIsCheckingS3(true);
+      fetch(presignedUrl)
+        .then(async (res) => {
+          if (!res.ok) {
+            setHasStorageError(true);
+            return;
+          }
+          const text = await res.text();
+          if (text.includes('<Error>') && text.includes('<Code>NoSuchKey</Code>')) {
+            setHasStorageError(true);
+          } else {
+            setHasStorageError(false);
+            if (iframeRef.current) {
+              const urlObj = new URL(presignedUrl);
+              urlObj.searchParams.set('_r', Date.now().toString());
+              iframeRef.current.src = urlObj.toString();
+            }
+          }
+        })
+        .catch(() => setHasStorageError(false))
+        .finally(() => setIsCheckingS3(false));
     }
   };
 
   const handleOpenNewTab = () => {
-    if (presignedUrl) {
+    if (presignedUrl && !hasStorageError) {
       window.open(presignedUrl, '_blank');
     }
   };
@@ -80,9 +133,10 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           <button
             onClick={handleRefresh}
             title="Tải lại trang"
-            className="p-1 text-slate-400 hover:text-navy-900 dark:text-stone-400 dark:hover:text-white rounded transition cursor-pointer"
+            disabled={isCheckingS3}
+            className="p-1 text-slate-400 hover:text-navy-900 dark:text-stone-400 dark:hover:text-white rounded transition cursor-pointer disabled:opacity-50"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className={cn('w-3.5 h-3.5', isCheckingS3 && 'animate-spin text-amber-500')} />
           </button>
 
           <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
@@ -216,8 +270,38 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           </div>
         )}
 
-        <div className={cn('transition-all duration-300 ease-out bg-white overflow-hidden flex flex-col relative', getContainerStyles())}>
-          {presignedUrl ? (
+        <div className={cn('transition-all duration-300 ease-out bg-white dark:bg-[#0B192C] overflow-hidden flex flex-col relative', getContainerStyles())}>
+          {hasStorageError ? (
+            <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#FAF9F6] dark:bg-[#081220] select-none">
+              <div className="w-16 h-16 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                <FileQuestion className="w-8 h-8 text-amber-600 dark:text-[#D4AF37]" />
+              </div>
+
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">
+                Tệp Giao Diện Không Còn Tồn Tại
+              </h3>
+              
+              <p className="text-xs text-slate-500 dark:text-stone-400 max-w-sm mb-4 leading-relaxed font-sans">
+                Mã nguồn HTML phiên bản này đã bị xóa hoặc không còn tồn tại trên hệ thống lưu trữ Cloud.
+              </p>
+
+              <div className="bg-white dark:bg-[#0F1D32] border border-slate-200 dark:border-slate-800 rounded-xl p-3 max-w-xs text-left text-[11px] text-slate-600 dark:text-stone-300 shadow-xs mb-4">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-[#D4AF37] mb-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Hướng xử lý:</span>
+                </div>
+                <span>Gửi câu lệnh mới ở khung chat bên trái để AI tự động kiến tạo lại giao diện website cho phiên này.</span>
+              </div>
+
+              <button
+                onClick={handleRefresh}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-[#D4AF37] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] rounded-xl font-semibold text-xs transition border border-amber-500/30 cursor-pointer shadow-xs active:scale-95"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+                <span>Thử Kiểm Tra Lai</span>
+              </button>
+            </div>
+          ) : presignedUrl ? (
             <iframe
               ref={iframeRef}
               title="Skipli Live Preview"
@@ -226,10 +310,10 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
               className="w-full h-full border-none bg-white"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-white text-slate-400 p-6 text-center select-none">
-              <Globe className="w-12 h-12 text-slate-300 mb-3" />
-              <p className="text-sm font-semibold text-slate-700">Khung xem trước trực tiếp (Live Preview)</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-white dark:bg-[#0B192C] text-slate-400 p-6 text-center select-none">
+              <Globe className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-stone-200">Khung xem trước trực tiếp (Live Preview)</p>
+              <p className="text-xs text-slate-400 dark:text-stone-400 mt-1 max-w-xs">
                 Nhập yêu cầu vào khung chat bên trái để AI tự động vẽ giao diện website tại đây.
               </p>
             </div>
