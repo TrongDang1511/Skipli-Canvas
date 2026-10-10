@@ -24,7 +24,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
               key={idx}
               className="flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-amber-400/60 dark:hover:border-[#D4AF37]/50 transition"
             >
-              <span className="w-5 h-5 rounded-full bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+              <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-900 dark:bg-[#1E3E62] dark:text-[#D4AF37] border border-amber-500/40 text-[10px] font-extrabold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                 {item.num || idx + 1}
               </span>
               <div className="flex-1 min-w-0 text-xs text-slate-700 dark:text-stone-300 leading-relaxed">
@@ -59,11 +59,6 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
   function renderInlineFormatted(text: string): ReactNode {
     if (!text) return null;
 
-    // Pattern to split by:
-    // 1. `code`
-    // 2. **bold**
-    // 3. *italic*
-    // 4. "Quoted Style" or (Parenthesized Color)
     const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|"[^"]+"|\([^)]+\))/g;
     const tokens = text.split(regex);
 
@@ -76,9 +71,9 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
         return (
           <span
             key={index}
-            className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded-md font-mono text-[11px] font-semibold bg-navy-950 dark:bg-slate-950 text-amber-400 border border-amber-500/30 shadow-2xs"
+            className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded-md font-mono text-[11px] font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/35 dark:bg-slate-950 dark:text-amber-400 dark:border-amber-500/30 shadow-2xs"
           >
-            <Code2 className="w-3 h-3 text-amber-400 shrink-0" />
+            <Code2 className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>{codeText}</span>
           </span>
         );
@@ -95,7 +90,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
           return (
             <span
               key={index}
-              className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-800 dark:text-[#D4AF37] border border-amber-500/30 shadow-2xs"
+              className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-900 dark:text-[#D4AF37] border border-amber-500/30 shadow-2xs"
             >
               {raw}
             </span>
@@ -103,7 +98,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
         }
 
         return (
-          <strong key={index} className="font-bold text-[#0B192C] dark:text-white">
+          <strong key={index} className="font-bold text-slate-900 dark:text-white">
             {raw}
           </strong>
         );
@@ -115,7 +110,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
         return (
           <span
             key={index}
-            className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-slate-200/70 dark:bg-slate-800 font-medium italic text-slate-900 dark:text-stone-200 border border-slate-300/60 dark:border-slate-700 text-[11px]"
+            className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-slate-100 dark:bg-slate-800 font-medium italic text-slate-800 dark:text-stone-200 border border-slate-200 dark:border-slate-700 text-[11px]"
           >
             {raw}
           </span>
@@ -136,7 +131,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
           return (
             <span
               key={index}
-              className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-800 dark:text-[#D4AF37] border border-amber-500/25 shadow-2xs"
+              className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-900 dark:text-[#D4AF37] border border-amber-500/25 shadow-2xs"
             >
               {token}
             </span>

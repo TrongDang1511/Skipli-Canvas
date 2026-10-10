@@ -87,9 +87,9 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
             <div key={msg.id} className="space-y-2">
               {!isAi && (
                 <div className="flex justify-end">
-                  <div className="max-w-[88%] bg-[#0B192C] dark:bg-[#1E3E62] text-white p-3 rounded-2xl rounded-tr-xs shadow-xs border border-amber-500/20 dark:border-slate-700/60">
-                    <p className="leading-relaxed whitespace-pre-wrap select-text">{msg.text}</p>
-                    <span className="text-[10px] text-amber-200/70 dark:text-stone-400 mt-1 block text-right">
+                  <div className="max-w-[88%] bg-amber-500/10 dark:bg-[#1E3E62] text-slate-900 dark:text-white p-3 rounded-2xl rounded-tr-xs shadow-2xs border border-amber-500/30 dark:border-slate-700/60">
+                    <p className="leading-relaxed whitespace-pre-wrap select-text font-medium">{msg.text}</p>
+                    <span className="text-[10px] text-amber-800/80 dark:text-stone-400 mt-1 block text-right">
                       {msg.time}
                     </span>
                   </div>

@@ -113,9 +113,9 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
           <button
             onClick={onNewWeb}
             title="Tạo Web Mới"
-            className="p-2.5 bg-[#0B192C] text-[#D4AF37] hover:bg-[#1E3E62] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] rounded-xl shadow-xs transition cursor-pointer border border-amber-500/30 active:scale-95"
+            className="p-2.5 bg-[#D4AF37] text-slate-950 hover:bg-amber-400 dark:bg-[#1E3E62] dark:text-[#D4AF37] dark:hover:bg-[#28507e] rounded-xl shadow-xs transition cursor-pointer border border-amber-400/60 active:scale-95 font-bold"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 text-slate-950 dark:text-[#D4AF37]" />
           </button>
 
           <div className="flex-1 flex flex-col items-center gap-3 mt-4">
@@ -128,7 +128,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
               className={cn(
                 'p-2 rounded-lg transition cursor-pointer',
                 activeTab === 'chats'
-                  ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
+                  ? 'bg-amber-500/15 text-amber-900 border border-amber-500/30 dark:bg-[#1E3E62] dark:text-[#D4AF37] shadow-xs'
                   : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
               )}
             >
@@ -143,7 +143,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
               className={cn(
                 'p-2 rounded-lg transition cursor-pointer',
                 activeTab === 'storage'
-                  ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
+                  ? 'bg-amber-500/15 text-amber-900 border border-amber-500/30 dark:bg-[#1E3E62] dark:text-[#D4AF37] shadow-xs'
                   : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
               )}
             >
@@ -151,7 +151,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
             </button>
           </div>
 
-          <div className="w-8 h-8 bg-[#0B192C] dark:bg-[#1E3E62] text-[#D4AF37] font-semibold text-xs rounded-full flex items-center justify-center border border-amber-500/30 shadow-xs">
+          <div className="w-8 h-8 bg-amber-500/20 text-amber-900 dark:bg-[#1E3E62] dark:text-[#D4AF37] font-extrabold text-xs rounded-full flex items-center justify-center border border-amber-500/40 shadow-2xs">
             {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
         </div>
@@ -195,9 +195,9 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
       <div className="p-3 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-[#070F1E]">
         <button
           onClick={onNewWeb}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#0B192C] hover:bg-[#1E3E62] text-[#D4AF37] dark:bg-[#1E3E62] dark:hover:bg-[#254d7b] rounded-xl font-semibold text-xs tracking-wide shadow-xs border border-amber-500/30 transition active:scale-[0.98] cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 font-bold dark:bg-[#1E3E62] dark:hover:bg-[#254d7b] dark:text-[#D4AF37] rounded-xl text-xs tracking-wide shadow-xs border border-amber-400/60 transition active:scale-[0.98] cursor-pointer"
         >
-          <Plus className="w-4 h-4 text-[#D4AF37]" />
+          <Plus className="w-4 h-4 text-slate-950 dark:text-[#D4AF37]" />
           <span>Tạo Web Mới</span>
         </button>
       </div>
@@ -438,7 +438,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
       {/* 5. User Profile Footer */}
       <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#070F1E] flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0 pr-2">
-          <div className="w-8 h-8 bg-[#0B192C] dark:bg-[#1E3E62] text-[#D4AF37] font-bold text-xs rounded-full flex items-center justify-center border border-amber-500/30 shadow-xs shrink-0">
+          <div className="w-8 h-8 bg-amber-500/20 text-amber-900 dark:bg-[#1E3E62] dark:text-[#D4AF37] font-extrabold text-xs rounded-full flex items-center justify-center border border-amber-500/40 shadow-2xs shrink-0">
             {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="flex flex-col min-w-0">
