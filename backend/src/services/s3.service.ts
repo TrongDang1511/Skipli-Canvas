@@ -1,30 +1,83 @@
 import {
   PutObjectCommand,
   GetObjectCommand,
-  DeleteObjectCommand
+  HeadObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client } from '../config/s3.config';
 import { env } from '../config/env.config';
 
+export interface S3CustomMetadata {
+  sessionId?: string;
+  sessionTitle?: string;
+  version?: string;
+  userId?: string;
+  fileName?: string;
+  [key: string]: string | undefined;
+}
+
 export class S3Service {
   private bucketName: string = env.s3BucketName;
 
   /**
-   * Upload file HTML lên MinIO/S3 với Content-Type text/html; charset=utf-8
+   * Upload file HTML lên MinIO/S3 kèm S3 Custom Metadata (x-amz-meta-*)
    */
-  public async uploadHtml(s3Key: string, htmlContent: string): Promise<void> {
+  public async uploadHtml(
+    s3Key: string,
+    htmlContent: string,
+    metadata?: S3CustomMetadata
+  ): Promise<void> {
     try {
+      // Mã hóa an toàn các giá trị metadata thành ASCII hợp lệ cho S3 HTTP Header
+      const s3Metadata: Record<string, string> = {};
+      if (metadata) {
+        for (const [key, value] of Object.entries(metadata)) {
+          if (value !== undefined && value !== null) {
+            s3Metadata[key.toLowerCase()] = encodeURIComponent(String(value));
+          }
+        }
+      }
+
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
         Body: Buffer.from(htmlContent, 'utf-8'),
         ContentType: 'text/html; charset=utf-8',
+        CacheControl: 'max-age=3600, private',
+        Metadata: Object.keys(s3Metadata).length > 0 ? s3Metadata : undefined,
       });
       await s3Client.send(command);
     } catch (error) {
       console.error(`[S3Service] Error uploading HTML to key: ${s3Key}`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Lấy S3 Custom Metadata gắn kèm file qua HeadObjectCommand (0 bytes download payload)
+   */
+  public async getObjectMetadata(s3Key: string): Promise<S3CustomMetadata | null> {
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+      });
+      const response = await s3Client.send(command);
+      if (!response.Metadata) return {};
+
+      const decoded: S3CustomMetadata = {};
+      for (const [key, value] of Object.entries(response.Metadata)) {
+        try {
+          decoded[key] = decodeURIComponent(value);
+        } catch {
+          decoded[key] = value;
+        }
+      }
+      return decoded;
+    } catch (error) {
+      console.warn(`[S3Service] HeadObject error for key ${s3Key}:`, error);
+      return null;
     }
   }
 
@@ -88,7 +141,7 @@ export class S3Service {
       });
 
       return await getSignedUrl(s3Client, command, {
-        expiresIn: 3600, // Link tải có hiệu lực trong 1 tiếng
+        expiresIn: 10, // Link tải có hiệu lực trong 10 giây
       });
     } catch (error) {
       console.error(`[S3Service] Error generating presigned download URL for key: ${s3Key}`, error);
@@ -115,3 +168,4 @@ export class S3Service {
 }
 
 export const s3Service = new S3Service();
+
