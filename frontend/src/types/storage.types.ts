@@ -4,6 +4,9 @@ export interface StorageFileItem {
   sessionId: string;
   sessionTitle: string;
   fileName: string;
+  s3Key?: string;
+  presignedUrl?: string;
+  presignedExpiresAt?: number;
   sizeBytes: number;
   version: string;
   createdAt: string;

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import { StorageFile, StorageFileMetadata } from '../models/storage.model';
 import { storageRepository } from '../repositories/storage.repository';
+import { s3Service } from './s3.service';
 
 function extractHtmlTitle(htmlContent: string): string | null {
   if (!htmlContent) return null;
@@ -54,16 +55,19 @@ export class StorageService {
     sessionTitle: string,
     version: string,
     htmlContent: string,
-    customFileName?: string
+    customFileName?: string,
+    s3Key?: string,
+    presignedUrl?: string,
+    presignedExpiresAt?: number
   ): Promise<StorageFile | null> {
-    if (!htmlContent || !htmlContent.trim()) {
+    if ((!htmlContent || !htmlContent.trim()) && !s3Key) {
       return null;
     }
 
     const id = randomUUID();
     const now = new Date().toISOString();
     const fileName = resolveFileName(sessionTitle, version, htmlContent, customFileName);
-    const sizeBytes = Buffer.byteLength(htmlContent, 'utf-8');
+    const sizeBytes = htmlContent ? Buffer.byteLength(htmlContent, 'utf-8') : 0;
 
     const newFile: StorageFile = {
       id,
@@ -71,7 +75,10 @@ export class StorageService {
       sessionId,
       sessionTitle: sessionTitle || 'Phiên làm việc mới',
       fileName,
-      htmlContent: htmlContent.trim(),
+      htmlContent: s3Key ? '' : htmlContent.trim(),
+      s3Key,
+      presignedUrl,
+      presignedExpiresAt,
       sizeBytes,
       version: version || 'v1.1',
       createdAt: now,
@@ -81,16 +88,61 @@ export class StorageService {
   }
 
   public async getUserStorageFiles(userId: string): Promise<StorageFileMetadata[]> {
-    return storageRepository.findFilesByUserId(userId);
+    const files = await storageRepository.findFilesByUserId(userId);
+
+    // Tự động kiểm tra và làm mới Presigned URL cho các file trong kho nếu hết hạn
+    const updatedFiles = await Promise.all(
+      files.map(async (file) => {
+        if (file.s3Key) {
+          try {
+            const s3Info = await s3Service.getOrGeneratePresignedViewUrl(
+              file.s3Key,
+              file.presignedUrl,
+              file.presignedExpiresAt
+            );
+            if (s3Info.presignedUrl && s3Info.presignedUrl !== file.presignedUrl) {
+              file.presignedUrl = s3Info.presignedUrl;
+              file.presignedExpiresAt = s3Info.presignedExpiresAt;
+            }
+          } catch (err) {
+            console.warn(`[StorageService] Refresh S3 view URL error for file ${file.id}:`, err);
+          }
+        }
+        return file;
+      })
+    );
+
+    return updatedFiles;
   }
 
-  public async getFileForDownload(userId: string, fileId: string): Promise<StorageFile | null> {
-    return storageRepository.findFileById(fileId, userId);
+  public async getFileForDownload(userId: string, fileId: string): Promise<{ file: StorageFile; downloadUrl?: string } | null> {
+    const file = await storageRepository.findFileById(fileId, userId);
+    if (!file) return null;
+
+    let downloadUrl: string | undefined;
+
+    if (file.s3Key) {
+      try {
+        downloadUrl = await s3Service.getPresignedDownloadUrl(file.s3Key, file.fileName);
+      } catch (err) {
+        console.warn(`[StorageService] Get presigned download URL error for key ${file.s3Key}:`, err);
+      }
+    }
+
+    return { file, downloadUrl };
   }
 
   public async deleteStorageFile(userId: string, fileId: string): Promise<boolean> {
+    const file = await storageRepository.findFileById(fileId, userId);
+    if (!file) return false;
+
+    if (file.s3Key) {
+      await s3Service.deleteObject(file.s3Key);
+    }
+
     return storageRepository.deleteFile(fileId, userId);
   }
 }
 
 export const storageService = new StorageService();
+
