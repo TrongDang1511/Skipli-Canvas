@@ -1,28 +1,43 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { ViewMode } from '../../../types/chat.types';
 import { cn } from '../../../utils/cn';
-import { Copy, Check, FileCode, Eye, Code2 } from 'lucide-react';
+import { Copy, Check, FileCode, Eye, Code2, Loader2 } from 'lucide-react';
 
 interface CodeViewerProps {
-  code: string;
+  code?: string;
+  presignedUrl?: string;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
 }
 
-export const CodeViewer: FC<CodeViewerProps> = ({ code, viewMode, setViewMode }) => {
+export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, viewMode, setViewMode }) => {
   const [copied, setCopied] = useState(false);
+  const [fetchedCode, setFetchedCode] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!propCode && presignedUrl) {
+      setIsLoading(true);
+      fetch(presignedUrl)
+        .then((res) => res.text())
+        .then((text) => setFetchedCode(text))
+        .catch((err) => console.warn('[CodeViewer] Fetch code error:', err))
+        .finally(() => setIsLoading(false));
+    }
+  }, [propCode, presignedUrl]);
+
+  const activeCode = propCode || fetchedCode;
+  const lines = activeCode ? activeCode.split('\n') : [];
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(activeCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback
     }
   };
-
-  const lines = code.split('\n');
 
   return (
     <main className="flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] text-slate-800 dark:text-stone-100 flex flex-col h-full overflow-hidden p-3 select-none transition-colors duration-200">
@@ -33,7 +48,7 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code, viewMode, setViewMode })
             <FileCode className="w-4 h-4 text-amber-500 dark:text-[#D4AF37]" />
             <span className="font-semibold text-slate-800 dark:text-stone-200">index.html</span>
             <span className="text-[10px] text-slate-500 dark:text-stone-400 bg-slate-100 dark:bg-[#112240] px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
-              {lines.length} dòng ({new Blob([code]).size} bytes)
+              {lines.length} dòng ({new Blob([activeCode]).size} bytes)
             </span>
           </div>
 
@@ -90,21 +105,28 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code, viewMode, setViewMode })
       </div>
 
       {/* 2. Code Body with Line Numbers */}
-      <div className="flex-1 bg-white dark:bg-[#070F1E] border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-auto p-4 font-mono text-xs leading-relaxed select-text shadow-xs">
-        <table className="w-full border-collapse">
-          <tbody>
-            {lines.map((line, idx) => (
-              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition">
-                <td className="w-12 text-right pr-4 text-slate-400 dark:text-stone-600 select-none text-[11px] font-mono align-top">
-                  {idx + 1}
-                </td>
-                <td className="text-slate-800 dark:text-stone-300 whitespace-pre font-mono align-top">
-                  {line || ' '}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex-1 bg-white dark:bg-[#070F1E] border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-auto p-4 font-mono text-xs leading-relaxed select-text shadow-xs relative">
+        {isLoading ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+            <span className="text-xs font-sans">Đang tải mã nguồn từ MinIO S3...</span>
+          </div>
+        ) : (
+          <table className="w-full border-collapse">
+            <tbody>
+              {lines.map((line, idx) => (
+                <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition">
+                  <td className="w-12 text-right pr-4 text-slate-400 dark:text-stone-600 select-none text-[11px] font-mono align-top">
+                    {idx + 1}
+                  </td>
+                  <td className="text-slate-800 dark:text-stone-300 whitespace-pre font-mono align-top">
+                    {line || ' '}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </main>
   );

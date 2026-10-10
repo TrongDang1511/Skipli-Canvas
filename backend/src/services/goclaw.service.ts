@@ -45,15 +45,15 @@ ${prompt}
 MANDATORY RULES:
 1. Carefully update and enhance the EXISTING HTML source code above according to the user's new request.
 2. PRESERVE 100% of all existing 8 sections, style aesthetics, Unsplash images, copywriting, and Vanilla JS interactivity unless explicitly requested to remove or change them.
-3. Write the updated, complete single-file HTML (>250 lines) to disk via tool call 'write_file'.
-4. In your chat response, briefly summarize in polite Vietnamese the exact enhancements made.`;
+3. Write the updated, complete single-file HTML (>250 lines) directly to disk in the current workspace directory via tool call 'write_file'.
+4. CRITICAL OUTPUT RESTRICTION: Do NOT output or print the raw HTML code (or any \`\`\`html code blocks) in your conversational chat response text. You MUST ONLY save the file directly to disk using tool 'write_file'. In your chat response, provide ONLY a concise, polite summary in Vietnamese detailing the exact enhancements made.`;
     } else {
       // INITIAL CREATION (Turn 1)
       finalPrompt = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
 You MUST strictly follow all 4 active Skipli Skills:
 1. 'skipli-adaptive-design-systems': Apply industry-matched color palettes, Google Fonts (Outfit / Playfair Display / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
 2. 'skipli-copywriting-seo': High-converting headlines, outcome-oriented CTAs, social proof, single H1, and SEO meta tags.
-3. 'skipli-ecommerce-interactivity': MUST execute tool 'write_file' with path="[brand_slug]_[timestamp].html" to generate a single-file HTML (>250 lines) containing ALL 8 MANDATORY SECTIONS:
+3. 'skipli-ecommerce-interactivity': MUST execute tool 'write_file' with path="[brand_slug]_[timestamp].html" in the current working directory to generate a single-file HTML (>250 lines) containing ALL 8 MANDATORY SECTIONS:
    - Section 1: Sticky Glassmorphism Header & Navbar with floating Cart Icon & item count badge.
    - Section 2: High-Impact Hero Banner with dual CTAs, trust rating pill (4.9/5★), and featured dish/product badge.
    - Section 3: Brand Story / Artisan Quality Bento Grid with 3 metric highlight cards.
@@ -63,6 +63,8 @@ You MUST strictly follow all 4 active Skipli Skills:
    - Section 7: Interactive Reservation / Order Form with submit Toast notification & Map Card.
    - Section 8: Luxury 4-Column Footer & Slide-Over Cart Drawer with 100% Vanilla JS interactivity (Cart state, quantity adjustment, subtotal calculation, checkout simulation).
 4. 'skipli-media-sourcing': Use unique, high-resolution Unsplash photo URLs for EVERY single item card and avatar. Never reuse the exact same photo ID across cards.
+
+CRITICAL OUTPUT RESTRICTION: Do NOT output or print the raw HTML code (or any \`\`\`html code blocks) in your conversational chat response text. You MUST ONLY create and save the complete HTML file directly to disk in the current workspace directory using tool 'write_file'. In your chat response, provide ONLY a concise, polite summary in Vietnamese explaining the key design highlights and features created.
 
 User Request: ${prompt}`;
     }
@@ -192,39 +194,20 @@ User Request: ${prompt}`;
         }
       };
 
+      // Quét tìm file .html mới nhất vừa được AI tạo trong thư mục workspace
       for (const dir of searchDirs) {
         scanDirectory(dir);
       }
 
-      // Nếu tìm thấy file .html mới nhất vừa được AI tạo/ghi đè trong vòng 10 phút (600,000ms)
-      if (newestHtmlPath && Date.now() - newestTime < 600000) {
+      // Nếu tìm thấy file .html mới nhất vừa được AI tạo trong vòng 15 phút
+      if (newestHtmlPath && Date.now() - newestTime < 900000) {
         const fileContent = fs.readFileSync(newestHtmlPath, 'utf-8');
         if (fileContent && fileContent.includes('<html')) {
           return fileContent;
         }
       }
     } catch (fsErr) {
-      console.warn('[GoClawService] Lỗi khi đọc file .html từ ổ cứng:', fsErr);
-    }
-
-    // =========================================================================
-    // ƯU TIÊN 2: NẾU AI TRẢ VỀ ĐOẠN CODE HTML INLINE (Markdown ```html ... ```)
-    // Bóc tách đoạn mã HTML hoàn chỉnh từ phản hồi text nếu không tìm thấy file
-    // =========================================================================
-    const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/i;
-    const match = fullContent.match(htmlBlockRegex);
-    if (match && match[1] && match[1].trim()) {
-      return match[1].trim();
-    }
-
-    if (fullContent.includes('<!DOCTYPE') || fullContent.includes('<html') || fullContent.includes('<body')) {
-      const startIdx = fullContent.search(/<(?:!DOCTYPE|html|body)/i);
-      if (startIdx !== -1) {
-        const candidate = fullContent.substring(startIdx).replace(/```\s*$/i, '').trim();
-        if (candidate.length > 50) {
-          return candidate;
-        }
-      }
+      console.warn('[GoClawService] Lỗi khi đọc file .html từ workspace GoClaw:', fsErr);
     }
 
     return '';

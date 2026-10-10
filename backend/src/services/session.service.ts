@@ -3,6 +3,7 @@ import path from 'path';
 import { Session, SessionMessage } from '../models/session.model';
 import { sessionRepository } from '../repositories/session.repository';
 import { storageService } from './storage.service';
+import { s3Service } from './s3.service';
 
 export class SessionService {
   public async getUserSessions(userId: string): Promise<Session[]> {
@@ -12,6 +13,27 @@ export class SessionService {
   public async getSessionDetail(userId: string, sessionId: string): Promise<{ session: Session; messages: SessionMessage[] } | null> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) return null;
+
+    // Tự động kiểm tra và làm mới Presigned URL nếu hết hạn 4 tiếng
+    if (session.s3Key) {
+      try {
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(
+          session.s3Key,
+          session.presignedUrl,
+          session.presignedExpiresAt
+        );
+        if (s3Info.presignedUrl && s3Info.presignedUrl !== session.presignedUrl) {
+          session.presignedUrl = s3Info.presignedUrl;
+          session.presignedExpiresAt = s3Info.presignedExpiresAt;
+          await sessionRepository.updateSession(session.id, userId, {
+            presignedUrl: session.presignedUrl,
+            presignedExpiresAt: session.presignedExpiresAt,
+          });
+        }
+      } catch (s3Err) {
+        console.warn('[SessionService] Refresh presignedUrl error:', s3Err);
+      }
+    }
 
     const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
     return { session, messages };
@@ -32,6 +54,27 @@ export class SessionService {
     const session = await sessionRepository.findSessionById(sessionId.trim(), userId);
     if (!session) {
       return { session: null, latestHtml: '', history: [] };
+    }
+
+    // Tự động kiểm tra và làm mới Presigned URL nếu hết hạn
+    if (session.s3Key) {
+      try {
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(
+          session.s3Key,
+          session.presignedUrl,
+          session.presignedExpiresAt
+        );
+        if (s3Info.presignedUrl && s3Info.presignedUrl !== session.presignedUrl) {
+          session.presignedUrl = s3Info.presignedUrl;
+          session.presignedExpiresAt = s3Info.presignedExpiresAt;
+          await sessionRepository.updateSession(session.id, userId, {
+            presignedUrl: session.presignedUrl,
+            presignedExpiresAt: session.presignedExpiresAt,
+          });
+        }
+      } catch (s3Err) {
+        console.warn('[SessionService] getSessionContext refresh S3 error:', s3Err);
+      }
     }
 
     const messages = await sessionRepository.findMessagesBySessionId(sessionId.trim(), userId);
@@ -82,6 +125,14 @@ export class SessionService {
   }
 
   public async deleteSession(userId: string, sessionId: string): Promise<boolean> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (session && session.s3Key) {
+      try {
+        await s3Service.deleteObject(session.s3Key);
+      } catch (s3Err) {
+        console.warn('[SessionService] Delete S3 object error:', s3Err);
+      }
+    }
     return sessionRepository.deleteSession(sessionId, userId);
   }
 
@@ -105,6 +156,24 @@ export class SessionService {
     const nextVersionCount = session.versionCount + 1;
     const versionStr = `v1.${nextVersionCount}`;
 
+    // Upload mã nguồn HTML lên MinIO/S3 và tạo Presigned URL xem Live
+    let s3Key: string | undefined;
+    let presignedUrl: string | undefined;
+    let presignedExpiresAt: number | undefined;
+
+    if (extractedHtml && extractedHtml.trim()) {
+      try {
+        s3Key = `users/${userId}/sessions/${session.id}/${versionStr}.html`;
+        await s3Service.uploadHtml(s3Key, extractedHtml);
+
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
+        presignedUrl = s3Info.presignedUrl;
+        presignedExpiresAt = s3Info.presignedExpiresAt;
+      } catch (s3Err) {
+        console.warn('[SessionService] S3 Upload error:', s3Err);
+      }
+    }
+
     const userMsg: SessionMessage = {
       id: randomUUID(),
       sessionId: session.id,
@@ -120,7 +189,7 @@ export class SessionService {
       userId,
       sender: 'ai',
       text: fullAiResponse,
-      extractedHtml: extractedHtml || '',
+      extractedHtml: s3Key ? '' : (extractedHtml || ''),
       version: versionStr,
       createdAt: now,
     };
@@ -129,7 +198,10 @@ export class SessionService {
     await sessionRepository.createMessage(aiMsg);
 
     const updatedSession = await sessionRepository.updateSession(session.id, userId, {
-      latestHtml: extractedHtml || session.latestHtml,
+      latestHtml: s3Key ? '' : (extractedHtml || session.latestHtml),
+      s3Key: s3Key || session.s3Key,
+      presignedUrl: presignedUrl || session.presignedUrl,
+      presignedExpiresAt: presignedExpiresAt || session.presignedExpiresAt,
       versionCount: nextVersionCount,
       updatedAt: now,
     });
@@ -155,7 +227,10 @@ export class SessionService {
           session.title,
           versionStr,
           extractedHtml,
-          detectedFileName
+          detectedFileName,
+          s3Key,
+          presignedUrl,
+          presignedExpiresAt
         );
       } catch (storageErr) {
         console.warn('[SessionService] Auto-save storage snapshot error:', storageErr);

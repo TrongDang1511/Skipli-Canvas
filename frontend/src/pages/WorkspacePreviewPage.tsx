@@ -33,6 +33,7 @@ export const WorkspacePreviewPage: FC = () => {
     hasStartedChat,
     isStreaming,
     extractedHtml,
+    presignedUrl,
     sendPrompt,
     stopGeneration,
     resetCanvas,
@@ -52,7 +53,11 @@ export const WorkspacePreviewPage: FC = () => {
   const handleSelectSession = async (sessionId: string) => {
     const detail = await selectSession(sessionId);
     if (detail) {
-      loadSession(detail.messages || [], detail.session.latestHtml || '');
+      loadSession(
+        detail.messages || [],
+        detail.session.latestHtml || '',
+        detail.session.presignedUrl
+      );
     }
   };
 
@@ -70,6 +75,10 @@ export const WorkspacePreviewPage: FC = () => {
   };
 
   const handleExportHtml = () => {
+    if (presignedUrl || activeSession?.presignedUrl) {
+      window.open(presignedUrl || activeSession?.presignedUrl, '_blank');
+      return;
+    }
     if (!extractedHtml) return;
     const filename = activeSession?.title
       ? `${activeSession.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_website.html`
@@ -123,7 +132,7 @@ export const WorkspacePreviewPage: FC = () => {
             {/* Khung Live Preview Canvas hoặc Code Viewer Bên Phải */}
             {viewMode === 'preview' ? (
               <CanvasPreview
-                htmlContent={extractedHtml}
+                presignedUrl={presignedUrl || activeSession?.presignedUrl}
                 viewport={viewport}
                 setViewport={setViewport}
                 viewMode={viewMode}
@@ -134,6 +143,7 @@ export const WorkspacePreviewPage: FC = () => {
             ) : (
               <CodeViewer
                 code={extractedHtml}
+                presignedUrl={presignedUrl || activeSession?.presignedUrl}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
               />
