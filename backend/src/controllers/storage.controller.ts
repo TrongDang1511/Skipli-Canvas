@@ -39,23 +39,20 @@ export class StorageController {
 
     try {
       const result = await storageService.getFileForDownload(userId, id);
-      if (!result || !result.file) {
+      if (!result || !result.downloadUrl) {
         res.status(404).json({
           success: false,
-          message: 'Không tìm thấy tệp lưu trữ trong kho',
+          message: 'Không tìm thấy tệp lưu trữ trong hệ thống Cloud',
         });
         return;
       }
 
-      // Nếu có S3 Presigned Download URL, chuyển hướng trực tiếp tải từ S3 (0 tải cho Backend)
-      if (result.downloadUrl) {
-        res.redirect(result.downloadUrl);
-        return;
-      }
-
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.file.fileName)}"`);
-      res.status(200).send(result.file.htmlContent || '');
+      // Trả về JSON chứa S3 Presigned Download URL cho Client tải trực tiếp
+      res.status(200).json({
+        success: true,
+        downloadUrl: result.downloadUrl,
+        fileName: result.fileName,
+      });
     } catch (error: unknown) {
       next(error);
     }
@@ -86,7 +83,7 @@ export class StorageController {
 
       res.status(200).json({
         success: true,
-        message: 'Đã xóa tệp khỏi kho lưu trữ thành công',
+        message: 'Đã xóa tệp khỏi hệ thống lưu trữ thành công',
       });
     } catch (error: unknown) {
       next(error);
@@ -95,3 +92,4 @@ export class StorageController {
 }
 
 export const storageController = new StorageController();
+

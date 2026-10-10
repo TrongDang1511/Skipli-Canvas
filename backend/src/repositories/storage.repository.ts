@@ -31,8 +31,7 @@ export class StorageRepository {
         if (!snapshot.empty) {
           snapshot.docs.forEach((doc) => {
             const data = doc.data() as StorageFile;
-            const { htmlContent, ...meta } = data;
-            fileMap.set(meta.id, meta);
+            fileMap.set(data.id, data);
           });
         }
       } catch (error) {
@@ -43,8 +42,7 @@ export class StorageRepository {
     // 2. Merge with in-memory storage files for this user
     for (const file of this.inMemoryStorage.values()) {
       if (file.userId === userId && !fileMap.has(file.id)) {
-        const { htmlContent, ...meta } = file;
-        fileMap.set(meta.id, meta);
+        fileMap.set(file.id, file);
       }
     }
 

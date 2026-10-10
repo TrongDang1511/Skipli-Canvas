@@ -2,6 +2,8 @@ import { FC, useState, MouseEvent } from 'react';
 import { useSession } from '../../contexts/SessionContext';
 import { useAuth } from '../../hooks/useAuth';
 import { storageService } from '../../services/storage.service';
+import { StorageFileItem } from '../../types/storage.types';
+import { StoragePreviewModal } from '../features/storage/StoragePreviewModal';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { cn } from '../../utils/cn';
 import {
@@ -47,6 +49,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingStorageId, setDeletingStorageId] = useState<string | null>(null);
+  const [selectedPreviewFile, setSelectedPreviewFile] = useState<StorageFileItem | null>(null);
 
   const handleStartRename = (e: MouseEvent, id: string, currentTitle: string) => {
     e.stopPropagation();
@@ -95,62 +98,73 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
 
   if (!isSidebarOpen) {
     return (
-      <div className="w-14 bg-white dark:bg-[#081220] border-r border-slate-200/90 dark:border-slate-800/90 flex flex-col items-center py-3 z-20 shrink-0 select-none transition-all duration-300 shadow-xs dark:shadow-lg">
-        <button
-          onClick={toggleSidebar}
-          title="Mở rộng Thanh điều hướng"
-          className="p-2 text-slate-600 dark:text-stone-400 hover:text-navy-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition cursor-pointer"
-        >
-          <PanelLeftOpen className="w-5 h-5 text-amber-500 dark:text-[#D4AF37]" />
-        </button>
-
-        <div className="h-[1px] w-8 bg-slate-200 dark:bg-slate-800 my-3" />
-
-        <button
-          onClick={onNewWeb}
-          title="Tạo Web Mới"
-          className="p-2.5 bg-[#0B192C] text-[#D4AF37] hover:bg-[#1E3E62] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] rounded-xl shadow-xs transition cursor-pointer border border-amber-500/30 active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-
-        <div className="flex-1 flex flex-col items-center gap-3 mt-4">
+      <>
+        <div className="w-14 bg-white dark:bg-[#081220] border-r border-slate-200/90 dark:border-slate-800/90 flex flex-col items-center py-3 z-20 shrink-0 select-none transition-all duration-300 shadow-xs dark:shadow-lg">
           <button
-            onClick={() => {
-              setActiveTab('chats');
-              toggleSidebar();
-            }}
-            title="Lịch sử hội thoại"
-            className={cn(
-              'p-2 rounded-lg transition cursor-pointer',
-              activeTab === 'chats'
-                ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
-                : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
-            )}
+            onClick={toggleSidebar}
+            title="Mở rộng Thanh điều hướng"
+            className="p-2 text-slate-600 dark:text-stone-400 hover:text-navy-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg transition cursor-pointer"
           >
-            <MessageSquare className="w-5 h-5" />
+            <PanelLeftOpen className="w-5 h-5 text-amber-500 dark:text-[#D4AF37]" />
           </button>
+
+          <div className="h-[1px] w-8 bg-slate-200 dark:bg-slate-800 my-3" />
+
           <button
-            onClick={() => {
-              setActiveTab('storage');
-              toggleSidebar();
-            }}
-            title="Storage Mã nguồn HTML"
-            className={cn(
-              'p-2 rounded-lg transition cursor-pointer',
-              activeTab === 'storage'
-                ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
-                : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
-            )}
+            onClick={onNewWeb}
+            title="Tạo Web Mới"
+            className="p-2.5 bg-[#0B192C] text-[#D4AF37] hover:bg-[#1E3E62] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] rounded-xl shadow-xs transition cursor-pointer border border-amber-500/30 active:scale-95"
           >
-            <HardDrive className="w-5 h-5" />
+            <Plus className="w-5 h-5" />
           </button>
+
+          <div className="flex-1 flex flex-col items-center gap-3 mt-4">
+            <button
+              onClick={() => {
+                setActiveTab('chats');
+                toggleSidebar();
+              }}
+              title="Lịch sử hội thoại"
+              className={cn(
+                'p-2 rounded-lg transition cursor-pointer',
+                activeTab === 'chats'
+                  ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
+              )}
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('storage');
+                toggleSidebar();
+              }}
+              title="Storage Mã nguồn HTML"
+              className={cn(
+                'p-2 rounded-lg transition cursor-pointer',
+                activeTab === 'storage'
+                  ? 'bg-[#0B192C] text-[#D4AF37] dark:bg-[#1E3E62] shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100 dark:text-stone-400 dark:hover:bg-slate-800/60 dark:hover:text-stone-200'
+              )}
+            >
+              <HardDrive className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="w-8 h-8 bg-[#0B192C] dark:bg-[#1E3E62] text-[#D4AF37] font-semibold text-xs rounded-full flex items-center justify-center border border-amber-500/30 shadow-xs">
+            {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+          </div>
         </div>
 
-        <div className="w-8 h-8 bg-[#0B192C] dark:bg-[#1E3E62] text-[#D4AF37] font-semibold text-xs rounded-full flex items-center justify-center border border-amber-500/30 shadow-xs">
-          {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-        </div>
-      </div>
+        <StoragePreviewModal
+          file={selectedPreviewFile}
+          isOpen={!!selectedPreviewFile}
+          onClose={() => setSelectedPreviewFile(null)}
+          onDownload={async (fileId, fileName) => {
+            await storageService.downloadStorageFile(fileId, fileName);
+          }}
+        />
+      </>
     );
   }
 
@@ -350,7 +364,7 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
               return (
                 <div
                   key={`storage-${file.id}`}
-                  onClick={() => onSelectSession(file.sessionId)}
+                  onClick={() => setSelectedPreviewFile(file)}
                   className="group flex items-center justify-between p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-[#0F1D32] hover:border-amber-500 dark:hover:border-[#D4AF37] hover:bg-slate-50 dark:hover:bg-[#152744] hover:shadow-xs text-xs transition cursor-pointer shadow-xs"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
@@ -446,6 +460,15 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
           </button>
         </div>
       </div>
+
+      <StoragePreviewModal
+        file={selectedPreviewFile}
+        isOpen={!!selectedPreviewFile}
+        onClose={() => setSelectedPreviewFile(null)}
+        onDownload={async (fileId, fileName) => {
+          await storageService.downloadStorageFile(fileId, fileName);
+        }}
+      />
     </aside>
   );
 };

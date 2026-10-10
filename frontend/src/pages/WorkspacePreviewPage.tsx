@@ -9,6 +9,7 @@ import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
 import { CodeViewer } from '../components/features/workspace/CodeViewer';
 import { useAuth } from '../hooks/useAuth';
+import { storageService } from '../services/storage.service';
 import { cn } from '../utils/cn';
 
 export const WorkspacePreviewPage: FC = () => {
@@ -74,24 +75,14 @@ export const WorkspacePreviewPage: FC = () => {
     await sendPrompt(promptText, activeSessionId || undefined);
   };
 
-  const handleExportHtml = () => {
-    if (presignedUrl || activeSession?.presignedUrl) {
-      window.open(presignedUrl || activeSession?.presignedUrl, '_blank');
+  const handleExportHtml = async () => {
+    if (activeSessionId) {
+      await storageService.downloadStorageFile(activeSessionId, activeSession?.title);
       return;
     }
-    if (!extractedHtml) return;
-    const filename = activeSession?.title
-      ? `${activeSession.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_website.html`
-      : 'skipli_canvas_website.html';
-    const blob = new Blob([extractedHtml], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (presignedUrl || activeSession?.presignedUrl) {
+      window.open(presignedUrl || activeSession?.presignedUrl, '_blank');
+    }
   };
 
   return (
