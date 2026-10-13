@@ -201,6 +201,24 @@ export class S3Service {
   }
 
   /**
+   * Đọc toàn bộ nội dung text của file HTML từ MinIO/S3 (Dùng làm context cho AI ở Turn 2+)
+   */
+  public async getHtmlContent(s3Key: string): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+      });
+      const response = await s3Client.send(command);
+      if (!response.Body) return '';
+      return await response.Body.transformToString('utf-8');
+    } catch (error) {
+      console.error(`[S3Service] Error reading HTML content for key: ${s3Key}`, error);
+      return '';
+    }
+  }
+
+  /**
    * Ký Presigned URL trực tiếp để tải file về máy (Đính kèm header Content-Disposition: attachment)
    */
   public async getPresignedDownloadUrl(s3Key: string, fileName: string): Promise<string> {

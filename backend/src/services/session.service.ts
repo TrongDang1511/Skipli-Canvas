@@ -76,10 +76,22 @@ export class SessionService {
       }
     }
 
+    let latestHtml = session.latestHtml || '';
+    if (session.s3Key) {
+      try {
+        const s3Html = await s3Service.getHtmlContent(session.s3Key);
+        if (s3Html && s3Html.trim()) {
+          latestHtml = s3Html;
+        }
+      } catch (readErr) {
+        console.warn('[SessionService] Error reading latestHtml from S3:', readErr);
+      }
+    }
+
     const messages = await sessionRepository.findMessagesBySessionId(sessionId.trim(), userId);
 
-    // Lấy tối đa 6 tin nhắn gần nhất để giữ context gọn gàng và chuẩn xác
-    const recentMessages = messages.slice(-6);
+    // Lấy tối đa 10 tin nhắn gần nhất để AI hiểu trọn vẹn context và lịch sử trò chuyện
+    const recentMessages = messages.slice(-10);
     const history = recentMessages.map((msg) => ({
       role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: msg.text || '',
@@ -87,7 +99,7 @@ export class SessionService {
 
     return {
       session,
-      latestHtml: session.latestHtml || '',
+      latestHtml,
       history,
     };
   }
