@@ -184,6 +184,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
     stopGeneration,
     resetCanvas,
     loadSession,
+    updateExtractedHtml: setExtractedHtml,
   };
 }
 

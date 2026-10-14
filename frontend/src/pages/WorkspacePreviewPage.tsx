@@ -39,6 +39,7 @@ export const WorkspacePreviewPage: FC = () => {
     stopGeneration,
     resetCanvas,
     loadSession,
+    updateExtractedHtml,
   } = useChatStream({
     onTurnComplete: async (newOrExistingSessionId, newHtml) => {
       await Promise.all([fetchSessions(), fetchStorageFiles()]);
@@ -50,6 +51,11 @@ export const WorkspacePreviewPage: FC = () => {
       }
     },
   });
+
+  const handleSaveHtml = async (cleanHtml: string) => {
+    updateExtractedHtml(cleanHtml);
+    updateActiveSessionLatestHtml(cleanHtml);
+  };
 
   const handleSelectSession = async (sessionId: string) => {
     const detail = await selectSession(sessionId);
@@ -124,6 +130,8 @@ export const WorkspacePreviewPage: FC = () => {
             {viewMode === 'preview' ? (
               <CanvasPreview
                 presignedUrl={presignedUrl || activeSession?.presignedUrl}
+                htmlContent={extractedHtml || activeSession?.latestHtml}
+                onSaveHtml={handleSaveHtml}
                 viewport={viewport}
                 setViewport={setViewport}
                 viewMode={viewMode}
