@@ -24,6 +24,28 @@ export class StorageController {
     }
   };
 
+  public getGroupedFiles = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
+      return;
+    }
+
+    try {
+      const grouped = await storageService.getGroupedStorageFiles(userId);
+      res.status(200).json({
+        success: true,
+        data: grouped,
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
   public downloadFile = async (
     req: Request,
     res: Response,

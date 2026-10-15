@@ -12,6 +12,13 @@ const router = Router();
 router.get('/files', authenticate, storageController.getFiles);
 
 /**
+ * @route   GET /api/storage/grouped
+ * @desc    Lấy danh sách các tệp HTML snapshot được gom nhóm theo Session
+ * @access  Private
+ */
+router.get('/grouped', authenticate, storageController.getGroupedFiles);
+
+/**
  * @route   GET /api/storage/files/:id/download
  * @desc    Tải tệp HTML đính kèm về máy
  * @access  Private

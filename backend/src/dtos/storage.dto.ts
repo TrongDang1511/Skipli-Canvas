@@ -1,7 +1,48 @@
 import { z } from 'zod';
 
-export const storageQuerySchema = z.object({
-  sessionId: z.string().optional(),
-});
+export interface StorageFileVersionItem {
+  id: string;
+  fileName: string;
+  version: string;
+  s3Key: string;
+  sizeBytes: number;
+  sizeFormatted: string;
+  presignedUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
-export type StorageQueryDto = z.infer<typeof storageQuerySchema>;
+export interface GroupedSessionStorageItem {
+  sessionId: string;
+  sessionTitle: string;
+  activeVersion: string;
+  totalFiles: number;
+  updatedAt: string;
+  files: StorageFileVersionItem[];
+}
+
+export const groupedStorageResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(
+    z.object({
+      sessionId: z.string(),
+      sessionTitle: z.string(),
+      activeVersion: z.string(),
+      totalFiles: z.number(),
+      updatedAt: z.string(),
+      files: z.array(
+        z.object({
+          id: z.string(),
+          fileName: z.string(),
+          version: z.string(),
+          s3Key: z.string(),
+          sizeBytes: z.number(),
+          sizeFormatted: z.string(),
+          presignedUrl: z.string().optional(),
+          isActive: z.boolean(),
+          createdAt: z.string(),
+        })
+      ),
+    })
+  ),
+});
