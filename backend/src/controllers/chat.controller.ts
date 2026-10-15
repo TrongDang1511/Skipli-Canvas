@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { goclawService } from '../services/goclaw.service';
 import { sessionService } from '../services/session.service';
 import { ChatRequestDto } from '../dtos/chat.dto';
+import { unmaskHtmlAssets } from '../utils/asset-masker.utils';
 
 export class ChatController {
   public sendChat = async (
@@ -32,7 +33,13 @@ export class ChatController {
 
       const response = await goclawService.chatCompletion(prompt, contextOptions);
       const rawContent = response.text;
-      const extractedHtml = goclawService.extractHtml(rawContent);
+      let extractedHtml = goclawService.extractHtml(rawContent);
+
+      // Phục hồi lại toàn bộ link ảnh MinIO S3 / CDN gốc của người dùng từ bảng ánh xạ Token
+      if (extractedHtml && response.assetMap && response.assetMap.size > 0) {
+        extractedHtml = unmaskHtmlAssets(extractedHtml, response.assetMap);
+      }
+
       const fullContent = goclawService.cleanTextResponse(rawContent);
 
       let savedSessionId = sessionId;

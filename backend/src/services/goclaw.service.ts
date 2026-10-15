@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import { env } from '../config/env.config';
 import { goclawConfig } from '../config/goclaw.config';
+import { maskHtmlAssets } from '../utils/asset-masker.utils';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -12,6 +13,7 @@ export interface ChatMessage {
 
 export interface ChatCompletionResponse {
   text: string;
+  assetMap?: Map<string, string>;
 }
 
 export interface ChatCompletionOptions {
@@ -28,22 +30,37 @@ export class GoClawService {
     const { history = [], currentHtml, sessionTitle } = options;
 
     let finalPrompt = '';
+    let assetMap: Map<string, string> | undefined;
 
     if (currentHtml && currentHtml.trim()) {
+      // 1. Kỹ thuật Token Masking: Thay thế toàn bộ link ảnh MinIO S3 & CDN bằng token ngắn
+      const maskedResult = maskHtmlAssets(currentHtml.trim());
+      const maskedHtml = maskedResult.maskedHtml;
+      assetMap = maskedResult.assetMap;
+
       // INCREMENTAL EDITING (Turn 2+)
       finalPrompt = `[SKIPLI INCREMENTAL EDIT & UPGRADE DIRECTIVE]:
 You are continuing work on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
 
+CRITICAL STRICT RULES - IMMUTABILITY OF USER ASSETS:
+1. PRESERVE ALL USER ASSET TOKENS:
+   - The current HTML contains user-curated and local uploaded assets marked as '__SKIPLI_ASSET_X__'.
+   - You MUST preserve all '__SKIPLI_ASSET_X__' tokens EXACTLY verbatim inside their respective <img> src or CSS background-image attributes.
+   - You are STRICTLY FORBIDDEN from modifying, replacing, removing, or swapping ANY '__SKIPLI_ASSET_X__' token.
+2. SURGICAL MODIFICATION SCOPE:
+   - Focus 100% of your modifications ONLY on what the user explicitly requested below: "${prompt}".
+   - Keep all other sections, Tailwind CSS aesthetic, Google Fonts, Lucide stroke icons, and Vanilla JS interactivity fully intact.
+
 CURRENT HTML CODE:
 \`\`\`html
-${currentHtml.trim()}
+${maskedHtml}
 \`\`\`
 
 USER'S MODIFICATION REQUEST:
 ${prompt}
 
 MANDATORY 2-STEP WORKFLOW & HARD-STOP RULE:
-- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the updated, complete single-file HTML (>250 lines) to disk. Preserve 100% of all existing sections, style aesthetics, user-uploaded images, copywriting, and Vanilla JS interactivity unless explicitly requested to change.
+- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the updated, complete single-file HTML (>250 lines) to disk. Preserve 100% of all user asset tokens (__SKIPLI_ASSET_X__), styling, and sections unless explicitly commanded to change.
 - Step 2: Do NOT call any more tools (do NOT call write_file again, do NOT call use_skill). Immediately output your conversational response: a warm, insightful summary in natural Vietnamese detailing the exact enhancements made.
 - PROHIBITION: Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your chat response.`;
     } else {
@@ -105,7 +122,7 @@ User Request: ${prompt}`;
         responseData?.content ||
         '';
 
-      return { text: content };
+      return { text: content, assetMap };
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data
