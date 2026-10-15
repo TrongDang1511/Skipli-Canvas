@@ -1,6 +1,17 @@
 import { apiClient } from './api';
 import { Session, SessionDetail } from '../types/session.types';
 
+export interface RollbackTurnResult {
+  sessionId: string;
+  cutoffUserMessageId: string;
+  deletedMessagesCount: number;
+  deletedS3Keys: string[];
+  restoredVersion: string | null;
+  restoredS3Key: string | null;
+  restoredHtml: string | null;
+  presignedUrl: string | null;
+}
+
 export class SessionApiService {
   public async fetchSessions(): Promise<Session[]> {
     const res = await apiClient.get('/sessions');
@@ -31,6 +42,18 @@ export class SessionApiService {
     cleanHtml: string
   ): Promise<{ success: boolean; sessionId: string; presignedUrl: string; cleanHtml: string; updatedAt: string }> {
     const res = await apiClient.put(`/sessions/${id}/overwrite-canvas`, { cleanHtml });
+    return res.data.data;
+  }
+
+  public async rollbackUserTurn(
+    sessionId: string,
+    userMessageId: string,
+    promptText?: string
+  ): Promise<RollbackTurnResult> {
+    const res = await apiClient.post(`/sessions/${sessionId}/rollback-user-turn`, {
+      userMessageId,
+      promptText,
+    });
     return res.data.data;
   }
 }

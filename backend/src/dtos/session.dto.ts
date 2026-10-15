@@ -15,6 +15,7 @@ export const overwriteCanvasSchema = z.object({
 
 export const rollbackUserTurnSchema = z.object({
   userMessageId: z.string().min(1, 'userMessageId không được để trống'),
+  promptText: z.string().optional(),
 });
 
 export type CreateSessionDto = z.infer<typeof createSessionSchema>;

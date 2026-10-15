@@ -143,14 +143,14 @@ export class SessionController {
     try {
       const userId = req.user?.id;
       const { id } = req.params;
-      const { userMessageId } = req.body as RollbackUserTurnDto;
+      const { userMessageId, promptText } = req.body as RollbackUserTurnDto;
 
       if (!userId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
-      const result = await sessionService.rollbackToUserTurn(userId, id, userMessageId);
+      const result = await sessionService.rollbackToUserTurn(userId, id, userMessageId, promptText);
 
       res.status(200).json({
         success: true,

@@ -22,6 +22,8 @@ export interface ChatApiResponse {
     extractedHtml: string;
     presignedUrl?: string;
     s3Key?: string;
+    userMessageId?: string;
+    aiMessageId?: string;
   };
 }
 

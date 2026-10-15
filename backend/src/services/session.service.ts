@@ -358,7 +358,8 @@ export class SessionService {
   public async rollbackToUserTurn(
     userId: string,
     sessionId: string,
-    userMessageId: string
+    userMessageId: string,
+    promptTextFallback?: string
   ): Promise<{
     success: boolean;
     sessionId: string;
@@ -375,7 +376,25 @@ export class SessionService {
     }
 
     const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
-    const targetIndex = messages.findIndex((m) => m.id === userMessageId);
+    let targetIndex = messages.findIndex((m) => m.id === userMessageId);
+
+    // Fallback 1: Nếu không tìm thấy theo ID, tìm theo promptTextFallback
+    if (targetIndex === -1 && promptTextFallback && promptTextFallback.trim()) {
+      const cleanPrompt = promptTextFallback.trim();
+      targetIndex = messages.findIndex(
+        (m) => m.sender === 'user' && m.text && m.text.trim() === cleanPrompt
+      );
+    }
+
+    // Fallback 2: Nếu userMessageId là client ID tạm thời (user-...) mà không khớp ID, tìm tin nhắn user gần nhất
+    if (targetIndex === -1 && typeof userMessageId === 'string' && userMessageId.startsWith('user-')) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].sender === 'user') {
+          targetIndex = i;
+          break;
+        }
+      }
+    }
 
     if (targetIndex === -1) {
       throw new Error(`Không tìm thấy tin nhắn yêu cầu khôi phục với mã: ${userMessageId}`);

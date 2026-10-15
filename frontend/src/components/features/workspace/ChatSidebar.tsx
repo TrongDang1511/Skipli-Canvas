@@ -9,6 +9,9 @@ import {
   Square,
   Wand2,
   Layers,
+  Copy,
+  Check,
+  Pencil,
 } from 'lucide-react';
 
 interface ChatSidebarProps {
@@ -17,6 +20,8 @@ interface ChatSidebarProps {
   onSendPrompt: (prompt: string) => void;
   onStopGeneration: () => void;
   sessionTitle?: string;
+  onStartRollback?: (message: ChatMessage, index: number) => void;
+  prefillPrompt?: string;
 }
 
 export const ChatSidebar: FC<ChatSidebarProps> = ({
@@ -25,14 +30,42 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   onSendPrompt,
   onStopGeneration,
   sessionTitle,
+  onStartRollback,
+  prefillPrompt,
 }) => {
   const [inputText, setInputText] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
+
+  useEffect(() => {
+    if (prefillPrompt !== undefined && prefillPrompt !== '') {
+      setInputText(prefillPrompt);
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+          textareaRef.current.focus();
+          const len = prefillPrompt.length;
+          textareaRef.current.setSelectionRange(len, len);
+        }
+      }, 50);
+    }
+  }, [prefillPrompt]);
+
+  const handleCopyPrompt = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch (err) {
+      console.warn('Failed to copy prompt:', err);
+    }
+  };
 
   const handleSend = () => {
     if (!inputText.trim() || isStreaming) return;
@@ -80,18 +113,46 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        {messages.map((msg) => {
+        {messages.map((msg, index) => {
           const isAi = msg.sender === 'ai';
 
           return (
             <div key={msg.id} className="space-y-2">
               {!isAi && (
-                <div className="flex justify-end">
+                <div className="group flex flex-col items-end">
                   <div className="max-w-[88%] bg-amber-500/10 dark:bg-[#1E3E62] text-slate-900 dark:text-white p-3 rounded-2xl rounded-tr-xs shadow-2xs border border-amber-500/30 dark:border-slate-700/60">
                     <p className="leading-relaxed whitespace-pre-wrap select-text font-medium">{msg.text}</p>
                     <span className="text-[10px] text-amber-800/80 dark:text-stone-400 mt-1 block text-right">
                       {msg.time}
                     </span>
+                  </div>
+
+                  {/* Hover Action Bar: Copy + Sửa Prompt (Hình 3) */}
+                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 mt-1 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPrompt(msg.id, msg.text)}
+                      title="Sao chép prompt"
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:text-stone-400 dark:hover:text-stone-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      {copiedId === msg.id ? (
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+
+                    {onStartRollback && (
+                      <button
+                        type="button"
+                        onClick={() => onStartRollback(msg, index)}
+                        title="Sửa prompt & Quay lại bước này"
+                        className="p-1 px-1.5 rounded-md text-amber-700 dark:text-[#D4AF37] hover:bg-amber-500/15 transition cursor-pointer flex items-center gap-1 bg-amber-500/10 border border-amber-500/30"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span className="text-[10px] font-semibold">Sửa prompt</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
