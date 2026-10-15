@@ -8,7 +8,9 @@ import { HomeDashboard } from '../components/features/workspace/HomeDashboard';
 import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
 import { CodeViewer } from '../components/features/workspace/CodeViewer';
+import { Toast, ToastType } from '../components/ui/Toast';
 import { useAuth } from '../hooks/useAuth';
+import { sessionApi } from '../services/session.api';
 import { storageService } from '../services/storage.service';
 import { cn } from '../utils/cn';
 
@@ -28,6 +30,15 @@ export const WorkspacePreviewPage: FC = () => {
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const [toastInfo, setToastInfo] = useState<{
+    isOpen: boolean;
+    type?: ToastType;
+    title?: string;
+    message: string;
+  }>({
+    isOpen: false,
+    message: '',
+  });
 
   const {
     messages,
@@ -53,8 +64,37 @@ export const WorkspacePreviewPage: FC = () => {
   });
 
   const handleSaveHtml = async (cleanHtml: string) => {
-    updateExtractedHtml(cleanHtml);
-    updateActiveSessionLatestHtml(cleanHtml);
+    if (!activeSessionId) {
+      setToastInfo({
+        isOpen: true,
+        type: 'error',
+        title: 'Chưa Chọn Phiên',
+        message: 'Vui lòng bắt đầu hoặc chọn một phiên hội thoại trước khi lưu.',
+      });
+      return;
+    }
+
+    try {
+      const result = await sessionApi.overwriteCanvas(activeSessionId, cleanHtml);
+      updateExtractedHtml(result.cleanHtml);
+      updateActiveSessionLatestHtml(result.cleanHtml);
+      fetchStorageFiles();
+
+      setToastInfo({
+        isOpen: true,
+        type: 'success',
+        title: 'Lưu Thành Công',
+        message: 'Mã nguồn website và các hình ảnh mới đã được đồng bộ an toàn lên Cloud.',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu website lên Cloud';
+      setToastInfo({
+        isOpen: true,
+        type: 'error',
+        title: 'Lưu Thất Bại',
+        message: msg,
+      });
+    }
   };
 
   const handleSelectSession = async (sessionId: string) => {
@@ -150,6 +190,15 @@ export const WorkspacePreviewPage: FC = () => {
           </div>
         )}
       </div>
+
+      {/* Thông báo Toast sang trọng khi lưu hoặc có sự kiện */}
+      <Toast
+        isOpen={toastInfo.isOpen}
+        type={toastInfo.type}
+        title={toastInfo.title}
+        message={toastInfo.message}
+        onClose={() => setToastInfo((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

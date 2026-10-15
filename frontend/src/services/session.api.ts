@@ -25,6 +25,14 @@ export class SessionApiService {
   public async deleteSession(id: string): Promise<void> {
     await apiClient.delete(`/sessions/${id}`);
   }
+
+  public async overwriteCanvas(
+    id: string,
+    cleanHtml: string
+  ): Promise<{ success: boolean; sessionId: string; presignedUrl: string; cleanHtml: string; updatedAt: string }> {
+    const res = await apiClient.put(`/sessions/${id}/overwrite-canvas`, { cleanHtml });
+    return res.data.data;
+  }
 }
 
 export const sessionApi = new SessionApiService();

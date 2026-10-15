@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { sessionController } from '../controllers/session.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody } from '../middlewares/validate.middleware';
-import { createSessionSchema, updateSessionSchema } from '../dtos/session.dto';
+import { createSessionSchema, updateSessionSchema, overwriteCanvasSchema } from '../dtos/session.dto';
 
 const router = Router();
 
@@ -13,5 +13,6 @@ router.post('/', validateBody(createSessionSchema), sessionController.createSess
 router.get('/:id', sessionController.getSessionDetail);
 router.patch('/:id', validateBody(updateSessionSchema), sessionController.renameSession);
 router.delete('/:id', sessionController.deleteSession);
+router.put('/:id/overwrite-canvas', validateBody(overwriteCanvasSchema), sessionController.overwriteCanvas);
 
 export default router;
