@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { StorageFileItem } from '../../../types/storage.types';
+import { StorageFileItem, StorageFileVersionItem } from '../../../types/storage.types';
 import { cn } from '../../../utils/cn';
 import {
   X,
@@ -12,8 +12,12 @@ import {
   Loader2,
 } from 'lucide-react';
 
+export type StoragePreviewableItem = (StorageFileItem | StorageFileVersionItem) & {
+  sessionTitle?: string;
+};
+
 interface StoragePreviewModalProps {
-  file: StorageFileItem | null;
+  file: StoragePreviewableItem | null;
   isOpen: boolean;
   onClose: () => void;
   onDownload: (fileId: string, fileName: string) => Promise<void>;

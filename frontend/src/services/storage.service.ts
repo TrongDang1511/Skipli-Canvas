@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { StorageFileItem, StorageApiResponse } from '../types/storage.types';
+import { StorageFileItem, StorageApiResponse, GroupedSessionStorageItem, GroupedStorageApiResponse } from '../types/storage.types';
 import { API_BASE_URL, STORAGE_KEYS } from '../config/env.config';
 
 export class StorageService {
@@ -16,6 +16,18 @@ export class StorageService {
       return response.data?.data || [];
     } catch (error) {
       console.warn('[StorageService] Failed to fetch storage files:', error);
+      return [];
+    }
+  }
+
+  public async getGroupedStorageFiles(): Promise<GroupedSessionStorageItem[]> {
+    try {
+      const response = await axios.get<GroupedStorageApiResponse>(`${API_BASE_URL}/storage/grouped`, {
+        headers: this.getAuthHeader(),
+      });
+      return response.data?.data || [];
+    } catch (error) {
+      console.warn('[StorageService] Failed to fetch grouped storage files:', error);
       return [];
     }
   }
