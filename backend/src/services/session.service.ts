@@ -225,14 +225,26 @@ export class SessionService {
     await sessionRepository.createMessage(userMsg);
     await sessionRepository.createMessage(aiMsg);
 
-    const updatedSession = await sessionRepository.updateSession(session.id, userId, {
-      latestHtml: s3Key ? '' : (extractedHtml || session.latestHtml),
-      s3Key: s3Key || session.s3Key,
-      presignedUrl: presignedUrl || session.presignedUrl,
-      presignedExpiresAt: presignedExpiresAt || session.presignedExpiresAt,
+    const sessionUpdates: Partial<Session> = {
       versionCount: nextVersionCount,
       updatedAt: now,
-    });
+    };
+
+    if (s3Key) {
+      sessionUpdates.s3Key = s3Key;
+      sessionUpdates.latestHtml = '';
+    } else if (extractedHtml) {
+      sessionUpdates.latestHtml = extractedHtml;
+    }
+
+    if (presignedUrl) {
+      sessionUpdates.presignedUrl = presignedUrl;
+    }
+    if (presignedExpiresAt) {
+      sessionUpdates.presignedExpiresAt = presignedExpiresAt;
+    }
+
+    const updatedSession = await sessionRepository.updateSession(session.id, userId, sessionUpdates);
 
     return {
       session: updatedSession || session,

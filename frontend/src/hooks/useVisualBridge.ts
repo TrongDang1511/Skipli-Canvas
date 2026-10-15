@@ -336,7 +336,111 @@ export function useVisualBridge({
       setSelectionPos(null);
       setImageTarget(null);
       setCardSiblingInfo(null);
-      return;
+
+      // Toast thông báo tương tác trong iframe khi ở chế độ xem thử (Preview Mode)
+      const showPreviewToast = (message: string) => {
+        let container = doc.getElementById('skipli-preview-toast-container');
+        if (!container) {
+          container = doc.createElement('div');
+          container.id = 'skipli-preview-toast-container';
+          container.style.cssText =
+            'position: fixed; bottom: 20px; right: 20px; z-index: 9999999; pointer-events: none; ' +
+            'font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; ' +
+            'display: flex; flex-direction: column; gap: 8px;';
+          doc.body?.appendChild(container);
+        }
+
+        const toast = doc.createElement('div');
+        toast.style.cssText =
+          'background: #0B192C; color: #FAF9F6; border: 1px solid rgba(212, 175, 55, 0.6); ' +
+          'padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 500; ' +
+          'box-shadow: 0 10px 25px rgba(0,0,0,0.3); opacity: 0; transform: translateY(8px); ' +
+          'transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 6px;';
+        toast.innerHTML = `<span style="color:#D4AF37; font-weight:700;">✨ [Bản Xem Thử]</span> ${message}`;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.style.opacity = '1';
+          toast.style.transform = 'translateY(0)';
+        });
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(8px)';
+          setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 250);
+        }, 2800);
+      };
+
+      // Chặn điều hướng của liên kết và nút trong chế độ xem thử
+      const handlePreviewClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target) return;
+
+        const link = target.closest('a');
+        if (link) {
+          const href = link.getAttribute('href');
+          // 1. Hash link chuyển hướng nội bộ (#section-id)
+          if (href && href.startsWith('#') && href.length > 1) {
+            e.preventDefault();
+            try {
+              const targetEl = doc.querySelector(href) || doc.getElementById(href.slice(1));
+              if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth' });
+                return;
+              }
+            } catch {
+              // fallback nếu selector không hợp lệ
+            }
+            showPreviewToast('Đã cuộn tới khối tương ứng!');
+            return;
+          }
+
+          // 2. Liên kết ngoài tuyệt đối
+          if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+            e.preventDefault();
+            window.open(href, '_blank', 'noopener,noreferrer');
+            return;
+          }
+
+          // 3. Liên kết rỗng, # hoặc tương đối: Chặn tuyệt đối để không làm iframe điều hướng
+          e.preventDefault();
+          showPreviewToast('Liên kết này sẽ chuyển hướng trên website thực tế!');
+          return;
+        }
+
+        const submitBtn = target.closest('button[type="submit"], input[type="submit"]');
+        if (submitBtn) {
+          e.preventDefault();
+          showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
+          return;
+        }
+
+        const button = target.closest('button, [role="button"]');
+        if (button) {
+          const form = button.closest('form');
+          if (form) {
+            e.preventDefault();
+            showPreviewToast('Đã ghi nhận tương tác form xem thử!');
+          }
+        }
+      };
+
+      const handlePreviewSubmit = (e: Event) => {
+        e.preventDefault();
+        showPreviewToast('Đã ghi nhận dữ liệu biểu mẫu trong bản xem thử!');
+      };
+
+      doc.addEventListener('click', handlePreviewClick, true);
+      doc.addEventListener('submit', handlePreviewSubmit, true);
+
+      return () => {
+        doc.removeEventListener('click', handlePreviewClick, true);
+        doc.removeEventListener('submit', handlePreviewSubmit, true);
+        const container = doc.getElementById('skipli-preview-toast-container');
+        if (container) container.remove();
+      };
     }
 
     injectInspectorStyles(doc);

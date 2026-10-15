@@ -20,6 +20,7 @@ try {
       }
 
       db = admin.firestore();
+      db.settings({ ignoreUndefinedProperties: true });
       isFirebaseInitialized = true;
       console.log('[Firebase] Initialized successfully with service account credentials.');
     } else {

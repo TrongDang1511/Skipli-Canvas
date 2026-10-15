@@ -46,10 +46,20 @@ export function cleanInspectorArtifacts(doc: Document): string {
     styleTag.remove();
   }
 
-  // 2. Gỡ bỏ badge inspector
+  // 2. Gỡ bỏ badge inspector và toast preview
   const badgeEl = doc.getElementById('skipli-inspector-badge');
   if (badgeEl) {
     badgeEl.remove();
+  }
+
+  const toastContainer = doc.getElementById('skipli-preview-toast-container');
+  if (toastContainer) {
+    toastContainer.remove();
+  }
+
+  const guardScript = doc.getElementById('skipli-preview-guard');
+  if (guardScript) {
+    guardScript.remove();
   }
 
   // 3. Xóa các class highlight trên toàn bộ elements

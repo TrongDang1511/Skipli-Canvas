@@ -1,4 +1,4 @@
-import { FC, useRef, useState, useEffect } from 'react';
+import { FC, useRef, useState, useEffect, useMemo } from 'react';
 import { ViewportMode, ViewMode } from '../../../types/chat.types';
 import { CanvasToolbar } from './CanvasToolbar';
 import { FloatingTextToolbar } from './FloatingTextToolbar';
@@ -15,6 +15,96 @@ import {
   FileQuestion,
   Camera,
 } from 'lucide-react';
+
+/**
+ * Nhúng kịch bản bảo vệ (Inline Guard Script) trực tiếp vào iframe HTML.
+ * Script này kích hoạt ở capturing phase ngay khi browser parse HTML,
+ * chặn 100% mọi sự kiện click vào link/button/form có nguy cơ điều hướng iframe sang route của ứng dụng mẹ.
+ */
+function prepareSafePreviewHtml(rawHtml: string): string {
+  if (!rawHtml || !rawHtml.trim()) return '';
+
+  const guardScript = `
+<script id="skipli-preview-guard">
+(function() {
+  function showPreviewToast(message) {
+    var c = document.getElementById('skipli-preview-toast-container');
+    if (!c) {
+      c = document.createElement('div');
+      c.id = 'skipli-preview-toast-container';
+      c.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999999;pointer-events:none;font-family:ui-sans-serif,system-ui,sans-serif;display:flex;flex-direction:column;gap:8px;';
+      document.body.appendChild(c);
+    }
+    var t = document.createElement('div');
+    t.style.cssText = 'background:#0B192C;color:#FAF9F6;border:1px solid rgba(212,175,55,0.7);padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 10px 25px rgba(0,0,0,0.3);opacity:0;transform:translateY(8px);transition:all 0.25s cubic-bezier(0.16,1,0.3,1);display:flex;align-items:center;gap:6px;';
+    t.innerHTML = '<span style="color:#D4AF37;font-weight:700;">✨ [Bản Xem Thử]</span> ' + message;
+    c.appendChild(t);
+    setTimeout(function() { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; }, 10);
+    setTimeout(function() {
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(8px)';
+      setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 300);
+    }, 2800);
+  }
+
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (a) {
+      var href = a.getAttribute('href');
+      // 1. Hash link chuyển hướng nội bộ (#section-id)
+      if (href && href.startsWith('#') && href.length > 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          var target = document.querySelector(href) || document.getElementById(href.slice(1));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+            return;
+          }
+        } catch(err) {}
+        showPreviewToast('Đã cuộn tới khối tương ứng!');
+        return;
+      }
+
+      // 2. Liên kết ngoài
+      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // 3. Liên kết rỗng, # hoặc tương đối: Chặn tuyệt đối để không làm iframe điều hướng
+      e.preventDefault();
+      e.stopPropagation();
+      showPreviewToast('Liên kết này sẽ chuyển hướng trên website thực tế!');
+      return;
+    }
+
+    var btn = e.target.closest('button, input[type="submit"], input[type="button"], [role="button"]');
+    if (btn) {
+      if (btn.type === 'submit' || btn.closest('form')) {
+        e.preventDefault();
+        e.stopPropagation();
+        showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
+      }
+    }
+  }, true);
+
+  document.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    showPreviewToast('Đã ghi nhận dữ liệu biểu mẫu trong bản xem thử!');
+  }, true);
+})();
+</script>
+`;
+
+  if (rawHtml.includes('</body>')) {
+    return rawHtml.replace('</body>', `${guardScript}</body>`);
+  }
+  return rawHtml + guardScript;
+}
 
 interface CanvasPreviewProps {
   presignedUrl?: string;
@@ -43,11 +133,16 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   const [hasStorageError, setHasStorageError] = useState<boolean>(false);
   const [isCheckingS3, setIsCheckingS3] = useState<boolean>(false);
   const [currentHtml, setCurrentHtml] = useState<string>(htmlContent || '');
+  const [reloadKey, setReloadKey] = useState<number>(0);
+
+  // Chuẩn bị mã HTML an toàn có nhúng inline guard script chống iframe bị điều hướng
+  const safeHtml = useMemo(() => prepareSafePreviewHtml(currentHtml), [currentHtml]);
 
   // Đồng bộ prop htmlContent khi có thay đổi từ bên ngoài (ví dụ AI sinh code mới)
   useEffect(() => {
     if (htmlContent) {
       setCurrentHtml(htmlContent);
+      setReloadKey((prev) => prev + 1);
     }
   }, [htmlContent]);
 
@@ -93,7 +188,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
     },
   });
 
-  // Tải kiểm tra nội dung tệp từ S3 nếu chưa có chuỗi htmlContent
+  // Tải nội dung tệp trực tiếp từ MinIO S3 (Nguồn chân lý duy nhất)
   useEffect(() => {
     if (!presignedUrl) {
       setHasStorageError(false);
@@ -104,7 +199,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
     setIsCheckingS3(true);
     setHasStorageError(false);
 
-    fetch(presignedUrl)
+    fetch(presignedUrl, { cache: 'no-store' })
       .then(async (res) => {
         if (!isMounted) return;
         if (!res.ok) {
@@ -116,10 +211,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           setHasStorageError(true);
         } else {
           setHasStorageError(false);
-          // Nếu chưa có htmlContent từ prop, lưu HTML tải được để phục vụ Visual Edit
-          if (!htmlContent) {
-            setCurrentHtml(text);
-          }
+          // Luôn lấy nội dung chuẩn xác nhất trực tiếp từ MinIO S3
+          setCurrentHtml(text);
+          setReloadKey((prev) => prev + 1);
         }
       })
       .catch(() => {
@@ -132,12 +226,13 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [presignedUrl, htmlContent]);
+  }, [presignedUrl]);
 
   const handleRefresh = () => {
+    setReloadKey((prev) => prev + 1);
     if (presignedUrl) {
       setIsCheckingS3(true);
-      fetch(presignedUrl)
+      fetch(presignedUrl, { cache: 'no-store' })
         .then(async (res) => {
           if (!res.ok) {
             setHasStorageError(true);
@@ -149,11 +244,6 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           } else {
             setHasStorageError(false);
             setCurrentHtml(text);
-            if (iframeRef.current && !currentHtml) {
-              const urlObj = new URL(presignedUrl);
-              urlObj.searchParams.set('_r', Date.now().toString());
-              iframeRef.current.src = urlObj.toString();
-            }
           }
         })
         .catch(() => setHasStorageError(false))
@@ -261,8 +351,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             /* Khi có mã HTML: Sử dụng srcDoc để có cùng origin với Parent React, cho phép can thiệp DOM 100% không bị CORS chặn */
             <iframe
               ref={iframeRef}
+              key={`preview-srcdoc-${reloadKey}`}
               title="Skipli Live Preview"
-              srcDoc={currentHtml}
+              srcDoc={safeHtml}
               sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
               className="w-full h-full border-none bg-white"
             />
@@ -270,6 +361,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             /* Fallback nạp qua presignedUrl khi chưa lấy được nội dung HTML */
             <iframe
               ref={iframeRef}
+              key={`preview-url-${reloadKey}`}
               title="Skipli Live Preview"
               src={presignedUrl}
               sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
