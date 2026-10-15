@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import { env } from '../config/env.config';
 import { goclawConfig } from '../config/goclaw.config';
+import { maskHtmlAssets } from '../utils/asset-masker.utils';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -12,6 +13,7 @@ export interface ChatMessage {
 
 export interface ChatCompletionResponse {
   text: string;
+  assetMap?: Map<string, string>;
 }
 
 export interface ChatCompletionOptions {
@@ -28,43 +30,60 @@ export class GoClawService {
     const { history = [], currentHtml, sessionTitle } = options;
 
     let finalPrompt = '';
+    let assetMap: Map<string, string> | undefined;
 
     if (currentHtml && currentHtml.trim()) {
+      // 1. Kỹ thuật Token Masking: Thay thế toàn bộ link ảnh MinIO S3 & CDN bằng token ngắn
+      const maskedResult = maskHtmlAssets(currentHtml.trim());
+      const maskedHtml = maskedResult.maskedHtml;
+      assetMap = maskedResult.assetMap;
+
       // INCREMENTAL EDITING (Turn 2+)
       finalPrompt = `[SKIPLI INCREMENTAL EDIT & UPGRADE DIRECTIVE]:
 You are continuing work on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
 
+CRITICAL STRICT RULES - IMMUTABILITY OF USER ASSETS:
+1. PRESERVE ALL USER ASSET TOKENS:
+   - The current HTML contains user-curated and local uploaded assets marked as '__SKIPLI_ASSET_X__'.
+   - You MUST preserve all '__SKIPLI_ASSET_X__' tokens EXACTLY verbatim inside their respective <img> src or CSS background-image attributes.
+   - You are STRICTLY FORBIDDEN from modifying, replacing, removing, or swapping ANY '__SKIPLI_ASSET_X__' token.
+2. SURGICAL MODIFICATION SCOPE:
+   - Focus 100% of your modifications ONLY on what the user explicitly requested below: "${prompt}".
+   - Keep all other sections, Tailwind CSS aesthetic, Google Fonts, Lucide stroke icons, and Vanilla JS interactivity fully intact.
+
 CURRENT HTML CODE:
 \`\`\`html
-${currentHtml.trim()}
+${maskedHtml}
 \`\`\`
 
 USER'S MODIFICATION REQUEST:
 ${prompt}
 
-MANDATORY RULES:
-1. Carefully update and enhance the EXISTING HTML source code above according to the user's new request.
-2. PRESERVE 100% of all existing 8 sections, style aesthetics, Unsplash images, copywriting, and Vanilla JS interactivity unless explicitly requested to remove or change them.
-3. Write the updated, complete single-file HTML (>250 lines) directly to disk in the current workspace directory via tool call 'write_file'.
-4. CRITICAL OUTPUT RESTRICTION: Do NOT output or print the raw HTML code (or any \`\`\`html code blocks) in your conversational chat response text. You MUST ONLY save the file directly to disk using tool 'write_file'. In your chat response, provide ONLY a concise, polite summary in Vietnamese detailing the exact enhancements made.`;
+MANDATORY 2-STEP WORKFLOW & HARD-STOP RULE:
+- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the updated, complete single-file HTML (>250 lines) to disk. Preserve 100% of all user asset tokens (__SKIPLI_ASSET_X__), styling, and sections unless explicitly commanded to change.
+- Step 2: Do NOT call any more tools (do NOT call write_file again, do NOT call use_skill). Immediately output your conversational response: a warm, insightful summary in natural Vietnamese detailing the exact enhancements made.
+- PROHIBITION: Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your chat response.`;
     } else {
       // INITIAL CREATION (Turn 1)
       finalPrompt = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
-You MUST strictly follow all 4 active Skipli Skills:
-1. 'skipli-adaptive-design-systems': Apply industry-matched color palettes, Google Fonts (Outfit / Playfair Display / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
-2. 'skipli-copywriting-seo': High-converting headlines, outcome-oriented CTAs, social proof, single H1, and SEO meta tags.
-3. 'skipli-ecommerce-interactivity': MUST execute tool 'write_file' with path="[brand_slug]_[timestamp].html" in the current working directory to generate a single-file HTML (>250 lines) containing ALL 8 MANDATORY SECTIONS:
-   - Section 1: Sticky Glassmorphism Header & Navbar with floating Cart Icon & item count badge.
-   - Section 2: High-Impact Hero Banner with dual CTAs, trust rating pill (4.9/5★), and featured dish/product badge.
-   - Section 3: Brand Story / Artisan Quality Bento Grid with 3 metric highlight cards.
-   - Section 4: Categorized Product Grid with Category Tab Filters ("All", "Signatures", "Side Dishes", "Beverages"), real price tags, Quick View, and Add to Cart.
-   - Section 5: Value Proposition / Key Features Grid with Lucide stroke icons.
-   - Section 6: Customer Testimonials with 5-star gold ratings & authentic portrait avatars.
-   - Section 7: Interactive Reservation / Order Form with submit Toast notification & Map Card.
-   - Section 8: Luxury 4-Column Footer & Slide-Over Cart Drawer with 100% Vanilla JS interactivity (Cart state, quantity adjustment, subtotal calculation, checkout simulation).
-4. 'skipli-media-sourcing': Use unique, high-resolution Unsplash photo URLs for EVERY single item card and avatar. Never reuse the exact same photo ID across cards.
+You are an elite Digital UI/UX Architect. Design and construct a high-converting, single-file HTML website with:
+1. Light & Luxurious aesthetic: Warm White background (#FAF9F6), Deep Navy (#0B192C), Metallic Gold (#D4AF37), Google Fonts (Outfit / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
+2. High-converting copywriting: Single H1, outcome-oriented CTAs, trust rating (4.9/5★), and SEO meta tags.
+3. All 8 comprehensive sections:
+   - Sticky Glassmorphism Header & Navbar with floating Cart Icon & badge.
+   - High-Impact Hero Banner with dual CTAs and trust rating pill.
+   - Brand Story Bento Grid with 3 metric highlight cards.
+   - Categorized Product Grid with Category Tab Filters ("All", "Signatures", "Side Dishes", "Beverages"), real prices, and Add to Cart.
+   - Value Proposition / Key Features Grid with Lucide stroke icons.
+   - Customer Testimonials with 5-star gold ratings & portrait avatars.
+   - Interactive Reservation / Order Form with submit Toast notification.
+   - 4-Column Luxury Footer & Slide-Over Cart Drawer with 100% Vanilla JS interactivity.
+4. Clean SVG Data URI placeholders or unique high-resolution Unsplash photo URLs for all cards.
 
-CRITICAL OUTPUT RESTRICTION: Do NOT output or print the raw HTML code (or any \`\`\`html code blocks) in your conversational chat response text. You MUST ONLY create and save the complete HTML file directly to disk in the current workspace directory using tool 'write_file'. In your chat response, provide ONLY a concise, polite summary in Vietnamese explaining the key design highlights and features created.
+MANDATORY 2-STEP WORKFLOW & HARD-STOP RULE:
+- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the complete single-file HTML (>250 lines) to disk.
+- Step 2: Do NOT call any more tools (do NOT call write_file again, do NOT call use_skill). Immediately output your conversational response: a warm, insightful summary in natural Vietnamese explaining what you designed and built, and suggesting next steps for the user.
+- PROHIBITION: Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your chat response.
 
 User Request: ${prompt}`;
     }
@@ -103,7 +122,7 @@ User Request: ${prompt}`;
         responseData?.content ||
         '';
 
-      return { text: content };
+      return { text: content, assetMap };
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data
@@ -116,7 +135,9 @@ User Request: ${prompt}`;
   }
 
   public cleanTextResponse(rawText: string): string {
-    if (!rawText) return '';
+    if (!rawText || !rawText.trim()) {
+      return 'Tôi đã khởi tạo và xây dựng xong giao diện website theo đúng yêu cầu của bạn. Toàn bộ mã nguồn đã được lưu trữ an toàn trên MinIO Cloud và nạp trực tiếp vào khung Live Preview bên cạnh. Bạn có thể xem thử hoặc dùng chế độ Chỉnh Sửa Trực Quan để đổi chữ, thay ảnh tùy ý!';
+    }
     let cleaned = rawText;
 
     // 1. Loại bỏ toàn bộ các khối mã ```html ... ``` hoặc ``` ... ```
@@ -133,31 +154,21 @@ User Request: ${prompt}`;
     // 6. Xóa các dòng trống liên tiếp
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
 
-    return cleaned || rawText;
+    if (!cleaned || !cleaned.trim()) {
+      return 'Tôi đã khởi tạo và xây dựng xong giao diện website theo đúng yêu cầu của bạn. Toàn bộ mã nguồn đã được lưu trữ an toàn trên MinIO Cloud và nạp trực tiếp vào khung Live Preview bên cạnh. Bạn có thể xem thử hoặc dùng chế độ Chỉnh Sửa Trực Quan để đổi chữ, thay ảnh tùy ý!';
+    }
+
+    return cleaned;
   }
 
   public extractHtml(fullContent: string): string {
-    if (!fullContent) return '';
+    const rawText = fullContent || '';
 
     // =========================================================================
     // ƯU TIÊN 1: NẾU AI ĐÃ SINH FILE .HTML TRÊN Ổ CỨNG / WORKSPACE
     // Đọc trực tiếp 100% nội dung file nguyên bản từ workspace đĩa cứng của agent
     // =========================================================================
     try {
-      // 1.1 Kiểm tra xem trong phản hồi có nhắc đến đường dẫn file .html cụ thể nào không
-      const pathMatch = fullContent.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
-                        fullContent.match(/([a-zA-Z0-9_\-./\\]+\.html)/i);
-      if (pathMatch) {
-        const candidatePath = pathMatch[1].replace(/[.,;:)]+$/, '').trim();
-        if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
-          const fileContent = fs.readFileSync(candidatePath, 'utf-8');
-          if (fileContent && fileContent.includes('<html')) {
-            return fileContent;
-          }
-        }
-      }
-
-      // 1.2 Ưu tiên quét thư mục workspace chuẩn của GoClaw Agent (Đường dẫn động theo OS & Config)
       const userHome = os.homedir();
       const agentId = env.goclawAgentId;
       const customWorkspace = env.goclawWorkspaceDir;
@@ -170,6 +181,29 @@ User Request: ${prompt}`;
         process.cwd()
       ].filter((dir): dir is string => Boolean(dir && dir.trim()));
 
+      // 1.1 Kiểm tra xem trong phản hồi có nhắc đến đường dẫn file .html cụ thể nào không
+      if (rawText) {
+        const pathMatch = rawText.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
+                          rawText.match(/([a-zA-Z0-9_\-./\\]+\.html)/i);
+        if (pathMatch) {
+          const candidateName = pathMatch[1].replace(/[.,;:)]+$/, '').trim();
+          const candidatePaths = [
+            candidateName,
+            ...searchDirs.map((dir) => path.join(dir, candidateName)),
+            ...searchDirs.map((dir) => path.join(dir, path.basename(candidateName))),
+          ];
+          for (const cPath of candidatePaths) {
+            if (fs.existsSync(cPath) && fs.statSync(cPath).isFile()) {
+              const fileContent = fs.readFileSync(cPath, 'utf-8');
+              if (fileContent && fileContent.includes('<html')) {
+                return fileContent;
+              }
+            }
+          }
+        }
+      }
+
+      // 1.2 Quét tìm file .html mới nhất vừa được AI tạo trong thư mục workspace
       let newestHtmlPath = '';
       let newestTime = 0;
 
@@ -194,13 +228,12 @@ User Request: ${prompt}`;
         }
       };
 
-      // Quét tìm file .html mới nhất vừa được AI tạo trong thư mục workspace
       for (const dir of searchDirs) {
         scanDirectory(dir);
       }
 
-      // Nếu tìm thấy file .html mới nhất vừa được AI tạo trong vòng 15 phút
-      if (newestHtmlPath && Date.now() - newestTime < 900000) {
+      // Nếu tìm thấy file .html mới nhất vừa được AI tạo trong vòng 30 phút
+      if (newestHtmlPath && Date.now() - newestTime < 1800000) {
         const fileContent = fs.readFileSync(newestHtmlPath, 'utf-8');
         if (fileContent && fileContent.includes('<html')) {
           return fileContent;
@@ -208,6 +241,26 @@ User Request: ${prompt}`;
       }
     } catch (fsErr) {
       console.warn('[GoClawService] Lỗi khi đọc file .html từ workspace GoClaw:', fsErr);
+    }
+
+    // =========================================================================
+    // DỰ PHÒNG 2: BÓC TÁCH MÃ HTML TỪ KHỐI MARKDOWN HOẶC RAW TEXT (NẾU CÓ)
+    // =========================================================================
+    if (rawText) {
+      const codeBlockMatch = rawText.match(/```(?:html|xml)?\s*([\s\S]*?)```/i);
+      if (codeBlockMatch && codeBlockMatch[1] && codeBlockMatch[1].includes('<html')) {
+        return codeBlockMatch[1].trim();
+      }
+
+      if (rawText.includes('<!DOCTYPE html>') || rawText.includes('<html')) {
+        const docStart = rawText.indexOf('<!DOCTYPE html>');
+        const htmlStart = rawText.indexOf('<html');
+        const startIdx = docStart !== -1 ? docStart : htmlStart;
+        const endIdx = rawText.lastIndexOf('</html>');
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          return rawText.substring(startIdx, endIdx + 7).trim();
+        }
+      }
     }
 
     return '';

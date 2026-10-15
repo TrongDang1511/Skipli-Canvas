@@ -225,19 +225,126 @@ export class SessionService {
     await sessionRepository.createMessage(userMsg);
     await sessionRepository.createMessage(aiMsg);
 
-    const updatedSession = await sessionRepository.updateSession(session.id, userId, {
-      latestHtml: s3Key ? '' : (extractedHtml || session.latestHtml),
-      s3Key: s3Key || session.s3Key,
-      presignedUrl: presignedUrl || session.presignedUrl,
-      presignedExpiresAt: presignedExpiresAt || session.presignedExpiresAt,
+    const sessionUpdates: Partial<Session> = {
       versionCount: nextVersionCount,
       updatedAt: now,
-    });
+    };
+
+    if (s3Key) {
+      sessionUpdates.s3Key = s3Key;
+      sessionUpdates.latestHtml = '';
+    } else if (extractedHtml) {
+      sessionUpdates.latestHtml = extractedHtml;
+    }
+
+    if (presignedUrl) {
+      sessionUpdates.presignedUrl = presignedUrl;
+    }
+    if (presignedExpiresAt) {
+      sessionUpdates.presignedExpiresAt = presignedExpiresAt;
+    }
+
+    const updatedSession = await sessionRepository.updateSession(session.id, userId, sessionUpdates);
 
     return {
       session: updatedSession || session,
       userMsg,
       aiMsg,
+    };
+  }
+
+  /**
+   * Giai đoạn 5: Ghi đè HTML chỉnh sửa tay lên MinIO S3.
+   * Tự động quét và bóc tách các ảnh người dùng tải từ máy tính (Base64 Data URI),
+   * upload lên thư mục MinIO "users/{userId}/sessions/{sessionId}/images/{fileName}",
+   * thay thế src ảnh trong HTML bằng Presigned URL mới và ghi đè HTML lên MinIO S3.
+   */
+  public async overwriteCanvas(
+    userId: string,
+    sessionId: string,
+    cleanHtml: string
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    presignedUrl: string;
+    cleanHtml: string;
+    updatedAt: string;
+  }> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+    }
+
+    const versionStr = session.versionCount > 0 ? `v1.${session.versionCount}` : 'v1.1';
+    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/${versionStr}.html`;
+
+    // 1. Quét tìm và bóc tách các ảnh Base64 Data URI được upload từ máy tính
+    let processedHtml = cleanHtml;
+    const base64Regex = /data:image\/([a-zA-Z0-9+.-]+);base64,([A-Za-z0-9+/=]+)/g;
+    const matches = Array.from(cleanHtml.matchAll(base64Regex));
+
+    if (matches.length > 0) {
+      for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        const fullDataUri = match[0];
+        const rawMime = match[1].toLowerCase();
+        let ext = 'png';
+        if (rawMime.includes('svg')) ext = 'svg';
+        else if (rawMime.includes('jpeg') || rawMime.includes('jpg')) ext = 'jpg';
+        else if (rawMime.includes('webp')) ext = 'webp';
+        else if (rawMime.includes('gif')) ext = 'gif';
+
+        const base64Content = match[2];
+        const imageBuffer = Buffer.from(base64Content, 'base64');
+        const imageFileName = `img_${Date.now()}_${i + 1}.${ext}`;
+        const imageS3Key = `users/${userId}/sessions/${session.id}/images/${imageFileName}`;
+
+        try {
+          // Upload ảnh lên thư mục images/ trên MinIO
+          const s3ImageInfo = await s3Service.uploadImageBuffer(
+            imageS3Key,
+            imageBuffer,
+            `image/${ext === 'svg' ? 'svg+xml' : ext}`
+          );
+
+          // Thay thế toàn bộ Data URI bằng Presigned URL của ảnh trên MinIO
+          if (s3ImageInfo.presignedUrl) {
+            processedHtml = processedHtml.split(fullDataUri).join(s3ImageInfo.presignedUrl);
+          }
+        } catch (imgErr) {
+          console.error(`[SessionService] Lỗi khi upload ảnh ${imageFileName} lên MinIO:`, imgErr);
+        }
+      }
+    }
+
+    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại đúng s3Key hiện tại
+    await s3Service.uploadHtml(s3Key, processedHtml, {
+      sessionId: session.id,
+      sessionTitle: session.title,
+      version: versionStr,
+      userId,
+      fileName: `website_${versionStr}.html`,
+    });
+
+    // 3. Tái ký Presigned URL mới cho file HTML
+    const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
+    const now = new Date().toISOString();
+
+    // 4. Cập nhật Firestore
+    await sessionRepository.updateSession(session.id, userId, {
+      s3Key,
+      latestHtml: '',
+      presignedUrl: s3Info.presignedUrl,
+      presignedExpiresAt: s3Info.presignedExpiresAt,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: session.id,
+      presignedUrl: s3Info.presignedUrl,
+      cleanHtml: processedHtml,
+      updatedAt: now,
     };
   }
 }

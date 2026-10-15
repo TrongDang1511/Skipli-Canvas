@@ -88,12 +88,23 @@ export function useChatStream(options?: UseChatStreamOptions) {
         );
 
         setIsStreaming(false);
-        const resolvedHtml = result.extractedHtml || chatService.extractHtml(result.fullContent);
-        if (resolvedHtml) {
-          setExtractedHtml(resolvedHtml);
-        }
+
+        // Nguồn chân lý duy nhất (Single Source of Truth): Chỉ tin MinIO S3
+        let minioHtml = '';
         if (result.presignedUrl) {
           setPresignedUrl(result.presignedUrl);
+          try {
+            const res = await fetch(result.presignedUrl, { cache: 'no-store' });
+            if (res.ok) {
+              const text = await res.text();
+              if (!text.includes('<Error>') || !text.includes('<Code>NoSuchKey</Code>')) {
+                minioHtml = text;
+                setExtractedHtml(text);
+              }
+            }
+          } catch (fetchErr) {
+            console.warn('[useChatStream] Lỗi khi kéo file HTML từ MinIO presignedUrl:', fetchErr);
+          }
         }
 
         setMessages((prev) =>
@@ -102,7 +113,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
               ? {
                   ...msg,
                   text: result.fullContent,
-                  extractedHtml: resolvedHtml,
+                  extractedHtml: minioHtml,
                   version: result.version || msg.version,
                   isLoading: false,
                 }
@@ -111,7 +122,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
         );
 
         if (options?.onTurnComplete) {
-          options.onTurnComplete(result.sessionId || targetSessionId, resolvedHtml);
+          options.onTurnComplete(result.sessionId || targetSessionId, minioHtml);
         }
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -184,6 +195,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
     stopGeneration,
     resetCanvas,
     loadSession,
+    updateExtractedHtml: setExtractedHtml,
   };
 }
 

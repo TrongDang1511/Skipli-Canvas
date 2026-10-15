@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { sessionService } from '../services/session.service';
-import { CreateSessionDto, UpdateSessionDto } from '../dtos/session.dto';
+import { CreateSessionDto, UpdateSessionDto, OverwriteCanvasDto } from '../dtos/session.dto';
 
 export class SessionController {
   public getSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -111,6 +111,28 @@ export class SessionController {
       res.status(200).json({
         success: true,
         message: 'Đã xóa phiên hội thoại thành công',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public overwriteCanvas = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      const { id } = req.params;
+      const { cleanHtml } = req.body as OverwriteCanvasDto;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await sessionService.overwriteCanvas(userId, id, cleanHtml);
+
+      res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);

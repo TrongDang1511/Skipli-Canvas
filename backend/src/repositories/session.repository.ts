@@ -73,7 +73,13 @@ export class SessionRepository {
 
     if (isFirebaseInitialized && db) {
       try {
-        await db.collection(this.sessionsCollection).doc(session.id).set(session);
+        const cleanSessionData: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(session)) {
+          if (value !== undefined) {
+            cleanSessionData[key] = value;
+          }
+        }
+        await db.collection(this.sessionsCollection).doc(session.id).set(cleanSessionData);
       } catch (err) {
         console.error('[SessionRepository] createSession firestore error:', err);
       }
@@ -95,7 +101,13 @@ export class SessionRepository {
 
     if (isFirebaseInitialized && db) {
       try {
-        await db.collection(this.sessionsCollection).doc(cleanId).update(updatedData);
+        const cleanUpdateData: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(updatedData)) {
+          if (value !== undefined) {
+            cleanUpdateData[key] = value;
+          }
+        }
+        await db.collection(this.sessionsCollection).doc(cleanId).update(cleanUpdateData);
       } catch (err) {
         console.error('[SessionRepository] updateSession firestore error:', err);
       }

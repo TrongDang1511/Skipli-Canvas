@@ -70,6 +70,32 @@ export class S3Service {
   }
 
   /**
+   * Upload tệp hình ảnh dạng Buffer (được bóc tách từ Base64) lên thư mục images của MinIO
+   * và sinh ngay Presigned URL cho ảnh để nạp lên Live Preview.
+   */
+  public async uploadImageBuffer(
+    s3Key: string,
+    buffer: Buffer,
+    contentType: string = 'image/png'
+  ): Promise<{ presignedUrl: string; presignedExpiresAt: number }> {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: 'max-age=31536000, public',
+      });
+      await s3Client.send(command);
+
+      return await this.getOrGeneratePresignedViewUrl(s3Key);
+    } catch (error) {
+      console.error(`[S3Service] Error uploading image to key: ${s3Key}`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Lấy S3 Custom Metadata gắn kèm file qua HeadObjectCommand (0 bytes download payload)
    */
   public async getObjectMetadata(s3Key: string): Promise<S3CustomMetadata | null> {
