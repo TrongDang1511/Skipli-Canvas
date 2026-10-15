@@ -347,6 +347,116 @@ export class SessionService {
       updatedAt: now,
     };
   }
+
+  /**
+   * Quản lý phiên bản: Khôi phục về trước một lượt chat của User (Rollback / Rewind).
+   * - Xác định phiên bản đích là lượt AI liền kề trước đó (hoặc trạng thái rỗng nếu ở turn 1).
+   * - Dọn dẹp sạch sẽ các tệp HTML (v1.X.html) của các version bị hủy trên MinIO S3.
+   * - Xóa các lượt chat sau bước này trong Firestore.
+   * - Cập nhật Session và trả về presignedUrl mới cùng promptText cũ để Frontend prefill vào ô input.
+   */
+  public async rollbackToUserTurn(
+    userId: string,
+    sessionId: string,
+    userMessageId: string
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    restoredVersion: string;
+    restoredPresignedUrl: string;
+    restoredHtml: string;
+    promptText: string;
+    deletedMessagesCount: number;
+    deletedFilesCount: number;
+  }> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+    }
+
+    const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
+    const targetIndex = messages.findIndex((m) => m.id === userMessageId);
+
+    if (targetIndex === -1) {
+      throw new Error(`Không tìm thấy tin nhắn yêu cầu khôi phục với mã: ${userMessageId}`);
+    }
+
+    const targetUserMessage = messages[targetIndex];
+    if (targetUserMessage.sender !== 'user') {
+      throw new Error('Chỉ hỗ trợ khôi phục từ tin nhắn của người dùng.');
+    }
+
+    const promptText = targetUserMessage.text || '';
+    const keepMessages = messages.slice(0, targetIndex);
+    const deleteMessages = messages.slice(targetIndex);
+
+    // 1. Xác định Target Version cần khôi phục
+    const lastAiMsg = keepMessages.filter((m) => m.sender === 'ai').pop();
+    let restoredVersion = 'v1.0';
+    let restoredVersionNumber = 0;
+    let restoredS3Key: string | undefined = undefined;
+    let restoredPresignedUrl = '';
+    let restoredPresignedExpiresAt: number | undefined = undefined;
+    let restoredHtml = '';
+
+    if (lastAiMsg && lastAiMsg.version) {
+      restoredVersion = lastAiMsg.version;
+      const parsedNum = parseInt(restoredVersion.replace(/^v1\./, ''), 10);
+      restoredVersionNumber = isNaN(parsedNum) ? 1 : parsedNum;
+      restoredS3Key = `users/${userId}/sessions/${session.id}/${restoredVersion}.html`;
+
+      try {
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(restoredS3Key);
+        restoredPresignedUrl = s3Info.presignedUrl;
+        restoredPresignedExpiresAt = s3Info.presignedExpiresAt;
+        restoredHtml = await s3Service.getHtmlContent(restoredS3Key);
+      } catch (s3Err) {
+        console.warn('[SessionService] Lỗi khi nạp lại phiên bản đích từ S3:', s3Err);
+      }
+    }
+
+    // 2. Dọn dẹp các file HTML của các version bị hủy trên MinIO S3
+    let deletedFilesCount = 0;
+    const deletedAiMessages = deleteMessages.filter((m) => m.sender === 'ai' && m.version);
+
+    for (const msg of deletedAiMessages) {
+      if (msg.version) {
+        const s3KeyToDelete = `users/${userId}/sessions/${session.id}/${msg.version}.html`;
+        try {
+          await s3Service.deleteObject(s3KeyToDelete);
+          deletedFilesCount++;
+        } catch (delErr) {
+          console.warn(`[SessionService] Lỗi khi xóa file ${s3KeyToDelete} trên MinIO:`, delErr);
+        }
+      }
+    }
+
+    // 3. Xóa các message phía sau trong Firestore / Memory
+    const messageIdsToDelete = deleteMessages.map((m) => m.id);
+    await sessionRepository.deleteMessagesByIds(session.id, userId, messageIdsToDelete);
+
+    // 4. Cập nhật Session
+    const now = new Date().toISOString();
+    await sessionRepository.updateSession(session.id, userId, {
+      s3Key: restoredS3Key || '',
+      latestHtml: restoredHtml,
+      presignedUrl: restoredPresignedUrl,
+      presignedExpiresAt: restoredPresignedExpiresAt,
+      versionCount: restoredVersionNumber,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: session.id,
+      restoredVersion,
+      restoredPresignedUrl,
+      restoredHtml,
+      promptText,
+      deletedMessagesCount: deleteMessages.length,
+      deletedFilesCount,
+    };
+  }
 }
 
 export const sessionService = new SessionService();
