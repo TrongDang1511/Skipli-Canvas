@@ -1,4 +1,4 @@
-export type Sender = 'user' | 'ai';
+export type Sender = 'user' | 'ai' | 'system';
 
 export interface ChatMessage {
   id: string;
@@ -6,6 +6,8 @@ export interface ChatMessage {
   text: string;
   time: string;
   version?: string;
+  s3VersionId?: string;
+  eventType?: 'manual_edit' | 'prompt_rollback';
   extractedHtml?: string;
   isLoading?: boolean;
 }

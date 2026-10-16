@@ -21,6 +21,8 @@ export interface StorageFileVersionItem {
   id: string;
   fileName: string;
   version: string;
+  versionId?: string;
+  type?: 'ai' | 'manual';
   s3Key: string;
   sizeBytes: number;
   sizeFormatted: string;

@@ -4,6 +4,8 @@ export interface StorageFileVersionItem {
   id: string;
   fileName: string;
   version: string;
+  versionId?: string;
+  type?: 'ai' | 'manual';
   s3Key: string;
   sizeBytes: number;
   sizeFormatted: string;
@@ -35,6 +37,8 @@ export const groupedStorageResponseSchema = z.object({
           id: z.string(),
           fileName: z.string(),
           version: z.string(),
+          versionId: z.string().optional(),
+          type: z.enum(['ai', 'manual']).optional(),
           s3Key: z.string(),
           sizeBytes: z.number(),
           sizeFormatted: z.string(),
