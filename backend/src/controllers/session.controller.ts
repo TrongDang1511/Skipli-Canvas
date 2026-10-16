@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { sessionService } from '../services/session.service';
-import { CreateSessionDto, UpdateSessionDto, OverwriteCanvasDto, RollbackUserTurnDto } from '../dtos/session.dto';
+import { CreateSessionDto, UpdateSessionDto, OverwriteCanvasDto, RollbackUserTurnDto, RollbackMilestoneDto } from '../dtos/session.dto';
 
 export class SessionController {
   public getSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -151,6 +151,28 @@ export class SessionController {
       }
 
       const result = await sessionService.rollbackToUserTurn(userId, id, userMessageId, promptText);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public rollbackMilestone = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      const { id } = req.params;
+      const { milestoneMessageId } = req.body as RollbackMilestoneDto;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await sessionService.rollbackToMilestone(userId, id, milestoneMessageId);
 
       res.status(200).json({
         success: true,

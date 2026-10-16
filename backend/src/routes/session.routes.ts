@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { sessionController } from '../controllers/session.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody } from '../middlewares/validate.middleware';
-import { createSessionSchema, updateSessionSchema, overwriteCanvasSchema, rollbackUserTurnSchema } from '../dtos/session.dto';
+import { createSessionSchema, updateSessionSchema, overwriteCanvasSchema, rollbackUserTurnSchema, rollbackMilestoneSchema } from '../dtos/session.dto';
 
 const router = Router();
 
@@ -15,5 +15,6 @@ router.patch('/:id', validateBody(updateSessionSchema), sessionController.rename
 router.delete('/:id', sessionController.deleteSession);
 router.put('/:id/overwrite-canvas', validateBody(overwriteCanvasSchema), sessionController.overwriteCanvas);
 router.post('/:id/rollback-user-turn', validateBody(rollbackUserTurnSchema), sessionController.rollbackUserTurn);
+router.post('/:id/rollback-milestone', validateBody(rollbackMilestoneSchema), sessionController.rollbackMilestone);
 
 export default router;

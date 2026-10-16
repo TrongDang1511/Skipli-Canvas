@@ -64,6 +64,16 @@ export class SessionApiService {
     });
     return res.data.data;
   }
+
+  public async rollbackMilestone(
+    sessionId: string,
+    milestoneMessageId: string
+  ): Promise<RollbackTurnResult> {
+    const res = await apiClient.post(`/sessions/${sessionId}/rollback-milestone`, {
+      milestoneMessageId,
+    });
+    return res.data.data;
+  }
 }
 
 export const sessionApi = new SessionApiService();

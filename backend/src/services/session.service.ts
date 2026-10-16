@@ -428,43 +428,41 @@ export class SessionService {
     const keepMessages = messages.slice(0, targetIndex);
     const deleteMessages = messages.slice(targetIndex);
 
-    // 1. Xác định Target Version cần khôi phục
-    const lastAiMsg = keepMessages.filter((m) => m.sender === 'ai').pop();
+    // 1. Xác định Target Version cần khôi phục (Tìm ngược trong keepMessages xem có message nào có s3VersionId)
+    const lastCodeMsg = [...keepMessages].reverse().find((m) => m.s3VersionId);
     let restoredVersion = 'v1.0';
     let restoredVersionNumber = 0;
-    let restoredS3Key: string | undefined = undefined;
+    let restoredVersionId: string | undefined = undefined;
+    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/index.html`;
     let restoredPresignedUrl = '';
     let restoredPresignedExpiresAt: number | undefined = undefined;
     let restoredHtml = '';
 
-    if (lastAiMsg && lastAiMsg.version) {
-      restoredVersion = lastAiMsg.version;
-      const parsedNum = parseInt(restoredVersion.replace(/^v1\./, ''), 10);
+    if (lastCodeMsg && lastCodeMsg.s3VersionId) {
+      restoredVersion = lastCodeMsg.version || 'v1.1';
+      restoredVersionId = lastCodeMsg.s3VersionId;
+      const parsedNum = parseInt(restoredVersion.replace(/^v1\./, '').replace(/[^0-9]/g, ''), 10);
       restoredVersionNumber = isNaN(parsedNum) ? 1 : parsedNum;
-      restoredS3Key = `users/${userId}/sessions/${session.id}/${restoredVersion}.html`;
 
       try {
-        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(restoredS3Key);
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key, undefined, undefined, restoredVersionId);
         restoredPresignedUrl = s3Info.presignedUrl;
         restoredPresignedExpiresAt = s3Info.presignedExpiresAt;
-        restoredHtml = await s3Service.getHtmlContent(restoredS3Key);
+        restoredHtml = await s3Service.getHtmlContent(s3Key, restoredVersionId);
       } catch (s3Err) {
         console.warn('[SessionService] Lỗi khi nạp lại phiên bản đích từ S3:', s3Err);
       }
     }
 
-    // 2. Dọn dẹp các file HTML của các version bị hủy trên MinIO S3
+    // 2. Dọn dẹp các VersionId của các lượt bị hủy trên MinIO S3 (Garbage Collection)
     let deletedFilesCount = 0;
-    const deletedAiMessages = deleteMessages.filter((m) => m.sender === 'ai' && m.version);
-
-    for (const msg of deletedAiMessages) {
-      if (msg.version) {
-        const s3KeyToDelete = `users/${userId}/sessions/${session.id}/${msg.version}.html`;
+    for (const msg of deleteMessages) {
+      if (msg.s3VersionId) {
         try {
-          await s3Service.deleteObject(s3KeyToDelete);
+          await s3Service.deleteObjectVersion(s3Key, msg.s3VersionId);
           deletedFilesCount++;
         } catch (delErr) {
-          console.warn(`[SessionService] Lỗi khi xóa file ${s3KeyToDelete} trên MinIO:`, delErr);
+          console.warn(`[SessionService] Lỗi khi xóa version ${msg.s3VersionId} trên MinIO:`, delErr);
         }
       }
     }
@@ -476,8 +474,9 @@ export class SessionService {
     // 4. Cập nhật Session
     const now = new Date().toISOString();
     await sessionRepository.updateSession(session.id, userId, {
-      s3Key: restoredS3Key || '',
-      latestHtml: restoredHtml,
+      s3Key,
+      s3VersionId: restoredVersionId || '',
+      latestHtml: '',
       presignedUrl: restoredPresignedUrl,
       presignedExpiresAt: restoredPresignedExpiresAt,
       versionCount: restoredVersionNumber,
@@ -491,6 +490,109 @@ export class SessionService {
       restoredPresignedUrl,
       restoredHtml,
       promptText,
+      deletedMessagesCount: deleteMessages.length,
+      deletedFilesCount,
+    };
+  }
+
+  /**
+   * Quản lý phiên bản: Khôi phục về mốc Chỉnh sửa thủ công (Cách B).
+   * - Giữ lại thẻ mốc sửa tay này trong Firestore.
+   * - Xóa toàn bộ các lượt chat AI/User phát sinh sau mốc này.
+   * - Xóa các S3 VersionIds phát sinh sau mốc này.
+   * - Khôi phục Canvas về đúng s3VersionId của mốc sửa tay này.
+   */
+  public async rollbackToMilestone(
+    userId: string,
+    sessionId: string,
+    milestoneMessageId: string
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    restoredVersion: string;
+    restoredPresignedUrl: string;
+    restoredHtml: string;
+    deletedMessagesCount: number;
+    deletedFilesCount: number;
+  }> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+    }
+
+    const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
+    const targetIndex = messages.findIndex((m) => m.id === milestoneMessageId);
+
+    if (targetIndex === -1) {
+      throw new Error(`Không tìm thấy mốc chỉnh sửa thủ công với mã: ${milestoneMessageId}`);
+    }
+
+    const targetMilestone = messages[targetIndex];
+    if (targetMilestone.sender !== 'system' || targetMilestone.eventType !== 'manual_edit') {
+      throw new Error('Chỉ hỗ trợ khôi phục về mốc chỉnh sửa thủ công.');
+    }
+
+    if (!targetMilestone.s3VersionId) {
+      throw new Error('Mốc chỉnh sửa thủ công không chứa S3 VersionId hợp lệ.');
+    }
+
+    // 1. Phân chia message: GIỮ LẠI cả mốc sửa tay này (từ đầu đến targetIndex)
+    const deleteMessages = messages.slice(targetIndex + 1);
+
+    // 2. Dọn dẹp các VersionId S3 phát sinh sau mốc này
+    let deletedFilesCount = 0;
+    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/index.html`;
+
+    for (const msg of deleteMessages) {
+      if (msg.s3VersionId) {
+        try {
+          await s3Service.deleteObjectVersion(s3Key, msg.s3VersionId);
+          deletedFilesCount++;
+        } catch (delErr) {
+          console.warn(`[SessionService] Lỗi khi xóa version ${msg.s3VersionId} sau mốc sửa tay:`, delErr);
+        }
+      }
+    }
+
+    // 3. Khôi phục Canvas về đúng s3VersionId của mốc sửa tay này
+    const restoredVersionId = targetMilestone.s3VersionId;
+    const restoredVersion = targetMilestone.version || 'v1.X (Sửa tay)';
+    let restoredPresignedUrl = '';
+    let restoredPresignedExpiresAt: number | undefined = undefined;
+    let restoredHtml = '';
+
+    try {
+      const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key, undefined, undefined, restoredVersionId);
+      restoredPresignedUrl = s3Info.presignedUrl;
+      restoredPresignedExpiresAt = s3Info.presignedExpiresAt;
+      restoredHtml = await s3Service.getHtmlContent(s3Key, restoredVersionId);
+    } catch (s3Err) {
+      console.warn('[SessionService] Lỗi khi nạp lại mã HTML của mốc sửa tay:', s3Err);
+    }
+
+    // 4. Xóa các message phía sau trong Firestore
+    if (deleteMessages.length > 0) {
+      const messageIdsToDelete = deleteMessages.map((m) => m.id);
+      await sessionRepository.deleteMessagesByIds(session.id, userId, messageIdsToDelete);
+    }
+
+    // 5. Cập nhật Session
+    const now = new Date().toISOString();
+    await sessionRepository.updateSession(session.id, userId, {
+      s3Key,
+      s3VersionId: restoredVersionId,
+      latestHtml: '',
+      presignedUrl: restoredPresignedUrl,
+      presignedExpiresAt: restoredPresignedExpiresAt,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: session.id,
+      restoredVersion,
+      restoredPresignedUrl,
+      restoredHtml,
       deletedMessagesCount: deleteMessages.length,
       deletedFilesCount,
     };

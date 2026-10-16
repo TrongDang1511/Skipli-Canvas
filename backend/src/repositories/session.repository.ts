@@ -166,16 +166,19 @@ export class SessionRepository {
           .map((doc) => doc.data() as SessionMessage)
           .filter((m) => m.userId === userId);
 
+        const senderWeight = (s: string) => (s === 'user' ? 1 : s === 'ai' ? 2 : 3);
         return messages.sort((a, b) => {
           const timeA = new Date(a.createdAt || 0).getTime();
           const timeB = new Date(b.createdAt || 0).getTime();
-          return timeA - timeB;
+          if (timeA !== timeB) return timeA - timeB;
+          return senderWeight(a.sender) - senderWeight(b.sender);
         });
       } catch (err) {
         console.error('[SessionRepository] findMessagesBySessionId firestore error:', err);
       }
     }
 
+    const senderWeight = (s: string) => (s === 'user' ? 1 : s === 'ai' ? 2 : 3);
     const result: SessionMessage[] = [];
     for (const msg of this.memoryMessages.values()) {
       if (msg.sessionId === cleanId && msg.userId === userId) {
@@ -185,7 +188,8 @@ export class SessionRepository {
     return result.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
       const timeB = new Date(b.createdAt || 0).getTime();
-      return timeA - timeB;
+      if (timeA !== timeB) return timeA - timeB;
+      return senderWeight(a.sender) - senderWeight(b.sender);
     });
   }
 
