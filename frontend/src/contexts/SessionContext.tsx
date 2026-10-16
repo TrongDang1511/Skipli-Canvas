@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, FC } from 'react';
 import { Session, SessionDetail } from '../types/session.types';
-import { StorageFileItem } from '../types/storage.types';
+import { StorageFileItem, GroupedSessionStorageItem } from '../types/storage.types';
 import { sessionApi } from '../services/session.api';
 import { storageService } from '../services/storage.service';
 import { useAuth } from '../hooks/useAuth';
@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 interface SessionContextType {
   sessions: Session[];
   storageFiles: StorageFileItem[];
+  groupedStorageFiles: GroupedSessionStorageItem[];
   activeSessionId: string | null;
   activeSession: Session | null;
   isLoadingSessions: boolean;
@@ -19,6 +20,7 @@ interface SessionContextType {
   setSidebarOpen: (open: boolean) => void;
   fetchSessions: () => Promise<void>;
   fetchStorageFiles: () => Promise<void>;
+  fetchGroupedStorageFiles: () => Promise<void>;
   selectSession: (sessionId: string) => Promise<SessionDetail | null>;
   createNewSession: (title?: string, initialPrompt?: string) => Promise<Session>;
   renameSession: (id: string, title: string) => Promise<void>;
@@ -34,6 +36,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [storageFiles, setStorageFiles] = useState<StorageFileItem[]>([]);
+  const [groupedStorageFiles, setGroupedStorageFiles] = useState<GroupedSessionStorageItem[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
@@ -77,16 +80,32 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [user]);
 
+  const fetchGroupedStorageFiles = useCallback(async () => {
+    if (!user) {
+      setGroupedStorageFiles([]);
+      return;
+    }
+
+    try {
+      const groups = await storageService.getGroupedStorageFiles();
+      setGroupedStorageFiles(groups || []);
+    } catch (err) {
+      console.error('[SessionContext] Failed to fetch grouped storage files:', err);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchSessions();
     fetchStorageFiles();
-  }, [fetchSessions, fetchStorageFiles]);
+    fetchGroupedStorageFiles();
+  }, [fetchSessions, fetchStorageFiles, fetchGroupedStorageFiles]);
 
   useEffect(() => {
     if (activeTab === 'storage') {
       fetchStorageFiles();
+      fetchGroupedStorageFiles();
     }
-  }, [activeTab, fetchStorageFiles]);
+  }, [activeTab, fetchStorageFiles, fetchGroupedStorageFiles]);
 
   useEffect(() => {
     if (activeSessionId) {
@@ -176,6 +195,18 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
         const ok = await storageService.deleteStorageFile(fileId);
         if (ok) {
           setStorageFiles((prev) => prev.filter((f) => f.id !== fileId));
+          setGroupedStorageFiles((prev) =>
+            prev
+              .map((g) => {
+                const remainingFiles = g.files.filter((f) => f.id !== fileId);
+                return {
+                  ...g,
+                  files: remainingFiles,
+                  totalFiles: remainingFiles.length,
+                };
+              })
+              .filter((g) => g.files.length > 0)
+          );
         }
         return ok;
       } catch (err) {
@@ -198,6 +229,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
       value={{
         sessions,
         storageFiles,
+        groupedStorageFiles,
         activeSessionId,
         activeSession,
         isLoadingSessions,
@@ -209,6 +241,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
         setSidebarOpen: setIsSidebarOpen,
         fetchSessions,
         fetchStorageFiles,
+        fetchGroupedStorageFiles,
         selectSession,
         createNewSession,
         renameSession,

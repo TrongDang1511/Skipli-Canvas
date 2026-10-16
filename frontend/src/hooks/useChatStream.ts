@@ -108,17 +108,22 @@ export function useChatStream(options?: UseChatStreamOptions) {
         }
 
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === aiMsgId
-              ? {
-                  ...msg,
-                  text: result.fullContent,
-                  extractedHtml: minioHtml,
-                  version: result.version || msg.version,
-                  isLoading: false,
-                }
-              : msg
-          )
+          prev.map((msg) => {
+            if (msg.id === userMsgId && result.userMessageId) {
+              return { ...msg, id: result.userMessageId };
+            }
+            if (msg.id === aiMsgId) {
+              return {
+                ...msg,
+                id: result.aiMessageId || msg.id,
+                text: result.fullContent,
+                extractedHtml: minioHtml,
+                version: result.version || msg.version,
+                isLoading: false,
+              };
+            }
+            return msg;
+          })
         );
 
         if (options?.onTurnComplete) {
@@ -184,6 +189,32 @@ export function useChatStream(options?: UseChatStreamOptions) {
     setError(null);
   }, [stopGeneration]);
 
+  const applyRollback = useCallback(
+    (
+      cutoffMessageId: string,
+      restoredHtml: string | null,
+      newPresignedUrl: string | null,
+      keepTargetMessage = false
+    ) => {
+      setMessages((prev) => {
+        const targetIndex = prev.findIndex((m) => m.id === cutoffMessageId);
+        if (targetIndex === -1) return prev;
+        return keepTargetMessage ? prev.slice(0, targetIndex + 1) : prev.slice(0, targetIndex);
+      });
+
+      if (restoredHtml) {
+        setExtractedHtml(restoredHtml);
+        setPresignedUrl(newPresignedUrl || '');
+        setHasStartedChat(true);
+      } else {
+        setExtractedHtml('');
+        setPresignedUrl('');
+        setHasStartedChat(false);
+      }
+    },
+    []
+  );
+
   return {
     messages,
     hasStartedChat,
@@ -196,6 +227,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
     resetCanvas,
     loadSession,
     updateExtractedHtml: setExtractedHtml,
+    applyRollback,
   };
 }
 

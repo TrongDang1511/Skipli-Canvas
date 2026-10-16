@@ -166,16 +166,19 @@ export class SessionRepository {
           .map((doc) => doc.data() as SessionMessage)
           .filter((m) => m.userId === userId);
 
+        const senderWeight = (s: string) => (s === 'user' ? 1 : s === 'ai' ? 2 : 3);
         return messages.sort((a, b) => {
           const timeA = new Date(a.createdAt || 0).getTime();
           const timeB = new Date(b.createdAt || 0).getTime();
-          return timeA - timeB;
+          if (timeA !== timeB) return timeA - timeB;
+          return senderWeight(a.sender) - senderWeight(b.sender);
         });
       } catch (err) {
         console.error('[SessionRepository] findMessagesBySessionId firestore error:', err);
       }
     }
 
+    const senderWeight = (s: string) => (s === 'user' ? 1 : s === 'ai' ? 2 : 3);
     const result: SessionMessage[] = [];
     for (const msg of this.memoryMessages.values()) {
       if (msg.sessionId === cleanId && msg.userId === userId) {
@@ -185,7 +188,8 @@ export class SessionRepository {
     return result.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
       const timeB = new Date(b.createdAt || 0).getTime();
-      return timeA - timeB;
+      if (timeA !== timeB) return timeA - timeB;
+      return senderWeight(a.sender) - senderWeight(b.sender);
     });
   }
 
@@ -200,6 +204,37 @@ export class SessionRepository {
       }
     }
     return message;
+  }
+
+  async deleteMessagesByIds(sessionId: string, userId: string, messageIds: string[]): Promise<number> {
+    if (!messageIds || messageIds.length === 0) return 0;
+    const idSet = new Set(messageIds);
+
+    // 1. Xóa trong bộ nhớ tạm (In-memory fallback)
+    let deletedCount = 0;
+    for (const id of idSet) {
+      const msg = this.memoryMessages.get(id);
+      if (msg && msg.sessionId === sessionId && msg.userId === userId) {
+        this.memoryMessages.delete(id);
+        deletedCount++;
+      }
+    }
+
+    // 2. Xóa trong Cloud Firestore
+    if (isFirebaseInitialized && db) {
+      try {
+        const batch = db.batch();
+        for (const id of idSet) {
+          const docRef = db.collection(this.messagesCollection).doc(id);
+          batch.delete(docRef);
+        }
+        await batch.commit();
+      } catch (err) {
+        console.error('[SessionRepository] deleteMessagesByIds firestore error:', err);
+      }
+    }
+
+    return deletedCount;
   }
 }
 

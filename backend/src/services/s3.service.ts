@@ -4,6 +4,9 @@ import {
   HeadObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  GetBucketVersioningCommand,
+  PutBucketVersioningCommand,
+  ListObjectVersionsCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client } from '../config/s3.config';
@@ -36,13 +39,38 @@ export class S3Service {
   private bucketName: string = env.s3BucketName;
 
   /**
-   * Upload file HTML lên MinIO/S3 kèm S3 Custom Metadata (x-amz-meta-*)
+   * Tự động kiểm tra và kích hoạt S3 Bucket Versioning nếu chưa được bật
+   */
+  public async ensureBucketVersioningEnabled(): Promise<boolean> {
+    try {
+      const checkCmd = new GetBucketVersioningCommand({ Bucket: this.bucketName });
+      const res = await s3Client.send(checkCmd);
+      if (res.Status !== 'Enabled') {
+        const enableCmd = new PutBucketVersioningCommand({
+          Bucket: this.bucketName,
+          VersioningConfiguration: { Status: 'Enabled' },
+        });
+        await s3Client.send(enableCmd);
+        console.log(`[S3Service] Đã kích hoạt Native Versioning cho Bucket: ${this.bucketName}`);
+      } else {
+        console.log(`[S3Service] Bucket ${this.bucketName} đã kích hoạt Native Versioning sẵn sàng.`);
+      }
+      return true;
+    } catch (err) {
+      console.warn('[S3Service] Kiểm tra Bucket Versioning:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Upload file HTML lên MinIO/S3 kèm S3 Custom Metadata (x-amz-meta-*),
+   * trả về VersionId tự sinh từ S3 khi ghi đè thành công.
    */
   public async uploadHtml(
     s3Key: string,
     htmlContent: string,
     metadata?: S3CustomMetadata
-  ): Promise<void> {
+  ): Promise<{ versionId?: string }> {
     try {
       // Mã hóa an toàn các giá trị metadata thành ASCII hợp lệ cho S3 HTTP Header
       const s3Metadata: Record<string, string> = {};
@@ -62,7 +90,8 @@ export class S3Service {
         CacheControl: 'max-age=3600, private',
         Metadata: Object.keys(s3Metadata).length > 0 ? s3Metadata : undefined,
       });
-      await s3Client.send(command);
+      const response = await s3Client.send(command);
+      return { versionId: response.VersionId };
     } catch (error) {
       console.error(`[S3Service] Error uploading HTML to key: ${s3Key}`, error);
       throw error;
@@ -181,18 +210,20 @@ export class S3Service {
 
   /**
    * Lấy hoặc tạo mới Presigned URL xem Live Preview (Hạn 4 tiếng = 14400s).
-   * Tái sử dụng link cũ từ Database nếu chưa hết hạn để chống spam F5 và tối ưu 0ms.
+   * - Hỗ trợ versionId: Nếu truyền versionId, sẽ ký link xem đúng phiên bản đó.
+   * - Tái sử dụng link cũ từ Database nếu chưa hết hạn để chống spam F5 và tối ưu 0ms.
    */
   public async getOrGeneratePresignedViewUrl(
     s3Key: string,
     cachedUrl?: string,
-    cachedExpiresAt?: number
+    cachedExpiresAt?: number,
+    versionId?: string
   ): Promise<{ presignedUrl: string; presignedExpiresAt: number }> {
     const now = Date.now();
     const safetyBufferMs = 5 * 60 * 1000; // 5 phút trừ hao an toàn
 
-    // 1. Kiểm tra cache còn hạn: Nếu còn hạn thì trả về ngay link cũ (0ms, không gọi S3 SDK)
-    if (cachedUrl && cachedExpiresAt && cachedExpiresAt - now > safetyBufferMs) {
+    // 1. Kiểm tra cache còn hạn: Nếu còn hạn và không chỉ định versionId thì trả về ngay link cũ (0ms, không gọi S3 SDK)
+    if (!versionId && cachedUrl && cachedExpiresAt && cachedExpiresAt - now > safetyBufferMs) {
       return {
         presignedUrl: cachedUrl,
         presignedExpiresAt: cachedExpiresAt,
@@ -205,6 +236,7 @@ export class S3Service {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
+        VersionId: versionId || undefined,
       });
 
       const presignedUrl = await getSignedUrl(s3Client, command, {
@@ -218,7 +250,7 @@ export class S3Service {
         presignedExpiresAt,
       };
     } catch (error) {
-      console.error(`[S3Service] Error generating presigned view URL for key: ${s3Key}`, error);
+      console.error(`[S3Service] Error generating presigned view URL for key: ${s3Key}, versionId: ${versionId}`, error);
       return {
         presignedUrl: '',
         presignedExpiresAt: 0,
@@ -227,32 +259,36 @@ export class S3Service {
   }
 
   /**
-   * Đọc toàn bộ nội dung text của file HTML từ MinIO/S3 (Dùng làm context cho AI ở Turn 2+)
+   * Đọc toàn bộ nội dung text của file HTML từ MinIO/S3 (Dùng làm context cho AI ở Turn 2+).
+   * Hỗ trợ truyền versionId để đọc đúng nội dung của phiên bản cụ thể.
    */
-  public async getHtmlContent(s3Key: string): Promise<string> {
+  public async getHtmlContent(s3Key: string, versionId?: string): Promise<string> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
+        VersionId: versionId || undefined,
       });
       const response = await s3Client.send(command);
       if (!response.Body) return '';
       return await response.Body.transformToString('utf-8');
     } catch (error) {
-      console.error(`[S3Service] Error reading HTML content for key: ${s3Key}`, error);
+      console.error(`[S3Service] Error reading HTML content for key: ${s3Key}, versionId: ${versionId}`, error);
       return '';
     }
   }
 
   /**
-   * Ký Presigned URL trực tiếp để tải file về máy (Đính kèm header Content-Disposition: attachment)
+   * Ký Presigned URL trực tiếp để tải file về máy (Đính kèm header Content-Disposition: attachment).
+   * Hỗ trợ tải đúng versionId cụ thể nếu có.
    */
-  public async getPresignedDownloadUrl(s3Key: string, fileName: string): Promise<string> {
+  public async getPresignedDownloadUrl(s3Key: string, fileName: string, versionId?: string): Promise<string> {
     const sanitizedFileName = (fileName || 'skipli_canvas_website.html').replace(/"/g, '');
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
+        VersionId: versionId || undefined,
         ResponseContentDisposition: `attachment; filename="${sanitizedFileName}"`,
       });
 
@@ -260,13 +296,61 @@ export class S3Service {
         expiresIn: 10, // Link tải có hiệu lực trong 10 giây
       });
     } catch (error) {
-      console.error(`[S3Service] Error generating presigned download URL for key: ${s3Key}`, error);
+      console.error(`[S3Service] Error generating presigned download URL for key: ${s3Key}, versionId: ${versionId}`, error);
       throw error;
     }
   }
 
   /**
-   * Xóa file khỏi MinIO / S3
+   * Xóa vĩnh viễn một Version cụ thể của file trên MinIO / S3 (Dùng khi Rollback).
+   */
+  public async deleteObjectVersion(s3Key: string, versionId: string): Promise<boolean> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+        VersionId: versionId,
+      });
+      await s3Client.send(command);
+      return true;
+    } catch (error) {
+      console.error(`[S3Service] Error deleting object version for key: ${s3Key}, versionId: ${versionId}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Liệt kê toàn bộ các version của một S3 Key (Sắp xếp từ mới nhất đến cũ nhất).
+   */
+  public async listObjectVersions(s3Key: string): Promise<Array<{
+    versionId: string;
+    isLatest: boolean;
+    size: number;
+    lastModified?: string;
+  }>> {
+    try {
+      const command = new ListObjectVersionsCommand({
+        Bucket: this.bucketName,
+        Prefix: s3Key,
+      });
+      const response = await s3Client.send(command);
+      const versions = response.Versions || [];
+      return versions
+        .filter((v) => v.Key === s3Key && v.VersionId)
+        .map((v) => ({
+          versionId: v.VersionId!,
+          isLatest: Boolean(v.IsLatest),
+          size: v.Size || 0,
+          lastModified: v.LastModified ? v.LastModified.toISOString() : undefined,
+        }));
+    } catch (error) {
+      console.error(`[S3Service] Error listing object versions for key: ${s3Key}`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Xóa file khỏi MinIO / S3 (Hoặc xóa Latest Marker)
    */
   public async deleteObject(s3Key: string): Promise<boolean> {
     try {

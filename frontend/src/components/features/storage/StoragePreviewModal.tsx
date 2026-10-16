@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { StorageFileItem } from '../../../types/storage.types';
+import { StorageFileItem, StorageFileVersionItem } from '../../../types/storage.types';
 import { cn } from '../../../utils/cn';
 import {
   X,
@@ -12,11 +12,15 @@ import {
   Loader2,
 } from 'lucide-react';
 
+export type StoragePreviewableItem = (StorageFileItem | StorageFileVersionItem) & {
+  sessionTitle?: string;
+};
+
 interface StoragePreviewModalProps {
-  file: StorageFileItem | null;
+  file: StoragePreviewableItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onDownload: (fileId: string, fileName: string) => Promise<void>;
+  onDownload: (fileId: string, fileName: string, versionId?: string) => Promise<void>;
 }
 
 export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
@@ -49,7 +53,8 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
   const handleDownloadClick = async () => {
     try {
       setIsDownloading(true);
-      await onDownload(file.id, file.fileName);
+      const targetVersionId = 'versionId' in file ? file.versionId : undefined;
+      await onDownload(file.id, file.fileName, targetVersionId);
     } finally {
       setIsDownloading(false);
     }

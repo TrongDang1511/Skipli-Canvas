@@ -45,6 +45,8 @@ export class ChatController {
       let savedSessionId = sessionId;
       let savedVersion = 'v1.1';
       let presignedUrl: string | undefined;
+      let userMessageId: string | undefined;
+      let aiMessageId: string | undefined;
 
       if (userId) {
         try {
@@ -58,6 +60,8 @@ export class ChatController {
           savedSessionId = saved.session.id;
           savedVersion = saved.aiMsg.version || 'v1.1';
           presignedUrl = saved.session.presignedUrl;
+          userMessageId = saved.userMsg?.id;
+          aiMessageId = saved.aiMsg?.id;
         } catch (err) {
           console.error('[ChatController] Failed to auto-save chat turn:', err);
         }
@@ -71,6 +75,8 @@ export class ChatController {
           fullContent,
           extractedHtml: '',
           presignedUrl: presignedUrl || '',
+          userMessageId: userMessageId || '',
+          aiMessageId: aiMessageId || '',
         },
       });
     } catch (error: unknown) {

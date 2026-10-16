@@ -1,5 +1,17 @@
 import { apiClient } from './api';
 import { Session, SessionDetail } from '../types/session.types';
+import { ChatMessage } from '../types/chat.types';
+
+export interface RollbackTurnResult {
+  sessionId: string;
+  cutoffUserMessageId: string;
+  deletedMessagesCount: number;
+  deletedS3Keys: string[];
+  restoredVersion: string | null;
+  restoredS3Key: string | null;
+  restoredHtml: string | null;
+  presignedUrl: string | null;
+}
 
 export class SessionApiService {
   public async fetchSessions(): Promise<Session[]> {
@@ -29,8 +41,37 @@ export class SessionApiService {
   public async overwriteCanvas(
     id: string,
     cleanHtml: string
-  ): Promise<{ success: boolean; sessionId: string; presignedUrl: string; cleanHtml: string; updatedAt: string }> {
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    presignedUrl: string;
+    cleanHtml: string;
+    updatedAt: string;
+    milestoneMessage?: ChatMessage;
+  }> {
     const res = await apiClient.put(`/sessions/${id}/overwrite-canvas`, { cleanHtml });
+    return res.data.data;
+  }
+
+  public async rollbackUserTurn(
+    sessionId: string,
+    userMessageId: string,
+    promptText?: string
+  ): Promise<RollbackTurnResult> {
+    const res = await apiClient.post(`/sessions/${sessionId}/rollback-user-turn`, {
+      userMessageId,
+      promptText,
+    });
+    return res.data.data;
+  }
+
+  public async rollbackMilestone(
+    sessionId: string,
+    milestoneMessageId: string
+  ): Promise<RollbackTurnResult> {
+    const res = await apiClient.post(`/sessions/${sessionId}/rollback-milestone`, {
+      milestoneMessageId,
+    });
     return res.data.data;
   }
 }

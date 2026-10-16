@@ -79,7 +79,7 @@ export class SessionService {
     let latestHtml = session.latestHtml || '';
     if (session.s3Key) {
       try {
-        const s3Html = await s3Service.getHtmlContent(session.s3Key);
+        const s3Html = await s3Service.getHtmlContent(session.s3Key, session.s3VersionId);
         if (s3Html && s3Html.trim()) {
           latestHtml = s3Html;
         }
@@ -92,10 +92,18 @@ export class SessionService {
 
     // Lấy tối đa 10 tin nhắn gần nhất để AI hiểu trọn vẹn context và lịch sử trò chuyện
     const recentMessages = messages.slice(-10);
-    const history = recentMessages.map((msg) => ({
-      role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
-      content: msg.text || '',
-    }));
+    const history = recentMessages.map((msg) => {
+      if (msg.sender === 'system') {
+        return {
+          role: 'user' as const,
+          content: `[Thông báo hệ thống: Người dùng đã lưu chỉnh sửa thủ công trên giao diện]`,
+        };
+      }
+      return {
+        role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
+        content: msg.text || '',
+      };
+    });
 
     return {
       session,
@@ -167,32 +175,23 @@ export class SessionService {
     const nextVersionCount = session.versionCount + 1;
     const versionStr = `v1.${nextVersionCount}`;
 
-    // Upload mã nguồn HTML lên MinIO/S3 và tạo Presigned URL xem Live
+    // Upload mã nguồn HTML lên MinIO/S3 trên 1 file duy nhất index.html và tạo Presigned URL xem Live
     let s3Key: string | undefined;
+    let s3VersionId: string | undefined;
     let presignedUrl: string | undefined;
     let presignedExpiresAt: number | undefined;
 
     if (extractedHtml && extractedHtml.trim()) {
       try {
-        let detectedFileName: string | undefined;
-        const fileMatch =
-          fullAiResponse.match(/`([a-zA-Z0-9_\-]+\.html)`/i) ||
-          fullAiResponse.match(/path=["']?([a-zA-Z0-9_\-]+\.html)["']?/i) ||
-          fullAiResponse.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
-          fullAiResponse.match(/([a-zA-Z0-9_\-]+\.html)/i);
-
-        if (fileMatch && fileMatch[1]) {
-          detectedFileName = path.basename(fileMatch[1].trim());
-        }
-
-        s3Key = `users/${userId}/sessions/${session.id}/${versionStr}.html`;
-        await s3Service.uploadHtml(s3Key, extractedHtml, {
+        s3Key = `users/${userId}/sessions/${session.id}/index.html`;
+        const uploadResult = await s3Service.uploadHtml(s3Key, extractedHtml, {
           sessionId: session.id,
           sessionTitle: session.title,
           version: versionStr,
           userId,
-          fileName: detectedFileName || `website_${versionStr}.html`,
+          fileName: 'index.html',
         });
+        s3VersionId = uploadResult.versionId;
 
         const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
         presignedUrl = s3Info.presignedUrl;
@@ -219,6 +218,7 @@ export class SessionService {
       text: fullAiResponse,
       extractedHtml: s3Key ? '' : (extractedHtml || ''),
       version: versionStr,
+      s3VersionId,
       createdAt: now,
     };
 
@@ -232,6 +232,7 @@ export class SessionService {
 
     if (s3Key) {
       sessionUpdates.s3Key = s3Key;
+      sessionUpdates.s3VersionId = s3VersionId;
       sessionUpdates.latestHtml = '';
     } else if (extractedHtml) {
       sessionUpdates.latestHtml = extractedHtml;
@@ -269,14 +270,17 @@ export class SessionService {
     presignedUrl: string;
     cleanHtml: string;
     updatedAt: string;
+    milestoneMessage?: SessionMessage;
   }> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) {
       throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
     }
 
-    const versionStr = session.versionCount > 0 ? `v1.${session.versionCount}` : 'v1.1';
-    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/${versionStr}.html`;
+    // Mỗi lần lưu sửa tay sẽ là 1 version mới độc lập (ví dụ: v1.1 -> v1.2), không kèm hậu tố '(Sửa tay)'
+    const nextVersionCount = (session.versionCount || 1) + 1;
+    const versionStr = `v1.${nextVersionCount}`;
+    const s3Key = `users/${userId}/sessions/${session.id}/index.html`;
 
     // 1. Quét tìm và bóc tách các ảnh Base64 Data URI được upload từ máy tính
     let processedHtml = cleanHtml;
@@ -317,25 +321,42 @@ export class SessionService {
       }
     }
 
-    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại đúng s3Key hiện tại
-    await s3Service.uploadHtml(s3Key, processedHtml, {
+    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại index.html và bắt VersionId mới
+    const uploadRes = await s3Service.uploadHtml(s3Key, processedHtml, {
       sessionId: session.id,
       sessionTitle: session.title,
       version: versionStr,
       userId,
-      fileName: `website_${versionStr}.html`,
+      fileName: 'index.html',
     });
+    const s3VersionId = uploadRes.versionId;
 
     // 3. Tái ký Presigned URL mới cho file HTML
     const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
     const now = new Date().toISOString();
 
-    // 4. Cập nhật Firestore
+    // 4. Tạo Tin nhắn mốc hệ thống (Cách B) vào Firestore
+    const milestoneMessage: SessionMessage = {
+      id: randomUUID(),
+      sessionId: session.id,
+      userId,
+      sender: 'system',
+      eventType: 'manual_edit',
+      text: 'Bạn đã lưu chỉnh sửa thủ công trên giao diện',
+      version: versionStr,
+      s3VersionId,
+      createdAt: now,
+    };
+    await sessionRepository.createMessage(milestoneMessage);
+
+    // 5. Cập nhật Firestore Session (Cập nhật versionCount mới)
     await sessionRepository.updateSession(session.id, userId, {
       s3Key,
+      s3VersionId,
       latestHtml: '',
       presignedUrl: s3Info.presignedUrl,
       presignedExpiresAt: s3Info.presignedExpiresAt,
+      versionCount: nextVersionCount,
       updatedAt: now,
     });
 
@@ -345,6 +366,238 @@ export class SessionService {
       presignedUrl: s3Info.presignedUrl,
       cleanHtml: processedHtml,
       updatedAt: now,
+      milestoneMessage,
+    };
+  }
+
+  /**
+   * Quản lý phiên bản: Khôi phục về trước một lượt chat của User (Rollback / Rewind).
+   * - Xác định phiên bản đích là lượt AI liền kề trước đó (hoặc trạng thái rỗng nếu ở turn 1).
+   * - Dọn dẹp sạch sẽ các tệp HTML (v1.X.html) của các version bị hủy trên MinIO S3.
+   * - Xóa các lượt chat sau bước này trong Firestore.
+   * - Cập nhật Session và trả về presignedUrl mới cùng promptText cũ để Frontend prefill vào ô input.
+   */
+  public async rollbackToUserTurn(
+    userId: string,
+    sessionId: string,
+    userMessageId: string,
+    promptTextFallback?: string
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    restoredVersion: string;
+    restoredPresignedUrl: string;
+    restoredHtml: string;
+    promptText: string;
+    deletedMessagesCount: number;
+    deletedFilesCount: number;
+  }> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+    }
+
+    const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
+    let targetIndex = messages.findIndex((m) => m.id === userMessageId);
+
+    // Fallback 1: Nếu không tìm thấy theo ID, tìm theo promptTextFallback
+    if (targetIndex === -1 && promptTextFallback && promptTextFallback.trim()) {
+      const cleanPrompt = promptTextFallback.trim();
+      targetIndex = messages.findIndex(
+        (m) => m.sender === 'user' && m.text && m.text.trim() === cleanPrompt
+      );
+    }
+
+    // Fallback 2: Nếu userMessageId là client ID tạm thời (user-...) mà không khớp ID, tìm tin nhắn user gần nhất
+    if (targetIndex === -1 && typeof userMessageId === 'string' && userMessageId.startsWith('user-')) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].sender === 'user') {
+          targetIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (targetIndex === -1) {
+      throw new Error(`Không tìm thấy tin nhắn yêu cầu khôi phục với mã: ${userMessageId}`);
+    }
+
+    const targetUserMessage = messages[targetIndex];
+    if (targetUserMessage.sender !== 'user') {
+      throw new Error('Chỉ hỗ trợ khôi phục từ tin nhắn của người dùng.');
+    }
+
+    const promptText = targetUserMessage.text || '';
+    const keepMessages = messages.slice(0, targetIndex);
+    const deleteMessages = messages.slice(targetIndex);
+
+    // 1. Xác định Target Version cần khôi phục (Tìm ngược trong keepMessages xem có message nào có s3VersionId)
+    const lastCodeMsg = [...keepMessages].reverse().find((m) => m.s3VersionId);
+    let restoredVersion = 'v1.0';
+    let restoredVersionNumber = 0;
+    let restoredVersionId: string | undefined = undefined;
+    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/index.html`;
+    let restoredPresignedUrl = '';
+    let restoredPresignedExpiresAt: number | undefined = undefined;
+    let restoredHtml = '';
+
+    if (lastCodeMsg && lastCodeMsg.s3VersionId) {
+      restoredVersion = lastCodeMsg.version || 'v1.1';
+      restoredVersionId = lastCodeMsg.s3VersionId;
+      const parsedNum = parseInt(restoredVersion.replace(/^v1\./, '').replace(/[^0-9]/g, ''), 10);
+      restoredVersionNumber = isNaN(parsedNum) ? 1 : parsedNum;
+
+      try {
+        const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key, undefined, undefined, restoredVersionId);
+        restoredPresignedUrl = s3Info.presignedUrl;
+        restoredPresignedExpiresAt = s3Info.presignedExpiresAt;
+        restoredHtml = await s3Service.getHtmlContent(s3Key, restoredVersionId);
+      } catch (s3Err) {
+        console.warn('[SessionService] Lỗi khi nạp lại phiên bản đích từ S3:', s3Err);
+      }
+    }
+
+    // 2. Dọn dẹp các VersionId của các lượt bị hủy trên MinIO S3 (Garbage Collection)
+    let deletedFilesCount = 0;
+    for (const msg of deleteMessages) {
+      if (msg.s3VersionId) {
+        try {
+          await s3Service.deleteObjectVersion(s3Key, msg.s3VersionId);
+          deletedFilesCount++;
+        } catch (delErr) {
+          console.warn(`[SessionService] Lỗi khi xóa version ${msg.s3VersionId} trên MinIO:`, delErr);
+        }
+      }
+    }
+
+    // 3. Xóa các message phía sau trong Firestore / Memory
+    const messageIdsToDelete = deleteMessages.map((m) => m.id);
+    await sessionRepository.deleteMessagesByIds(session.id, userId, messageIdsToDelete);
+
+    // 4. Cập nhật Session
+    const now = new Date().toISOString();
+    await sessionRepository.updateSession(session.id, userId, {
+      s3Key,
+      s3VersionId: restoredVersionId || '',
+      latestHtml: '',
+      presignedUrl: restoredPresignedUrl,
+      presignedExpiresAt: restoredPresignedExpiresAt,
+      versionCount: restoredVersionNumber,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: session.id,
+      restoredVersion,
+      restoredPresignedUrl,
+      restoredHtml,
+      promptText,
+      deletedMessagesCount: deleteMessages.length,
+      deletedFilesCount,
+    };
+  }
+
+  /**
+   * Quản lý phiên bản: Khôi phục về mốc Chỉnh sửa thủ công (Cách B).
+   * - Giữ lại thẻ mốc sửa tay này trong Firestore.
+   * - Xóa toàn bộ các lượt chat AI/User phát sinh sau mốc này.
+   * - Xóa các S3 VersionIds phát sinh sau mốc này.
+   * - Khôi phục Canvas về đúng s3VersionId của mốc sửa tay này.
+   */
+  public async rollbackToMilestone(
+    userId: string,
+    sessionId: string,
+    milestoneMessageId: string
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    restoredVersion: string;
+    restoredPresignedUrl: string;
+    restoredHtml: string;
+    deletedMessagesCount: number;
+    deletedFilesCount: number;
+  }> {
+    const session = await sessionRepository.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+    }
+
+    const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
+    const targetIndex = messages.findIndex((m) => m.id === milestoneMessageId);
+
+    if (targetIndex === -1) {
+      throw new Error(`Không tìm thấy mốc chỉnh sửa thủ công với mã: ${milestoneMessageId}`);
+    }
+
+    const targetMilestone = messages[targetIndex];
+    if (targetMilestone.sender !== 'system' || targetMilestone.eventType !== 'manual_edit') {
+      throw new Error('Chỉ hỗ trợ khôi phục về mốc chỉnh sửa thủ công.');
+    }
+
+    if (!targetMilestone.s3VersionId) {
+      throw new Error('Mốc chỉnh sửa thủ công không chứa S3 VersionId hợp lệ.');
+    }
+
+    // 1. Phân chia message: GIỮ LẠI cả mốc sửa tay này (từ đầu đến targetIndex)
+    const deleteMessages = messages.slice(targetIndex + 1);
+
+    // 2. Dọn dẹp các VersionId S3 phát sinh sau mốc này
+    let deletedFilesCount = 0;
+    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/index.html`;
+
+    for (const msg of deleteMessages) {
+      if (msg.s3VersionId) {
+        try {
+          await s3Service.deleteObjectVersion(s3Key, msg.s3VersionId);
+          deletedFilesCount++;
+        } catch (delErr) {
+          console.warn(`[SessionService] Lỗi khi xóa version ${msg.s3VersionId} sau mốc sửa tay:`, delErr);
+        }
+      }
+    }
+
+    // 3. Khôi phục Canvas về đúng s3VersionId của mốc sửa tay này
+    const restoredVersionId = targetMilestone.s3VersionId;
+    const restoredVersion = targetMilestone.version || 'v1.X (Sửa tay)';
+    let restoredPresignedUrl = '';
+    let restoredPresignedExpiresAt: number | undefined = undefined;
+    let restoredHtml = '';
+
+    try {
+      const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key, undefined, undefined, restoredVersionId);
+      restoredPresignedUrl = s3Info.presignedUrl;
+      restoredPresignedExpiresAt = s3Info.presignedExpiresAt;
+      restoredHtml = await s3Service.getHtmlContent(s3Key, restoredVersionId);
+    } catch (s3Err) {
+      console.warn('[SessionService] Lỗi khi nạp lại mã HTML của mốc sửa tay:', s3Err);
+    }
+
+    // 4. Xóa các message phía sau trong Firestore
+    if (deleteMessages.length > 0) {
+      const messageIdsToDelete = deleteMessages.map((m) => m.id);
+      await sessionRepository.deleteMessagesByIds(session.id, userId, messageIdsToDelete);
+    }
+
+    // 5. Cập nhật Session
+    const now = new Date().toISOString();
+    await sessionRepository.updateSession(session.id, userId, {
+      s3Key,
+      s3VersionId: restoredVersionId,
+      latestHtml: '',
+      presignedUrl: restoredPresignedUrl,
+      presignedExpiresAt: restoredPresignedExpiresAt,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: session.id,
+      restoredVersion,
+      restoredPresignedUrl,
+      restoredHtml,
+      deletedMessagesCount: deleteMessages.length,
+      deletedFilesCount,
     };
   }
 }
