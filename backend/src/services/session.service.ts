@@ -79,7 +79,7 @@ export class SessionService {
     let latestHtml = session.latestHtml || '';
     if (session.s3Key) {
       try {
-        const s3Html = await s3Service.getHtmlContent(session.s3Key);
+        const s3Html = await s3Service.getHtmlContent(session.s3Key, session.s3VersionId);
         if (s3Html && s3Html.trim()) {
           latestHtml = s3Html;
         }
@@ -92,10 +92,18 @@ export class SessionService {
 
     // Lấy tối đa 10 tin nhắn gần nhất để AI hiểu trọn vẹn context và lịch sử trò chuyện
     const recentMessages = messages.slice(-10);
-    const history = recentMessages.map((msg) => ({
-      role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
-      content: msg.text || '',
-    }));
+    const history = recentMessages.map((msg) => {
+      if (msg.sender === 'system') {
+        return {
+          role: 'user' as const,
+          content: `[Thông báo hệ thống: Người dùng đã lưu chỉnh sửa thủ công trên giao diện]`,
+        };
+      }
+      return {
+        role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
+        content: msg.text || '',
+      };
+    });
 
     return {
       session,
@@ -167,32 +175,23 @@ export class SessionService {
     const nextVersionCount = session.versionCount + 1;
     const versionStr = `v1.${nextVersionCount}`;
 
-    // Upload mã nguồn HTML lên MinIO/S3 và tạo Presigned URL xem Live
+    // Upload mã nguồn HTML lên MinIO/S3 trên 1 file duy nhất index.html và tạo Presigned URL xem Live
     let s3Key: string | undefined;
+    let s3VersionId: string | undefined;
     let presignedUrl: string | undefined;
     let presignedExpiresAt: number | undefined;
 
     if (extractedHtml && extractedHtml.trim()) {
       try {
-        let detectedFileName: string | undefined;
-        const fileMatch =
-          fullAiResponse.match(/`([a-zA-Z0-9_\-]+\.html)`/i) ||
-          fullAiResponse.match(/path=["']?([a-zA-Z0-9_\-]+\.html)["']?/i) ||
-          fullAiResponse.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
-          fullAiResponse.match(/([a-zA-Z0-9_\-]+\.html)/i);
-
-        if (fileMatch && fileMatch[1]) {
-          detectedFileName = path.basename(fileMatch[1].trim());
-        }
-
-        s3Key = `users/${userId}/sessions/${session.id}/${versionStr}.html`;
-        await s3Service.uploadHtml(s3Key, extractedHtml, {
+        s3Key = `users/${userId}/sessions/${session.id}/index.html`;
+        const uploadResult = await s3Service.uploadHtml(s3Key, extractedHtml, {
           sessionId: session.id,
           sessionTitle: session.title,
           version: versionStr,
           userId,
-          fileName: detectedFileName || `website_${versionStr}.html`,
+          fileName: 'index.html',
         });
+        s3VersionId = uploadResult.versionId;
 
         const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
         presignedUrl = s3Info.presignedUrl;
@@ -219,6 +218,7 @@ export class SessionService {
       text: fullAiResponse,
       extractedHtml: s3Key ? '' : (extractedHtml || ''),
       version: versionStr,
+      s3VersionId,
       createdAt: now,
     };
 
@@ -232,6 +232,7 @@ export class SessionService {
 
     if (s3Key) {
       sessionUpdates.s3Key = s3Key;
+      sessionUpdates.s3VersionId = s3VersionId;
       sessionUpdates.latestHtml = '';
     } else if (extractedHtml) {
       sessionUpdates.latestHtml = extractedHtml;
@@ -269,6 +270,7 @@ export class SessionService {
     presignedUrl: string;
     cleanHtml: string;
     updatedAt: string;
+    milestoneMessage?: SessionMessage;
   }> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) {
@@ -276,7 +278,7 @@ export class SessionService {
     }
 
     const versionStr = session.versionCount > 0 ? `v1.${session.versionCount}` : 'v1.1';
-    const s3Key = session.s3Key || `users/${userId}/sessions/${session.id}/${versionStr}.html`;
+    const s3Key = `users/${userId}/sessions/${session.id}/index.html`;
 
     // 1. Quét tìm và bóc tách các ảnh Base64 Data URI được upload từ máy tính
     let processedHtml = cleanHtml;
@@ -317,22 +319,38 @@ export class SessionService {
       }
     }
 
-    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại đúng s3Key hiện tại
-    await s3Service.uploadHtml(s3Key, processedHtml, {
+    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại index.html và bắt VersionId mới
+    const uploadRes = await s3Service.uploadHtml(s3Key, processedHtml, {
       sessionId: session.id,
       sessionTitle: session.title,
-      version: versionStr,
+      version: `${versionStr} (Sửa tay)`,
       userId,
-      fileName: `website_${versionStr}.html`,
+      fileName: 'index.html',
     });
+    const s3VersionId = uploadRes.versionId;
 
     // 3. Tái ký Presigned URL mới cho file HTML
     const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
     const now = new Date().toISOString();
 
-    // 4. Cập nhật Firestore
+    // 4. Tạo Tin nhắn mốc hệ thống (Cách B) vào Firestore
+    const milestoneMessage: SessionMessage = {
+      id: randomUUID(),
+      sessionId: session.id,
+      userId,
+      sender: 'system',
+      eventType: 'manual_edit',
+      text: 'Bạn đã lưu chỉnh sửa thủ công trên giao diện',
+      version: `${versionStr} (Sửa tay)`,
+      s3VersionId,
+      createdAt: now,
+    };
+    await sessionRepository.createMessage(milestoneMessage);
+
+    // 5. Cập nhật Firestore Session
     await sessionRepository.updateSession(session.id, userId, {
       s3Key,
+      s3VersionId,
       latestHtml: '',
       presignedUrl: s3Info.presignedUrl,
       presignedExpiresAt: s3Info.presignedExpiresAt,
@@ -345,6 +363,7 @@ export class SessionService {
       presignedUrl: s3Info.presignedUrl,
       cleanHtml: processedHtml,
       updatedAt: now,
+      milestoneMessage,
     };
   }
 

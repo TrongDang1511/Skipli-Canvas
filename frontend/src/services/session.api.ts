@@ -1,5 +1,6 @@
 import { apiClient } from './api';
 import { Session, SessionDetail } from '../types/session.types';
+import { ChatMessage } from '../types/chat.types';
 
 export interface RollbackTurnResult {
   sessionId: string;
@@ -40,7 +41,14 @@ export class SessionApiService {
   public async overwriteCanvas(
     id: string,
     cleanHtml: string
-  ): Promise<{ success: boolean; sessionId: string; presignedUrl: string; cleanHtml: string; updatedAt: string }> {
+  ): Promise<{
+    success: boolean;
+    sessionId: string;
+    presignedUrl: string;
+    cleanHtml: string;
+    updatedAt: string;
+    milestoneMessage?: ChatMessage;
+  }> {
     const res = await apiClient.put(`/sessions/${id}/overwrite-canvas`, { cleanHtml });
     return res.data.data;
   }
