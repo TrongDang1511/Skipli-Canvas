@@ -190,11 +190,16 @@ export function useChatStream(options?: UseChatStreamOptions) {
   }, [stopGeneration]);
 
   const applyRollback = useCallback(
-    (cutoffUserMessageId: string, restoredHtml: string | null, newPresignedUrl: string | null) => {
+    (
+      cutoffMessageId: string,
+      restoredHtml: string | null,
+      newPresignedUrl: string | null,
+      keepTargetMessage = false
+    ) => {
       setMessages((prev) => {
-        const targetIndex = prev.findIndex((m) => m.id === cutoffUserMessageId);
+        const targetIndex = prev.findIndex((m) => m.id === cutoffMessageId);
         if (targetIndex === -1) return prev;
-        return prev.slice(0, targetIndex);
+        return keepTargetMessage ? prev.slice(0, targetIndex + 1) : prev.slice(0, targetIndex);
       });
 
       if (restoredHtml) {

@@ -32,7 +32,11 @@ export const WorkspacePreviewPage: FC = () => {
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
-  const [rollbackTarget, setRollbackTarget] = useState<{ message: ChatMessage; index: number } | null>(null);
+  const [rollbackTarget, setRollbackTarget] = useState<{
+    message: ChatMessage;
+    index: number;
+    type?: 'prompt' | 'milestone';
+  } | null>(null);
   const [isRollbacking, setIsRollbacking] = useState<boolean>(false);
   const [prefillPrompt, setPrefillPrompt] = useState<string>('');
   const [toastInfo, setToastInfo] = useState<{
@@ -84,7 +88,21 @@ export const WorkspacePreviewPage: FC = () => {
       const result = await sessionApi.overwriteCanvas(activeSessionId, cleanHtml);
       updateExtractedHtml(result.cleanHtml);
       updateActiveSessionLatestHtml(result.cleanHtml);
-      fetchStorageFiles();
+
+      // Cập nhật lại session detail và storage để thẻ mốc và version mới hiển thị ngay
+      const [detail] = await Promise.all([
+        selectSession(activeSessionId),
+        fetchStorageFiles(),
+        fetchGroupedStorageFiles(),
+      ]);
+
+      if (detail) {
+        loadSession(
+          detail.messages || [],
+          detail.session.latestHtml || '',
+          detail.session.presignedUrl
+        );
+      }
 
       setToastInfo({
         isOpen: true,
@@ -128,7 +146,11 @@ export const WorkspacePreviewPage: FC = () => {
   };
 
   const handleStartRollback = (message: ChatMessage, index: number) => {
-    setRollbackTarget({ message, index });
+    setRollbackTarget({ message, index, type: 'prompt' });
+  };
+
+  const handleStartRollbackMilestone = (message: ChatMessage, index: number) => {
+    setRollbackTarget({ message, index, type: 'milestone' });
   };
 
   const handleConfirmRollback = async () => {
@@ -136,13 +158,39 @@ export const WorkspacePreviewPage: FC = () => {
 
     try {
       setIsRollbacking(true);
+
+      // Nhánh 1: Khôi phục về mốc chỉnh sửa thủ công (Cách B)
+      if (rollbackTarget.type === 'milestone') {
+        const result = await sessionApi.rollbackMilestone(
+          activeSessionId,
+          rollbackTarget.message.id
+        );
+
+        // Giữ lại thẻ mốc sửa tay này trong messages
+        applyRollback(rollbackTarget.message.id, result.restoredHtml, result.presignedUrl, true);
+        updateActiveSessionLatestHtml(result.restoredHtml || '');
+        fetchGroupedStorageFiles();
+
+        setToastInfo({
+          isOpen: true,
+          type: 'success',
+          title: 'Khôi Phục Mốc Thành Công',
+          message: result.restoredVersion
+            ? `Đã khôi phục giao diện về đúng phiên bản ${result.restoredVersion}!`
+            : 'Đã hoàn tác giao diện về mốc chỉnh sửa thủ công!',
+        });
+        setRollbackTarget(null);
+        return;
+      }
+
+      // Nhánh 2: Khôi phục về lượt chat của người dùng (Rollback User Turn)
       const result = await sessionApi.rollbackUserTurn(
         activeSessionId,
         rollbackTarget.message.id,
         rollbackTarget.message.text
       );
 
-      applyRollback(rollbackTarget.message.id, result.restoredHtml, result.presignedUrl);
+      applyRollback(rollbackTarget.message.id, result.restoredHtml, result.presignedUrl, false);
       updateActiveSessionLatestHtml(result.restoredHtml || '');
       fetchGroupedStorageFiles();
 
@@ -215,6 +263,7 @@ export const WorkspacePreviewPage: FC = () => {
               onStopGeneration={stopGeneration}
               sessionTitle={activeSession?.title}
               onStartRollback={handleStartRollback}
+              onRollbackMilestone={handleStartRollbackMilestone}
               prefillPrompt={prefillPrompt}
             />
 
@@ -252,17 +301,25 @@ export const WorkspacePreviewPage: FC = () => {
         onClose={() => setToastInfo((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      {/* Modal Cảnh Báo Rollback & Sửa Prompt (Hình 2) */}
+      {/* Modal Cảnh Báo Rollback & Sửa Prompt / Quay lại mốc sửa tay */}
       <RollbackWarningModal
         isOpen={!!rollbackTarget}
+        mode={rollbackTarget?.type || 'prompt'}
+        milestoneVersion={rollbackTarget?.message.version?.replace(/\s*\([^)]*\)/g, '').trim()}
         promptText={rollbackTarget?.message.text || ''}
-        deletedMessagesCount={rollbackTarget ? messages.length - rollbackTarget.index : 0}
+        deletedMessagesCount={
+          rollbackTarget
+            ? rollbackTarget.type === 'milestone'
+              ? Math.max(0, messages.length - (rollbackTarget.index + 1))
+              : messages.length - rollbackTarget.index
+            : 0
+        }
         deletedVersions={
           rollbackTarget
             ? messages
-                .slice(rollbackTarget.index)
-                .filter((m) => m.sender === 'ai' && m.version)
-                .map((m) => m.version as string)
+                .slice(rollbackTarget.type === 'milestone' ? rollbackTarget.index + 1 : rollbackTarget.index)
+                .filter((m) => (m.sender === 'ai' || m.sender === 'system') && m.version)
+                .map((m) => m.version!.replace(/\s*\([^)]*\)/g, '').trim())
             : []
         }
         isSubmitting={isRollbacking}
