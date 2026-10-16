@@ -32,17 +32,18 @@ export class StorageService {
     }
   }
 
-  public async downloadStorageFile(fileId: string, fileName?: string): Promise<void> {
+  public async downloadStorageFile(fileId: string, fileName?: string, versionId?: string): Promise<void> {
     try {
+      const queryParam = versionId ? `?versionId=${encodeURIComponent(versionId)}` : '';
       const response = await axios.get<{ success: boolean; downloadUrl: string; fileName: string }>(
-        `${API_BASE_URL}/storage/files/${encodeURIComponent(fileId)}/download`,
+        `${API_BASE_URL}/storage/files/${encodeURIComponent(fileId)}/download${queryParam}`,
         { headers: this.getAuthHeader() }
       );
 
       if (response.data?.downloadUrl) {
         const a = document.createElement('a');
         a.href = response.data.downloadUrl;
-        a.download = response.data.fileName || fileName || 'skipli_canvas_website.html';
+        a.download = response.data.fileName || fileName || 'index.html';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

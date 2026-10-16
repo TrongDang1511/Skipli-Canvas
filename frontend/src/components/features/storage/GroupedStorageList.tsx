@@ -1,22 +1,22 @@
 import { FC, useState, MouseEvent } from 'react';
-import { GroupedSessionStorageItem, StorageFileVersionItem } from '../../../types/storage.types';
+import { GroupedSessionStorageItem } from '../../../types/storage.types';
 import { StoragePreviewableItem } from './StoragePreviewModal';
 import { cn } from '../../../utils/cn';
 import {
   FolderGit2,
   Code2,
   Download,
-  Trash2,
   Layers,
   ArrowUpRight,
-  CheckCircle2,
+  ChevronDown,
+  GitCommit,
 } from 'lucide-react';
 
 interface GroupedStorageListProps {
   groups: GroupedSessionStorageItem[];
   activeSessionId?: string | null;
   onSelectFile: (file: StoragePreviewableItem) => void;
-  onDownloadFile: (e: MouseEvent, fileId: string, fileName: string) => void;
+  onDownloadFile: (e: MouseEvent, fileId: string, fileName: string, versionId?: string) => void;
   onQuickSwitchSession: (sessionId: string) => void;
   onDeleteFile?: (fileId: string) => Promise<void> | void;
 }
@@ -27,9 +27,15 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
   onSelectFile,
   onDownloadFile,
   onQuickSwitchSession,
-  onDeleteFile,
 }) => {
-  const [deletingStorageId, setDeletingStorageId] = useState<string | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
+
+  const toggleSessionExpand = (sessionId: string) => {
+    setExpandedSessions((prev) => ({
+      ...prev,
+      [sessionId]: !prev[sessionId],
+    }));
+  };
 
   if (!groups || groups.length === 0) {
     return (
@@ -43,18 +49,13 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
     );
   }
 
-  const handleConfirmDelete = async (e: MouseEvent, fileId: string) => {
-    e.stopPropagation();
-    if (onDeleteFile) {
-      await onDeleteFile(fileId);
-    }
-    setDeletingStorageId(null);
-  };
-
   return (
     <div className="space-y-4 pb-4 select-none">
       {groups.map((group, groupIndex) => {
         const isCurrentActiveSession = group.sessionId === activeSessionId;
+        const activeOrLatestFile = group.files.find((f) => f.isActive) || group.files[0];
+        const isExpanded = Boolean(expandedSessions[group.sessionId]);
+        const hasMultipleVersions = group.files.length > 1;
 
         return (
           <div key={`group-${group.sessionId}`} className="flex flex-col">
@@ -93,143 +94,192 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
               </button>
             </div>
 
-            {/* 2. File Versions List within Session (Sorted latest on top) */}
-            <div className="space-y-1.5 pl-1">
-              {group.files.map((file: StorageFileVersionItem) => {
-                const isDeleting = deletingStorageId === file.id;
-
-                return (
-                  <div
-                    key={`file-${file.id}`}
-                    onClick={() =>
-                      onSelectFile({
-                        ...file,
-                        sessionTitle: group.sessionTitle,
-                      })
-                    }
-                    className={cn(
-                      'group relative flex items-center justify-between p-2.5 rounded-xl border text-xs transition cursor-pointer shadow-xs',
-                      file.isActive
-                        ? 'bg-amber-500/[0.04] dark:bg-[#1E3E62]/30 border-amber-500/40 dark:border-[#D4AF37]/40 hover:border-amber-500 hover:shadow-sm'
-                        : 'bg-white dark:bg-[#0F1D32] border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/80 dark:hover:bg-[#152744]'
-                    )}
-                  >
-                    {/* Left: File metadata */}
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <div
-                        className={cn(
-                          'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition',
-                          file.isActive
-                            ? 'bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-[#D4AF37]'
-                            : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-stone-400'
-                        )}
-                      >
-                        <Code2 className="w-3.5 h-3.5" />
-                      </div>
-
-                      <div className="flex flex-col min-w-0">
-                        {/* Filename + Version Badge + [Đang dùng] Badge */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={cn(
-                              'font-mono font-bold text-xs truncate max-w-[110px]',
-                              file.isActive
-                                ? 'text-navy-900 dark:text-amber-300 font-extrabold'
-                                : 'text-slate-800 dark:text-stone-200'
-                            )}
-                            title={file.fileName}
-                          >
-                            {file.fileName}
-                          </span>
-
-                          {/* Version Tag */}
-                          <span
-                            className={cn(
-                              'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0',
-                              file.isActive
-                                ? 'bg-amber-500/15 text-amber-800 dark:text-[#D4AF37] border-amber-500/40'
-                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-stone-400 border-slate-200 dark:border-slate-700'
-                            )}
-                          >
-                            {file.version}
-                          </span>
-
-                          {/* Active Badge */}
-                          {file.isActive && (
-                            <span className="flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                              <span>Đang dùng</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Subtitle: Session Title • Size */}
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-stone-400 mt-1">
-                          <span className="truncate max-w-[95px]" title={group.sessionTitle}>
-                            {group.sessionTitle}
-                          </span>
-                          <span>•</span>
-                          <span className="font-mono font-medium text-slate-600 dark:text-stone-300 shrink-0">
-                            {file.sizeFormatted}
-                          </span>
-                        </div>
-                      </div>
+            {/* 2. File index.html Đại Diện (Bản mới nhất / Đang active) */}
+            {activeOrLatestFile && (
+              <div className="pl-1">
+                <div
+                  onClick={() =>
+                    onSelectFile({
+                      ...activeOrLatestFile,
+                      sessionTitle: group.sessionTitle,
+                    })
+                  }
+                  className={cn(
+                    'group relative flex items-center justify-between p-2 rounded-xl border text-xs transition cursor-pointer shadow-xs',
+                    activeOrLatestFile.isActive
+                      ? 'bg-amber-500/[0.04] dark:bg-[#1E3E62]/30 border-amber-500/40 dark:border-[#D4AF37]/40 hover:border-amber-500 hover:shadow-sm'
+                      : 'bg-white dark:bg-[#0F1D32] border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/80 dark:hover:bg-[#152744]'
+                  )}
+                >
+                  {/* Left: Metadata bản mới nhất */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1 pr-1.5">
+                    <div
+                      className={cn(
+                        'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border transition',
+                        activeOrLatestFile.isActive
+                          ? 'bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-[#D4AF37]'
+                          : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-stone-400'
+                      )}
+                    >
+                      <Code2 className="w-3 h-3" />
                     </div>
 
-                    {/* Right: Actions */}
-                    {isDeleting ? (
-                      <div className="flex items-center gap-1 shrink-0 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 rounded border border-red-300 dark:border-red-500/40">
-                        <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">Xóa?</span>
-                        <button
-                          type="button"
-                          onClick={(e) => handleConfirmDelete(e, file.id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold text-[11px] cursor-pointer ml-1"
+                    <div className="flex flex-col min-w-0 flex-1">
+                      {/* HÀNG 1: Toàn bộ tags nhỏ gọn trên cùng 1 hàng duy nhất */}
+                      <div className="flex items-center gap-1 flex-nowrap overflow-hidden">
+                        <span
+                          className={cn(
+                            'font-mono font-bold text-xs shrink-0',
+                            activeOrLatestFile.isActive
+                              ? 'text-navy-900 dark:text-amber-300 font-extrabold'
+                              : 'text-slate-800 dark:text-stone-200'
+                          )}
+                          title="index.html"
                         >
-                          Có
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingStorageId(null);
-                          }}
-                          className="text-slate-500 dark:text-stone-400 hover:text-slate-700 dark:hover:text-stone-200 text-[11px] cursor-pointer ml-1"
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => onDownloadFile(e, file.id, file.fileName)}
-                          title="Tải file HTML về máy"
-                          className="p-1.5 text-slate-700 dark:text-stone-300 bg-slate-100 dark:bg-slate-800 hover:bg-[#D4AF37] hover:text-slate-950 rounded-lg transition cursor-pointer font-semibold border border-slate-200 dark:border-slate-700/60"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
+                          index.html
+                        </span>
 
-                        {onDeleteFile && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingStorageId(file.id);
-                            }}
-                            title="Xóa file khỏi kho"
-                            className="p-1.5 text-slate-400 dark:text-stone-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-lg transition cursor-pointer opacity-0 group-hover:opacity-100"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                        {/* Version Badge */}
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-800 dark:text-[#D4AF37] border border-amber-500/40 shrink-0">
+                          {activeOrLatestFile.version.replace(/\s*\([^)]*\)/g, '').trim()}
+                        </span>
+
+                        {/* Active Badge nhỏ */}
+                        {activeOrLatestFile.isActive && (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                            Active
+                          </span>
                         )}
                       </div>
+
+                      {/* HÀNG 2: Dung lượng & số lượng bản */}
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-stone-500 mt-0.5">
+                        <span className="font-mono font-medium text-slate-500 dark:text-stone-400">
+                          {activeOrLatestFile.sizeFormatted}
+                        </span>
+                        <span>•</span>
+                        <span>{group.totalFiles} phiên bản</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Actions: Nút Download + 1 Nút Dropdown Chevron duy nhất */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        onDownloadFile(
+                          e,
+                          activeOrLatestFile.id,
+                          activeOrLatestFile.fileName,
+                          activeOrLatestFile.versionId
+                        )
+                      }
+                      title="Tải file HTML mới nhất"
+                      className="p-1.5 text-slate-700 dark:text-stone-300 bg-slate-100 dark:bg-slate-800 hover:bg-[#D4AF37] hover:text-slate-950 rounded-lg transition cursor-pointer font-semibold border border-slate-200 dark:border-slate-700/60"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* 1 Nút Dropdown Chevron duy nhất */}
+                    {hasMultipleVersions && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSessionExpand(group.sessionId);
+                        }}
+                        title={isExpanded ? 'Thu gọn lịch sử phiên bản' : 'Mở xem các phiên bản trước'}
+                        className={cn(
+                          'p-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center',
+                          isExpanded
+                            ? 'bg-amber-500/20 text-amber-900 dark:text-[#D4AF37] border-amber-500/40'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-stone-300 border-slate-200 dark:border-slate-700 hover:border-amber-400 hover:text-navy-900'
+                        )}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            'w-3.5 h-3.5 transition-transform duration-200',
+                            isExpanded && 'rotate-180'
+                          )}
+                        />
+                      </button>
                     )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
 
-            {/* 3. Session Group Separator (Đường phân cách theo Hình 1) */}
+                {/* 3. Danh sách sub-versions bên trong (Nhỏ gọn, chỉ hiện khi ấn dropdown, BỎ tag active) */}
+                {isExpanded && hasMultipleVersions && (
+                  <div className="ml-3 pl-2.5 border-l-2 border-amber-500/40 dark:border-amber-500/40 my-2 space-y-1 animate-in fade-in-50 duration-200">
+                    <div className="text-[10px] font-semibold text-slate-400 dark:text-stone-500 uppercase tracking-wider mb-1 px-1">
+                      Lịch sử phiên bản ({group.totalFiles})
+                    </div>
+                    {group.files.map((file) => {
+                      const cleanVersion = file.version.replace(/\s*\([^)]*\)/g, '').trim();
+
+                      return (
+                        <div
+                          key={`sub-file-${file.id}`}
+                          onClick={() =>
+                            onSelectFile({
+                              ...file,
+                              version: cleanVersion,
+                              sessionTitle: group.sessionTitle,
+                            })
+                          }
+                          className={cn(
+                            'group/sub flex items-center justify-between py-1 px-2 rounded-lg border text-xs transition cursor-pointer',
+                            file.isActive
+                              ? 'bg-amber-500/10 dark:bg-[#1E3E62]/40 border-amber-500/40 dark:border-[#D4AF37]/40 shadow-2xs font-semibold'
+                              : 'bg-slate-50/70 dark:bg-[#0B1526]/80 border-slate-200/60 dark:border-slate-800/60 hover:bg-white dark:hover:bg-[#11213B] hover:border-slate-300'
+                          )}
+                        >
+                          {/* Left: Compact info */}
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <GitCommit className="w-3 h-3 text-slate-400 dark:text-stone-500 shrink-0" />
+
+                            {/* Version Tag */}
+                            <span className="font-mono text-[10px] font-bold text-slate-800 dark:text-stone-200 shrink-0 bg-white dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                              {cleanVersion}
+                            </span>
+
+                            {/* Source Type Badge */}
+                            {file.type === 'manual' ? (
+                              <span className="text-[9px] text-amber-700 dark:text-[#D4AF37] font-medium shrink-0 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">
+                                Sửa tay
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-500 dark:text-stone-400 font-medium shrink-0 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                                AI
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Right: Size & Small Download Button (Không có tag active làm chật chội) */}
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                            <span className="text-[10px] font-mono text-slate-400 dark:text-stone-500">
+                              {file.sizeFormatted}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) =>
+                                onDownloadFile(e, file.id, file.fileName, file.versionId)
+                              }
+                              title={`Tải về phiên bản ${cleanVersion}`}
+                              className="p-1 rounded text-slate-500 dark:text-stone-400 hover:text-navy-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Session Group Separator */}
             {groupIndex < groups.length - 1 && (
               <div className="pt-3 pb-1">
                 <div className="border-b border-dashed border-slate-300 dark:border-slate-800/90" />

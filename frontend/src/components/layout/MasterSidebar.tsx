@@ -73,9 +73,9 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
     setDeletingId(null);
   };
 
-  const handleDownloadStorageFile = async (e: MouseEvent, fileId: string, fileName: string) => {
+  const handleDownloadStorageFile = async (e: MouseEvent, fileId: string, fileName: string, versionId?: string) => {
     e.stopPropagation();
-    await storageService.downloadStorageFile(fileId, fileName);
+    await storageService.downloadStorageFile(fileId, fileName, versionId);
   };
 
   if (!isSidebarOpen) {
@@ -142,8 +142,8 @@ export const MasterSidebar: FC<MasterSidebarProps> = ({
           file={selectedPreviewFile}
           isOpen={!!selectedPreviewFile}
           onClose={() => setSelectedPreviewFile(null)}
-          onDownload={async (fileId, fileName) => {
-            await storageService.downloadStorageFile(fileId, fileName);
+          onDownload={async (fileId, fileName, versionId) => {
+            await storageService.downloadStorageFile(fileId, fileName, versionId);
           }}
         />
       </>

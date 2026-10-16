@@ -53,6 +53,7 @@ export class StorageController {
   ): Promise<void> => {
     const userId = req.user?.id;
     const { id } = req.params;
+    const versionId = typeof req.query.versionId === 'string' ? req.query.versionId : undefined;
 
     if (!userId) {
       res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
@@ -60,7 +61,7 @@ export class StorageController {
     }
 
     try {
-      const result = await storageService.getFileForDownload(userId, id);
+      const result = await storageService.getFileForDownload(userId, id, versionId);
       if (!result || !result.downloadUrl) {
         res.status(404).json({
           success: false,

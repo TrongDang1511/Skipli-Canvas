@@ -277,7 +277,9 @@ export class SessionService {
       throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
     }
 
-    const versionStr = session.versionCount > 0 ? `v1.${session.versionCount}` : 'v1.1';
+    // Mỗi lần lưu sửa tay sẽ là 1 version mới độc lập (ví dụ: v1.1 -> v1.2), không kèm hậu tố '(Sửa tay)'
+    const nextVersionCount = (session.versionCount || 1) + 1;
+    const versionStr = `v1.${nextVersionCount}`;
     const s3Key = `users/${userId}/sessions/${session.id}/index.html`;
 
     // 1. Quét tìm và bóc tách các ảnh Base64 Data URI được upload từ máy tính
@@ -323,7 +325,7 @@ export class SessionService {
     const uploadRes = await s3Service.uploadHtml(s3Key, processedHtml, {
       sessionId: session.id,
       sessionTitle: session.title,
-      version: `${versionStr} (Sửa tay)`,
+      version: versionStr,
       userId,
       fileName: 'index.html',
     });
@@ -341,19 +343,20 @@ export class SessionService {
       sender: 'system',
       eventType: 'manual_edit',
       text: 'Bạn đã lưu chỉnh sửa thủ công trên giao diện',
-      version: `${versionStr} (Sửa tay)`,
+      version: versionStr,
       s3VersionId,
       createdAt: now,
     };
     await sessionRepository.createMessage(milestoneMessage);
 
-    // 5. Cập nhật Firestore Session
+    // 5. Cập nhật Firestore Session (Cập nhật versionCount mới)
     await sessionRepository.updateSession(session.id, userId, {
       s3Key,
       s3VersionId,
       latestHtml: '',
       presignedUrl: s3Info.presignedUrl,
       presignedExpiresAt: s3Info.presignedExpiresAt,
+      versionCount: nextVersionCount,
       updatedAt: now,
     });
 

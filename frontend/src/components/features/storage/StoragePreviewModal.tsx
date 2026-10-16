@@ -20,7 +20,7 @@ interface StoragePreviewModalProps {
   file: StoragePreviewableItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onDownload: (fileId: string, fileName: string) => Promise<void>;
+  onDownload: (fileId: string, fileName: string, versionId?: string) => Promise<void>;
 }
 
 export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
@@ -53,7 +53,8 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
   const handleDownloadClick = async () => {
     try {
       setIsDownloading(true);
-      await onDownload(file.id, file.fileName);
+      const targetVersionId = 'versionId' in file ? file.versionId : undefined;
+      await onDownload(file.id, file.fileName, targetVersionId);
     } finally {
       setIsDownloading(false);
     }
