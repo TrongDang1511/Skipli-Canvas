@@ -26,7 +26,11 @@ export function useChatStream(options?: UseChatStreamOptions) {
     setExtractedHtml(html || '');
     setPresignedUrl(url || '');
 
+    let lastSeenVersion = 'v1.1';
     const formatted: ChatMessage[] = sessionMessages.map((m) => {
+      if (m.version) {
+        lastSeenVersion = m.version.replace(/\s*\([^)]*\)/g, '').trim();
+      }
       const timeStr = m.createdAt
         ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -36,7 +40,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
         sender: m.sender,
         text: m.text,
         time: timeStr,
-        version: m.version,
+        version: m.version || (m.sender === 'ai' ? lastSeenVersion : undefined),
         extractedHtml: m.extractedHtml,
         isLoading: false,
       };
@@ -64,13 +68,16 @@ export function useChatStream(options?: UseChatStreamOptions) {
         time: timestamp,
       };
 
-      const versionNum = `v1.${messages.filter((m) => m.sender === 'user').length + 1}`;
+      // Lấy phiên bản hiện tại từ tin nhắn gần nhất có version hoặc mặc định 'v1.1'
+      const lastVersionMsg = [...messages].reverse().find((m) => m.version);
+      const currentVersion = lastVersionMsg?.version?.replace(/\s*\([^)]*\)/g, '').trim() || 'v1.1';
+
       const aiMsg: ChatMessage = {
         id: aiMsgId,
         sender: 'ai',
         text: '',
         time: timestamp,
-        version: versionNum,
+        version: currentVersion,
         isLoading: true,
       };
 
@@ -118,7 +125,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
                 id: result.aiMessageId || msg.id,
                 text: result.fullContent,
                 extractedHtml: minioHtml,
-                version: result.version || msg.version,
+                version: result.version || msg.version || currentVersion,
                 isLoading: false,
               };
             }
