@@ -19,6 +19,7 @@ export interface ChatCompletionResponse {
 export interface ChatCompletionOptions {
   history?: ChatMessage[];
   currentHtml?: string;
+  codeUrl?: string;
   sessionTitle?: string;
 }
 
@@ -27,42 +28,84 @@ export class GoClawService {
     prompt: string,
     options: ChatCompletionOptions = {}
   ): Promise<ChatCompletionResponse> {
-    const { history = [], currentHtml, sessionTitle } = options;
+    const { history = [], currentHtml, codeUrl, sessionTitle } = options;
 
     let finalPrompt = '';
     let assetMap: Map<string, string> | undefined;
 
-    if (currentHtml && currentHtml.trim()) {
+    const historyBlock =
+      history && history.length > 0
+        ? `\n\n[LỊCH SỬ ĐOẠN CHAT GẦN NHẤT (10 TIN NHẮN)]:\n` +
+          history
+            .map((msg) => `${msg.role === 'user' ? 'Người dùng' : 'AI Assistant'}: ${msg.content}`)
+            .join('\n\n')
+        : '';
+
+    if (codeUrl && codeUrl.trim()) {
+      // =========================================================================
+      // HTTP ON-DEMAND URL CONTEXT + EMBEDDED CONVERSATION HISTORY
+      // Giải quyết triệt để vấn đề GoClaw stateless + MinIO URL 200 OK
+      // =========================================================================
+      finalPrompt = `[SKIPLI AI ADAPTIVE ARCHITECT DIRECTIVE]:
+Bạn là Kiến trúc sư UI/UX kiêm Kỹ sư Frontend chịu trách nhiệm phát triển và tinh chỉnh website cho người dùng.
+
+[LIÊN KẾT MÃ NGUỒN WEBSITE HIỆN TẠI]:
+Toàn bộ mã nguồn HTML hiện tại của website đang được lưu trữ tại liên kết sau:
+${codeUrl}
+${historyBlock}
+
+[YÊU CẦU HIỆN TẠI CỦA NGƯỜI DÙNG]:
+"${prompt}"
+
+[HƯỚNG DẪN QUY TRÌNH THỰC THI BẮT BUỘC]:
+1. TRƯỜNG HỢP NGƯỜI DÙNG HỎI Ý KIẾN / TƯ VẤN / TRAO ĐỔI (Không yêu cầu cập nhật code):
+   - Bạn có thể gọi tool 'web_fetch' với url="${codeUrl}" nếu cần đọc qua mã nguồn hiện tại để tư vấn chính xác, hoặc dựa vào lịch sử đoạn chat để trả lời.
+   - Tuyệt đối KHÔNG gọi tool 'write_file'.
+   - Trả lời bằng tiếng Việt tự nhiên, ấm áp, sâu sắc và chuyên nghiệp.
+
+2. TRƯỜNG HỢP NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA / ĐỔI MÀU / THAY ĐỔI GIAO DIỆN / CẬP NHẬT CODE:
+   - Bước 1 (Đọc mã gốc): Gọi tool 'web_fetch' với url="${codeUrl}" và extractMode="text" để tải về 100% mã nguồn HTML hiện tại của website.
+   - Bước 2 (Viết code mới): Dựa trên mã nguồn gốc vừa lấy được từ 'web_fetch', thực hiện thay đổi theo đúng yêu cầu của người dùng. BẮT BUỘC giữ nguyên toàn bộ các phần, thẻ script, phong cách và cấu trúc website hiện có.
+   - Bước 3 (Lưu code): Gọi tool 'write_file' với path="index.html" ĐÚNG 1 LẦN DUY NHẤT để ghi đè toàn bộ mã HTML mới hoàn chỉnh (>250 dòng).
+   - Bước 4 (Dừng lại & Báo cáo): Sau khi gọi 'write_file', KHÔNG gọi thêm bất kỳ công cụ nào khác. Trả lời tóm tắt bằng tiếng Việt giải thích những điểm vừa cập nhật.
+
+[ĐIỀU CẤM TUYỆT ĐỐI]:
+- Tuyệt đối KHÔNG xuất mã nguồn HTML thô hoặc khối code \`\`\`html trong lời chat trò chuyện.`;
+    } else if (currentHtml && currentHtml.trim()) {
       // 1. Kỹ thuật Token Masking: Thay thế toàn bộ link ảnh MinIO S3 & CDN bằng token ngắn
       const maskedResult = maskHtmlAssets(currentHtml.trim());
       const maskedHtml = maskedResult.maskedHtml;
       assetMap = maskedResult.assetMap;
 
-      // INCREMENTAL EDITING (Turn 2+)
-      finalPrompt = `[SKIPLI INCREMENTAL EDIT & UPGRADE DIRECTIVE]:
-You are continuing work on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
+      // INCREMENTAL EDITING (Turn 2+) - Adaptive Dual-Mode Directive in English
+      finalPrompt = `[SKIPLI ADAPTIVE ASSISTANT & EDIT DIRECTIVE]:
+You are an expert Frontend Architect & UI/UX Consultant working on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
 
-CRITICAL STRICT RULES - IMMUTABILITY OF USER ASSETS:
-1. PRESERVE ALL USER ASSET TOKENS:
-   - The current HTML contains user-curated and local uploaded assets marked as '__SKIPLI_ASSET_X__'.
-   - You MUST preserve all '__SKIPLI_ASSET_X__' tokens EXACTLY verbatim inside their respective <img> src or CSS background-image attributes.
-   - You are STRICTLY FORBIDDEN from modifying, replacing, removing, or swapping ANY '__SKIPLI_ASSET_X__' token.
-2. SURGICAL MODIFICATION SCOPE:
-   - Focus 100% of your modifications ONLY on what the user explicitly requested below: "${prompt}".
-   - Keep all other sections, Tailwind CSS aesthetic, Google Fonts, Lucide stroke icons, and Vanilla JS interactivity fully intact.
-
-CURRENT HTML CODE:
+CURRENT HTML CONTEXT:
 \`\`\`html
 ${maskedHtml}
 \`\`\`
+${historyBlock}
 
-USER'S MODIFICATION REQUEST:
-${prompt}
+USER'S MESSAGE:
+"${prompt}"
 
-MANDATORY 2-STEP WORKFLOW & HARD-STOP RULE:
-- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the updated, complete single-file HTML (>250 lines) to disk. Preserve 100% of all user asset tokens (__SKIPLI_ASSET_X__), styling, and sections unless explicitly commanded to change.
-- Step 2: Do NOT call any more tools (do NOT call write_file again, do NOT call use_skill). Immediately output your conversational response: a warm, insightful summary in natural Vietnamese detailing the exact enhancements made.
-- PROHIBITION: Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your chat response.`;
+CRITICAL DUAL-MODE INTENT EVALUATION & EXECUTION RULES:
+
+Mode 1: CONVERSATIONAL, ADVISORY, OR INQUIRY INTENT
+- If the user's message is asking for ideas, suggestions, critique, recommendations, explanations, feature listings, or general questions WITHOUT an explicit command to update the website code (e.g., "liệt kê những thứ hay ho bạn nghĩ hệ thống nên có", "gợi ý tính năng", "giải thích code", "website này có tốt không?"):
+  * STRICTLY FORBIDDEN: Do NOT call 'write_file' or ANY other tools.
+  * Do NOT touch or overwrite the HTML file.
+  * Provide a warm, insightful, structured, and comprehensive response directly in natural Vietnamese.
+
+Mode 2: EXPLICIT CODE / UI / DESIGN MODIFICATION INTENT
+- If the user explicitly asks to modify, add, delete, restyle, or change content/sections in the website (e.g., "đổi màu nền...", "thêm mục...", "sửa chữ...", "áp dụng các gợi ý trên vào web"):
+  * Rule 1 (Asset Immutability): You MUST preserve all '__SKIPLI_ASSET_X__' tokens EXACTLY verbatim inside their respective <img> src or CSS background-image attributes. Never remove or change them.
+  * Rule 2 (Tool Invocation): Call the tool 'write_file' with path="index.html" EXACTLY ONCE to save the complete updated single-file HTML (>250 lines) to disk.
+  * Rule 3 (Hard-Stop): After calling 'write_file' once, DO NOT call any further tools. Output your friendly summary in Vietnamese explaining the enhancements made.
+
+GENERAL PROHIBITION:
+- Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your conversational chat reply.`;
     } else {
       // INITIAL CREATION (Turn 1)
       finalPrompt = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
@@ -155,18 +198,18 @@ User Request: ${prompt}`;
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
 
     if (!cleaned || !cleaned.trim()) {
-      return 'Tôi đã khởi tạo và xây dựng xong giao diện website theo đúng yêu cầu của bạn. Toàn bộ mã nguồn đã được lưu trữ an toàn trên MinIO Cloud và nạp trực tiếp vào khung Live Preview bên cạnh. Bạn có thể xem thử hoặc dùng chế độ Chỉnh Sửa Trực Quan để đổi chữ, thay ảnh tùy ý!';
+      return 'Tôi đã ghi nhận ý kiến của bạn. Nếu bạn muốn áp dụng các ý tưởng hoặc thay đổi này vào giao diện website, hãy cho tôi biết nhé!';
     }
 
     return cleaned;
   }
 
-  public extractHtml(fullContent: string): string {
+  public extractHtml(fullContent: string, requestStartTime?: number): string {
     const rawText = fullContent || '';
 
     // =========================================================================
-    // ƯU TIÊN 1: NẾU AI ĐÃ SINH FILE .HTML TRÊN Ổ CỨNG / WORKSPACE
-    // Đọc trực tiếp 100% nội dung file nguyên bản từ workspace đĩa cứng của agent
+    // ƯU TIÊN 1: NẾU AI ĐÃ THỰC THI TOOL WRITE_FILE ĐỂ SINH/SỬA FILE TRÊN WORKSPACE
+    // CHỈ chấp nhận file được tạo/chỉnh sửa TRONG lượt chat này (sau requestStartTime)
     // =========================================================================
     try {
       const userHome = os.homedir();
@@ -194,9 +237,12 @@ User Request: ${prompt}`;
           ];
           for (const cPath of candidatePaths) {
             if (fs.existsSync(cPath) && fs.statSync(cPath).isFile()) {
-              const fileContent = fs.readFileSync(cPath, 'utf-8');
-              if (fileContent && fileContent.includes('<html')) {
-                return fileContent;
+              const stat = fs.statSync(cPath);
+              if (!requestStartTime || stat.mtimeMs >= requestStartTime - 2000) {
+                const fileContent = fs.readFileSync(cPath, 'utf-8');
+                if (fileContent && fileContent.includes('<html')) {
+                  return fileContent;
+                }
               }
             }
           }
@@ -232,8 +278,10 @@ User Request: ${prompt}`;
         scanDirectory(dir);
       }
 
-      // Nếu tìm thấy file .html mới nhất vừa được AI tạo trong vòng 30 phút
-      if (newestHtmlPath && Date.now() - newestTime < 1800000) {
+      // CHỈ chấp nhận nếu file thực sự được sửa/ghi trong lượt gọi này (sau requestStartTime - 2000ms bù trừ độ trễ)
+      // Tuyệt đối không nhận vơ file cũ từ các lượt chat trước (trong vòng 30 phút)!
+      const minAllowedTime = requestStartTime ? requestStartTime - 2000 : Date.now() - 60000;
+      if (newestHtmlPath && newestTime >= minAllowedTime) {
         const fileContent = fs.readFileSync(newestHtmlPath, 'utf-8');
         if (fileContent && fileContent.includes('<html')) {
           return fileContent;

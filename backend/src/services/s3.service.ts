@@ -259,6 +259,30 @@ export class S3Service {
   }
 
   /**
+   * Sinh Presigned URL để AI Agent bên thứ 3 fetch mã nguồn dạng text/plain thô,
+   * đảm bảo 100% không bị dịch sang Markdown khi tải bằng tool web_fetch.
+   */
+  public async getPresignedRawCodeUrl(s3Key: string, versionId?: string): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+        VersionId: versionId || undefined,
+        ResponseContentType: 'text/plain; charset=utf-8',
+      });
+
+      const signedUrl = await getSignedUrl(s3Client, command, {
+        expiresIn: 3600, // Hạn dùng 1 giờ
+      });
+
+      return signedUrl;
+    } catch (error) {
+      console.error(`[S3Service] Error generating presigned raw code URL for key: ${s3Key}:`, error);
+      return '';
+    }
+  }
+
+  /**
    * Đọc toàn bộ nội dung text của file HTML từ MinIO/S3 (Dùng làm context cho AI ở Turn 2+).
    * Hỗ trợ truyền versionId để đọc đúng nội dung của phiên bản cụ thể.
    */
