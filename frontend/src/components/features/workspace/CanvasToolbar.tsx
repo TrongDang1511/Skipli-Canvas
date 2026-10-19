@@ -116,7 +116,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               setViewMode('preview');
               setEditorMode('preview');
             }}
-            title="Chế độ xem thực tế: Giữ nguyên tương tác website bình thường"
+            title="Chế độ xem thực tế: Thử nghiệm tương tác nút bấm, giỏ hàng, popup modal, đổi tab mượt mà"
             className={cn(
               'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
               viewMode === 'preview' && editorMode === 'preview'
@@ -134,7 +134,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               setViewMode('preview');
               setEditorMode('visual_edit');
             }}
-            title="Chế độ chỉnh sửa trực quan: Rê chuột xem thành phần và chỉnh sửa giao diện"
+            title="Chế độ chỉnh sửa trực quan: Click vào bất kỳ khối, chữ, nút bấm hoặc ảnh để chỉnh sửa"
             className={cn(
               'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
               viewMode === 'preview' && editorMode === 'visual_edit'

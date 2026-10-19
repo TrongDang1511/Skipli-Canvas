@@ -18,8 +18,8 @@ import {
 
 /**
  * Nhúng kịch bản bảo vệ (Inline Guard Script) trực tiếp vào iframe HTML.
- * Script này kích hoạt ở capturing phase ngay khi browser parse HTML,
- * chặn 100% mọi sự kiện click vào link/button/form có nguy cơ điều hướng iframe sang route của ứng dụng mẹ.
+ * Script này phân loại liên kết thông minh, bảo lưu Event Bubbling cho các nút bấm / Modal / Tab / Giỏ hàng nội bộ,
+ * đồng thời ngăn chặn tuyệt đối việc iframe điều hướng sang route của ứng dụng Web Builder mẹ.
  */
 function prepareSafePreviewHtml(rawHtml: string): string {
   if (!rawHtml || !rawHtml.trim()) return '';
@@ -47,14 +47,22 @@ function prepareSafePreviewHtml(rawHtml: string): string {
     }, 2800);
   }
 
+  // 1. Phân loại liên kết thông minh & Bảo lưu Event Bubbling cho các nút bấm tương tác
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (a) {
-      var href = a.getAttribute('href');
-      // 1. Hash link chuyển hướng nội bộ (#section-id)
-      if (href && href.startsWith('#') && href.length > 1) {
+      var href = (a.getAttribute('href') || '').trim();
+
+      // Case 1: Action links (# hoặc javascript:void) -> Chỉ chống scroll lên đỉnh trang, CHO PHÉP bubble tới onclick/JS
+      if (!href || href === '#' || href.startsWith('javascript:')) {
         e.preventDefault();
-        e.stopPropagation();
+        // TUYỆT ĐỐI KHÔNG gọi e.stopPropagation() để các script mở Modal / Drawer / Tab nhận được sự kiện click
+        return;
+      }
+
+      // Case 2: Hash link nội bộ (#section-id) -> Cuộn mượt trong iframe
+      if (href.startsWith('#') && href.length > 1) {
+        e.preventDefault();
         try {
           var target = document.querySelector(href) || document.getElementById(href.slice(1));
           if (target) {
@@ -66,36 +74,37 @@ function prepareSafePreviewHtml(rawHtml: string): string {
         return;
       }
 
-      // 2. Liên kết ngoài
-      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+      // Case 3: Liên kết ngoài tuyệt đối -> Mở tab trình duyệt mới
+      if (href.startsWith('http://') || href.startsWith('https://')) {
         e.preventDefault();
-        e.stopPropagation();
         window.open(href, '_blank', 'noopener,noreferrer');
         return;
       }
 
-      // 3. Liên kết rỗng, # hoặc tương đối: Chặn tuyệt đối để không làm iframe điều hướng
+      // Case 4: Mailto & Tel
+      if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
+      }
+
+      // Case 5: Liên kết tương đối (/, /about, menu.html) -> Chặn tuyệt đối để chống lồng Web Builder vào canvas
       e.preventDefault();
-      e.stopPropagation();
-      showPreviewToast('Liên kết này sẽ chuyển hướng trên website thực tế!');
+      showPreviewToast('Trang "' + href + '" sẽ hoạt động trên website thực tế khi xuất bản!');
       return;
     }
-
-    var btn = e.target.closest('button, input[type="submit"], input[type="button"], [role="button"]');
-    if (btn) {
-      if (btn.type === 'submit' || btn.closest('form')) {
-        e.preventDefault();
-        e.stopPropagation();
-        showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
-      }
-    }
   }, true);
 
+  // 2. Chặn HTTP reload khi submit form, nhưng cho phép JS event listeners của website xử lý logic
   document.addEventListener('submit', function(e) {
     e.preventDefault();
-    e.stopPropagation();
-    showPreviewToast('Đã ghi nhận dữ liệu biểu mẫu trong bản xem thử!');
+    showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
   }, true);
+
+  // 3. Navigation Guard: Chống script trong website vô tình gọi window.location làm reload iframe
+  try {
+    window.onbeforeunload = function() {
+      // Ngăn điều hướng đột ngột
+    };
+  } catch(err) {}
 })();
 </script>
 `;

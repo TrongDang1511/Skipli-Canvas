@@ -328,6 +328,17 @@ export function useVisualBridge({
     const doc = getIframeDoc();
     if (!doc || !doc.body) return;
 
+    if (doc.documentElement) {
+      doc.documentElement.setAttribute('data-skipli-mode', mode);
+      if (mode === 'preview') {
+        doc.body.classList.remove('skipli-visual-edit-active');
+        doc.body.classList.add('skipli-preview-active');
+      } else {
+        doc.body.classList.remove('skipli-preview-active');
+        doc.body.classList.add('skipli-visual-edit-active');
+      }
+    }
+
     if (mode === 'preview') {
       cleanupInspectorUI(doc);
       setSelectedElement(null);
@@ -373,16 +384,24 @@ export function useVisualBridge({
         }, 2800);
       };
 
-      // Chặn điều hướng của liên kết và nút trong chế độ xem thử
+      // Chặn điều hướng của liên kết trong chế độ xem thử, nhưng BẢO LƯU tương tác nút bấm và JavaScript
       const handlePreviewClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (!target) return;
 
         const link = target.closest('a');
         if (link) {
-          const href = link.getAttribute('href');
-          // 1. Hash link chuyển hướng nội bộ (#section-id)
-          if (href && href.startsWith('#') && href.length > 1) {
+          const href = (link.getAttribute('href') || '').trim();
+
+          // Case 1: Action links (# hoặc javascript:void) -> Chỉ chặn scroll lên top, CHO PHÉP bubble tới onclick/JS
+          if (!href || href === '#' || href.startsWith('javascript:')) {
+            e.preventDefault();
+            // KHÔNG dừng propagation, KHÔNG hiện toast phiền hà để modal/drawer/tabs nhận được sự kiện
+            return;
+          }
+
+          // Case 2: Hash link chuyển hướng nội bộ (#section-id) -> Cuộn mượt
+          if (href.startsWith('#') && href.length > 1) {
             e.preventDefault();
             try {
               const targetEl = doc.querySelector(href) || doc.getElementById(href.slice(1));
@@ -397,39 +416,30 @@ export function useVisualBridge({
             return;
           }
 
-          // 2. Liên kết ngoài tuyệt đối
-          if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+          // Case 3: Liên kết ngoài tuyệt đối -> Mở tab trình duyệt mới
+          if (href.startsWith('http://') || href.startsWith('https://')) {
             e.preventDefault();
             window.open(href, '_blank', 'noopener,noreferrer');
             return;
           }
 
-          // 3. Liên kết rỗng, # hoặc tương đối: Chặn tuyệt đối để không làm iframe điều hướng
-          e.preventDefault();
-          showPreviewToast('Liên kết này sẽ chuyển hướng trên website thực tế!');
-          return;
-        }
-
-        const submitBtn = target.closest('button[type="submit"], input[type="submit"]');
-        if (submitBtn) {
-          e.preventDefault();
-          showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
-          return;
-        }
-
-        const button = target.closest('button, [role="button"]');
-        if (button) {
-          const form = button.closest('form');
-          if (form) {
-            e.preventDefault();
-            showPreviewToast('Đã ghi nhận tương tác form xem thử!');
+          // Case 4: Mailto & Tel
+          if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+            return;
           }
+
+          // Case 5: Liên kết tương đối (/, /about, menu.html) -> Chặn tuyệt đối để không làm iframe điều hướng
+          e.preventDefault();
+          showPreviewToast(`Trang "${href}" sẽ hoạt động trên website thực tế khi xuất bản!`);
+          return;
         }
+
+        // Với button & form: KHÔNG chặn click! Cho phép 100% các nút (Modal, Tab, Cart Drawer, Counter +/-, Accordion) hoạt động tự nhiên!
       };
 
       const handlePreviewSubmit = (e: Event) => {
         e.preventDefault();
-        showPreviewToast('Đã ghi nhận dữ liệu biểu mẫu trong bản xem thử!');
+        showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
       };
 
       doc.addEventListener('click', handlePreviewClick, true);
@@ -447,7 +457,7 @@ export function useVisualBridge({
     const badge = ensureBadgeElement(doc);
     refreshSections();
 
-    // 1. Chặn click link và submit form
+    // 1. Chế độ Chỉnh Sửa Trực Quan (Visual Edit): Chặn click link và button để ưu tiên chọn phần tử thanh tra
     const handleInterceptClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target) return;
@@ -462,8 +472,8 @@ export function useVisualBridge({
         e.stopPropagation();
       }
 
-      const submitBtn = target.closest('button[type="submit"], input[type="submit"]');
-      if (submitBtn) {
+      const button = target.closest('button, [role="button"], input[type="button"], input[type="submit"]');
+      if (button) {
         e.preventDefault();
         e.stopPropagation();
       }
