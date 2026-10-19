@@ -12,17 +12,21 @@ export class ChatController {
   ): Promise<void> => {
     const { prompt, sessionId } = req.body as ChatRequestDto;
     const userId = req.user?.id;
+    const requestStartTime = Date.now();
 
     try {
-      let contextOptions: { history?: any[]; currentHtml?: string; sessionTitle?: string } = {};
+      let contextOptions: { history?: any[]; currentHtml?: string; codeUrl?: string; sessionTitle?: string } = {};
+      let currentSession: any = null;
 
       if (userId && sessionId && typeof sessionId === 'string' && sessionId.trim()) {
         try {
           const sessionCtx = await sessionService.getSessionContext(userId, sessionId.trim());
           if (sessionCtx) {
+            currentSession = sessionCtx.session;
             contextOptions = {
               history: sessionCtx.history,
               currentHtml: sessionCtx.latestHtml,
+              codeUrl: sessionCtx.codeUrl,
               sessionTitle: sessionCtx.session?.title,
             };
           }
@@ -33,7 +37,7 @@ export class ChatController {
 
       const response = await goclawService.chatCompletion(prompt, contextOptions);
       const rawContent = response.text;
-      let extractedHtml = goclawService.extractHtml(rawContent);
+      let extractedHtml = goclawService.extractHtml(rawContent, requestStartTime);
 
       // Phục hồi lại toàn bộ link ảnh MinIO S3 / CDN gốc của người dùng từ bảng ánh xạ Token
       if (extractedHtml && response.assetMap && response.assetMap.size > 0) {
@@ -43,7 +47,9 @@ export class ChatController {
       const fullContent = goclawService.cleanTextResponse(rawContent);
 
       let savedSessionId = sessionId;
-      let savedVersion = 'v1.1';
+      let savedVersion = currentSession?.versionCount
+        ? `v1.${currentSession.versionCount}`
+        : 'v1.1';
       let presignedUrl: string | undefined;
       let userMessageId: string | undefined;
       let aiMessageId: string | undefined;
@@ -58,7 +64,9 @@ export class ChatController {
             extractedHtml
           );
           savedSessionId = saved.session.id;
-          savedVersion = saved.aiMsg.version || 'v1.1';
+          savedVersion =
+            saved.aiMsg.version ||
+            (saved.session.versionCount ? `v1.${saved.session.versionCount}` : 'v1.1');
           presignedUrl = saved.session.presignedUrl;
           userMessageId = saved.userMsg?.id;
           aiMessageId = saved.aiMsg?.id;

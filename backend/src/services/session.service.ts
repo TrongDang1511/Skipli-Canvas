@@ -44,6 +44,7 @@ export class SessionService {
   ): Promise<{
     session: Session | null;
     latestHtml: string;
+    codeUrl?: string;
     history: { role: 'user' | 'assistant'; content: string }[];
   }> {
     if (!sessionId || !sessionId.trim()) {
@@ -77,6 +78,8 @@ export class SessionService {
     }
 
     let latestHtml = session.latestHtml || '';
+    let codeUrl: string | undefined;
+
     if (session.s3Key) {
       try {
         const s3Html = await s3Service.getHtmlContent(session.s3Key, session.s3VersionId);
@@ -85,6 +88,13 @@ export class SessionService {
         }
       } catch (readErr) {
         console.warn('[SessionService] Error reading latestHtml from S3:', readErr);
+      }
+
+      try {
+        // Sinh Presigned URL dạng text/plain để AI gọi web_fetch đọc raw code on-demand
+        codeUrl = await s3Service.getPresignedRawCodeUrl(session.s3Key, session.s3VersionId);
+      } catch (codeUrlErr) {
+        console.warn('[SessionService] Error generating rawCodeUrl:', codeUrlErr);
       }
     }
 
@@ -108,6 +118,7 @@ export class SessionService {
     return {
       session,
       latestHtml,
+      codeUrl,
       history,
     };
   }
@@ -172,8 +183,24 @@ export class SessionService {
     }
 
     const now = new Date().toISOString();
-    const nextVersionCount = session.versionCount + 1;
-    const versionStr = `v1.${nextVersionCount}`;
+    // hasNewHtml CHỈ true khi thực sự có mã HTML mới khác biệt với bản hiện tại
+    let currentHtml = session.latestHtml || '';
+    if (!currentHtml && session.s3Key) {
+      try {
+        currentHtml = await s3Service.getHtmlContent(session.s3Key, session.s3VersionId);
+      } catch (err) {
+        console.warn('[SessionService] Could not fetch currentHtml from S3:', err);
+      }
+    }
+
+    const isDifferentHtml = Boolean(
+      extractedHtml &&
+      extractedHtml.trim() &&
+      extractedHtml.trim() !== currentHtml.trim()
+    );
+    const hasNewHtml = isDifferentHtml;
+    const nextVersionCount = hasNewHtml ? session.versionCount + 1 : session.versionCount;
+    const versionStr = `v1.${nextVersionCount > 0 ? nextVersionCount : 1}`;
 
     // Upload mã nguồn HTML lên MinIO/S3 trên 1 file duy nhất index.html và tạo Presigned URL xem Live
     let s3Key: string | undefined;
@@ -181,7 +208,7 @@ export class SessionService {
     let presignedUrl: string | undefined;
     let presignedExpiresAt: number | undefined;
 
-    if (extractedHtml && extractedHtml.trim()) {
+    if (hasNewHtml && extractedHtml) {
       try {
         s3Key = `users/${userId}/sessions/${session.id}/index.html`;
         const uploadResult = await s3Service.uploadHtml(s3Key, extractedHtml, {
@@ -226,9 +253,12 @@ export class SessionService {
     await sessionRepository.createMessage(aiMsg);
 
     const sessionUpdates: Partial<Session> = {
-      versionCount: nextVersionCount,
       updatedAt: now,
     };
+
+    if (hasNewHtml) {
+      sessionUpdates.versionCount = nextVersionCount;
+    }
 
     if (s3Key) {
       sessionUpdates.s3Key = s3Key;
@@ -580,6 +610,9 @@ export class SessionService {
     }
 
     // 5. Cập nhật Session
+    const parsedNum = parseInt(restoredVersion.replace(/^v1\./, '').replace(/[^0-9]/g, ''), 10);
+    const restoredVersionNumber = isNaN(parsedNum) ? (session.versionCount || 1) : parsedNum;
+
     const now = new Date().toISOString();
     await sessionRepository.updateSession(session.id, userId, {
       s3Key,
@@ -587,6 +620,7 @@ export class SessionService {
       latestHtml: '',
       presignedUrl: restoredPresignedUrl,
       presignedExpiresAt: restoredPresignedExpiresAt,
+      versionCount: restoredVersionNumber,
       updatedAt: now,
     });
 

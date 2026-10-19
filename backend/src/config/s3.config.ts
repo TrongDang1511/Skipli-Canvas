@@ -10,9 +10,10 @@ const s3Config: S3ClientConfig = {
   forcePathStyle: env.s3ForcePathStyle,
 };
 
-// Nếu endpoint được cấu hình (dành cho MinIO local hoặc S3 compatible storage)
-if (env.s3Endpoint && env.s3Endpoint.trim()) {
-  s3Config.endpoint = env.s3Endpoint.trim();
-}
+// S3 Client duy nhất cho toàn bộ hệ thống (nạp 100% từ S3_ENDPOINT trong .env)
+export const s3Client = new S3Client({
+  ...s3Config,
+  ...(env.s3Endpoint && env.s3Endpoint.trim() ? { endpoint: env.s3Endpoint.trim() } : {}),
+});
 
-export const s3Client = new S3Client(s3Config);
+
