@@ -153,8 +153,8 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                       </div>
 
                       {/* HÀNG 2: Dung lượng & số lượng bản */}
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-stone-500 mt-0.5">
-                        <span className="font-mono font-medium text-slate-500 dark:text-stone-400">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-stone-300 font-medium mt-0.5">
+                        <span className="font-mono font-semibold text-slate-700 dark:text-stone-200">
                           {activeOrLatestFile.sizeFormatted}
                         </span>
                         <span>•</span>
@@ -211,7 +211,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                 {/* 3. Danh sách sub-versions bên trong (Nhỏ gọn, chỉ hiện khi ấn dropdown, BỎ tag active) */}
                 {isExpanded && hasMultipleVersions && (
                   <div className="ml-3 pl-2.5 border-l-2 border-amber-500/40 dark:border-amber-500/40 my-2 space-y-1 animate-in fade-in-50 duration-200">
-                    <div className="text-[10px] font-semibold text-slate-400 dark:text-stone-500 uppercase tracking-wider mb-1 px-1">
+                    <div className="text-[10px] font-bold text-slate-700 dark:text-stone-300 uppercase tracking-wider mb-1 px-1">
                       Lịch sử phiên bản ({group.totalFiles})
                     </div>
                     {group.files.map((file) => {
@@ -236,7 +236,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                         >
                           {/* Left: Compact info */}
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <GitCommit className="w-3 h-3 text-slate-400 dark:text-stone-500 shrink-0" />
+                            <GitCommit className="w-3 h-3 text-slate-500 dark:text-stone-400 shrink-0" />
 
                             {/* Version Tag */}
                             <span className="font-mono text-[10px] font-bold text-slate-800 dark:text-stone-200 shrink-0 bg-white dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
@@ -245,11 +245,11 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
 
                             {/* Source Type Badge */}
                             {file.type === 'manual' ? (
-                              <span className="text-[9px] text-amber-700 dark:text-[#D4AF37] font-medium shrink-0 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">
+                              <span className="text-[9px] text-amber-700 dark:text-[#D4AF37] font-semibold shrink-0 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">
                                 Sửa tay
                               </span>
                             ) : (
-                              <span className="text-[9px] text-slate-500 dark:text-stone-400 font-medium shrink-0 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                              <span className="text-[9px] text-slate-700 dark:text-stone-300 font-semibold shrink-0 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
                                 AI
                               </span>
                             )}
@@ -257,7 +257,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
 
                           {/* Right: Size & Small Download Button (Không có tag active làm chật chội) */}
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                            <span className="text-[10px] font-mono text-slate-400 dark:text-stone-500">
+                            <span className="text-[10px] font-mono font-medium text-slate-600 dark:text-stone-300">
                               {file.sizeFormatted}
                             </span>
                             <button
