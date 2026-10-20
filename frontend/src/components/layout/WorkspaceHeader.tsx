@@ -64,7 +64,7 @@ export const WorkspaceHeader: FC<WorkspaceHeaderProps> = ({
               Skipli
             </span>
             <span className="text-[9px] font-bold text-amber-600 dark:text-[#D4AF37] bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
-              Canvas AI
+              Canvas
             </span>
           </div>
         </button>

@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import path from 'path';
 import { Session, SessionMessage } from '../models/session.model';
 import { sessionRepository } from '../repositories/session.repository';
 import { s3Service } from './s3.service';

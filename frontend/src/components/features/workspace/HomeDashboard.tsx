@@ -165,7 +165,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
         <div
           onClick={focusPromptInput}
           className="flex items-center gap-2.5 cursor-pointer group select-none"
-          title="Skipli Canvas AI"
+          title="Skipli Canvas"
         >
           <img
             src="/Skipli_logo.png"
@@ -177,7 +177,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               Skipli
             </span>
             <span className="text-[10px] font-bold text-amber-600 dark:text-[#D4AF37] bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
-              Canvas AI
+              Canvas
             </span>
           </div>
         </div>
