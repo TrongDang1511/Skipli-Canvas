@@ -26,6 +26,35 @@ interface UseVisualBridgeOptions {
 
 const TEXT_TAGS_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, span, a, button, li, blockquote, b, strong, i, em, label, td, th';
 
+/**
+ * Tạo CSS Selector phân cấp duy nhất cho bất kỳ phần tử DOM nào trong Iframe
+ */
+function getDomPath(el: HTMLElement | null): string | undefined {
+  if (!el || el.nodeType !== Node.ELEMENT_NODE) return undefined;
+  const path: string[] = [];
+  let curr: HTMLElement | null = el;
+
+  while (curr && curr.tagName && curr.tagName.toLowerCase() !== 'body' && curr.tagName.toLowerCase() !== 'html') {
+    let selector = curr.tagName.toLowerCase();
+    if (curr.id) {
+      const escapedId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(curr.id) : curr.id.replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+      selector += `#${escapedId}`;
+      path.unshift(selector);
+      break;
+    }
+    let siblingIndex = 1;
+    let sibling = curr.previousElementSibling;
+    while (sibling) {
+      if (sibling.tagName === curr.tagName) siblingIndex++;
+      sibling = sibling.previousElementSibling;
+    }
+    selector += `:nth-of-type(${siblingIndex})`;
+    path.unshift(selector);
+    curr = curr.parentElement;
+  }
+  return path.length > 0 ? path.join(' > ') : undefined;
+}
+
 export function useVisualBridge({
   iframeRef,
   initialHtml,
@@ -34,7 +63,12 @@ export function useVisualBridge({
   const [mode, setMode] = useState<CanvasEditorMode>('preview');
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
+  const [selectedElement, _setSelectedElement] = useState<HTMLElement | null>(null);
+  const selectedElementRef = useRef<HTMLElement | null>(null);
+  const setSelectedElement = useCallback((el: HTMLElement | null) => {
+    selectedElementRef.current = el;
+    _setSelectedElement(el);
+  }, []);
 
   // Trạng thái Text Editing & Floating Toolbar
   const [isEditingText, setIsEditingText] = useState<boolean>(false);
@@ -74,12 +108,14 @@ export function useVisualBridge({
     });
   }, []);
 
-  const captureSnapshot = useCallback((label: string) => {
+  const captureSnapshot = useCallback((label: string, targetEl?: HTMLElement | null) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
     const snapshot = getCleanBodySnapshot(doc);
     if (snapshot) {
-      historyManager.current.pushSnapshot(snapshot, label);
+      const targetSelector = getDomPath(targetEl || null);
+      const scrollTop = doc.documentElement.scrollTop || doc.body?.scrollTop || 0;
+      historyManager.current.pushSnapshot(snapshot, label, targetSelector, scrollTop);
       syncHistoryState();
     }
   }, [iframeRef, syncHistoryState]);
@@ -109,10 +145,12 @@ export function useVisualBridge({
 
   // Inject CSS styles cho Inspector & Text Editing vào Iframe
   const injectInspectorStyles = useCallback((doc: Document) => {
-    if (doc.getElementById('skipli-inspector-styles')) return;
-
-    const style = doc.createElement('style');
-    style.id = 'skipli-inspector-styles';
+    let style = doc.getElementById('skipli-inspector-styles') as HTMLStyleElement | null;
+    if (!style) {
+      style = doc.createElement('style');
+      style.id = 'skipli-inspector-styles';
+      (doc.head || doc.body)?.appendChild(style);
+    }
     style.textContent = `
       .skipli-hovered {
         outline: 2px dashed #D4AF37 !important;
@@ -143,12 +181,48 @@ export function useVisualBridge({
         border-radius: 4px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         pointer-events: none;
-        transition: top 0.08s ease, left 0.08s ease;
+        transition: top 0.15s ease, left 0.15s ease;
         white-space: nowrap;
         border: 1px solid rgba(212, 175, 55, 0.5);
       }
+      @keyframes skipliHighlightPulse {
+        0% {
+          background-color: rgba(212, 175, 55, 0.38) !important;
+          outline: 3px solid #D4AF37 !important;
+          outline-offset: 3px !important;
+          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.45), 0 0 30px rgba(212, 175, 55, 0.75) !important;
+        }
+        25% {
+          background-color: rgba(212, 175, 55, 0.45) !important;
+          outline: 3px solid #D4AF37 !important;
+          outline-offset: 3px !important;
+          box-shadow: 0 0 0 8px rgba(212, 175, 55, 0.55), 0 0 40px rgba(212, 175, 55, 0.9) !important;
+        }
+        50% {
+          background-color: rgba(212, 175, 55, 0.2) !important;
+          outline: 2px solid #D4AF37 !important;
+          outline-offset: 2px !important;
+          box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.3), 0 0 20px rgba(212, 175, 55, 0.5) !important;
+        }
+        75% {
+          background-color: rgba(212, 175, 55, 0.38) !important;
+          outline: 3px solid #D4AF37 !important;
+          outline-offset: 3px !important;
+          box-shadow: 0 0 0 8px rgba(212, 175, 55, 0.55), 0 0 35px rgba(212, 175, 55, 0.85) !important;
+        }
+        100% {
+          background-color: transparent !important;
+          outline: 2px solid #0B192C !important;
+          outline-offset: -2px !important;
+          box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.45) !important;
+        }
+      }
+      .skipli-undo-highlight {
+        animation: skipliHighlightPulse 2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        border-radius: 4px !important;
+        transition: background-color 0.3s ease !important;
+      }
     `;
-    doc.head?.appendChild(style);
   }, []);
 
   // Đảm bảo badge element tồn tại trong body của iframe
@@ -218,7 +292,10 @@ export function useVisualBridge({
     if (targetEl.dataset.originalContent !== undefined && targetEl.innerHTML !== targetEl.dataset.originalContent) {
       setIsDirty(true);
       if (preEditTextSnapshotRef.current) {
-        historyManager.current.pushSnapshot(preEditTextSnapshotRef.current, 'Sửa chữ');
+        const targetSelector = getDomPath(targetEl);
+        const doc = targetEl.ownerDocument;
+        const scrollTop = doc?.documentElement?.scrollTop || doc?.body?.scrollTop || 0;
+        historyManager.current.pushSnapshot(preEditTextSnapshotRef.current, 'Sửa chữ', targetSelector, scrollTop);
         syncHistoryState();
       }
     }
@@ -229,6 +306,84 @@ export function useVisualBridge({
     setActiveEditingElement(null);
     setSelectionPos(null);
   }, [syncHistoryState]);
+
+  // Tự động cuộn đến phần tử hoàn tác, focus và chớp viền sáng rõ nét
+  const handleRestoreVisualFeedback = useCallback((doc: Document, targetSelector?: string, fallbackScrollTop?: number) => {
+    if (targetSelector) {
+      try {
+        let targetNode = doc.querySelector(targetSelector) as HTMLElement | null;
+        if (!targetNode && !targetSelector.startsWith('body')) {
+          targetNode = doc.querySelector(`body > ${targetSelector}`) as HTMLElement | null;
+        }
+
+        if (targetNode) {
+          targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetNode.classList.remove('skipli-hovered');
+          targetNode.classList.add('skipli-selected');
+          targetNode.classList.add('skipli-undo-highlight');
+          setSelectedElement(targetNode);
+
+          // Áp dụng trực tiếp inline style vàng kim Luxury bảo đảm 100% hiển thị nổi bật
+          const prevTransition = targetNode.style.transition;
+          const prevBoxShadow = targetNode.style.boxShadow;
+          const prevOutline = targetNode.style.outline;
+          const prevOutlineOffset = targetNode.style.outlineOffset;
+          const prevBg = targetNode.style.backgroundColor;
+
+          targetNode.style.transition = 'all 0.25s ease';
+          targetNode.style.backgroundColor = 'rgba(212, 175, 55, 0.4)';
+          targetNode.style.outline = '3px solid #D4AF37';
+          targetNode.style.outlineOffset = '2px';
+          targetNode.style.boxShadow = '0 0 0 6px rgba(212, 175, 55, 0.45), 0 0 35px rgba(212, 175, 55, 0.85)';
+
+          setTimeout(() => {
+            targetNode.style.backgroundColor = 'rgba(212, 175, 55, 0.5)';
+            targetNode.style.boxShadow = '0 0 0 8px rgba(212, 175, 55, 0.6), 0 0 45px rgba(212, 175, 55, 0.95)';
+          }, 450);
+
+          setTimeout(() => {
+            targetNode.style.backgroundColor = 'rgba(212, 175, 55, 0.25)';
+            targetNode.style.boxShadow = '0 0 0 5px rgba(212, 175, 55, 0.35), 0 0 25px rgba(212, 175, 55, 0.6)';
+          }, 950);
+
+          setTimeout(() => {
+            targetNode.style.transition = prevTransition;
+            targetNode.style.backgroundColor = prevBg;
+            targetNode.style.outline = prevOutline;
+            targetNode.style.outlineOffset = prevOutlineOffset;
+            targetNode.style.boxShadow = prevBoxShadow;
+            targetNode.classList.remove('skipli-undo-highlight');
+          }, 2000);
+
+          // Cập nhật vị trí thẻ badge inspector chỉ thẳng vào phần tử được hoàn tác
+          const badge = ensureBadgeElement(doc);
+          const updateBadgePosition = () => {
+            const rect = targetNode.getBoundingClientRect();
+            const scrollX = doc.defaultView?.scrollX || 0;
+            const scrollY = doc.defaultView?.scrollY || 0;
+            const top = Math.max(0, rect.top + scrollY - 24);
+            const left = Math.max(0, rect.left + scrollX);
+            badge.style.display = 'block';
+            badge.style.top = `${top}px`;
+            badge.style.left = `${left}px`;
+            badge.textContent = `✨ ${getElementTagLabel(targetNode)}`;
+          };
+
+          updateBadgePosition();
+          setTimeout(updateBadgePosition, 450);
+          return;
+        }
+      } catch (err) {
+        console.warn('[useVisualBridge] Failed to scroll to targetSelector:', err);
+      }
+    }
+
+    setSelectedElement(null);
+    if (fallbackScrollTop !== undefined) {
+      doc.documentElement.scrollTop = fallbackScrollTop;
+      if (doc.body) doc.body.scrollTop = fallbackScrollTop;
+    }
+  }, [ensureBadgeElement, setSelectedElement]);
 
   // Thực hiện Hoàn Tác (Undo)
   const performUndo = useCallback(() => {
@@ -241,18 +396,22 @@ export function useVisualBridge({
     }
 
     const currentCleanHtml = getCleanBodySnapshot(doc);
-    const entry = historyManager.current.undo(currentCleanHtml);
+    const currentTargetSelector = getDomPath(selectedElementRef.current);
+    const currentScrollTop = doc.documentElement.scrollTop || doc.body?.scrollTop || 0;
+    const entry = historyManager.current.undo(currentCleanHtml, currentTargetSelector, currentScrollTop);
     if (!entry) return;
 
     doc.body.innerHTML = entry.html;
+    injectInspectorStyles(doc);
     ensureBadgeElement(doc);
-    setSelectedElement(null);
     setImageTarget(null);
     setCardSiblingInfo(null);
     setIsDirty(true);
     syncHistoryState();
     refreshSections();
-  }, [getIframeDoc, stopEditingElement, ensureBadgeElement, refreshSections, syncHistoryState]);
+
+    handleRestoreVisualFeedback(doc, entry.targetSelector, entry.scrollTop);
+  }, [getIframeDoc, stopEditingElement, ensureBadgeElement, refreshSections, syncHistoryState, handleRestoreVisualFeedback, injectInspectorStyles]);
 
   // Thực hiện Làm Lại (Redo)
   const performRedo = useCallback(() => {
@@ -265,18 +424,22 @@ export function useVisualBridge({
     }
 
     const currentCleanHtml = getCleanBodySnapshot(doc);
-    const entry = historyManager.current.redo(currentCleanHtml);
+    const currentTargetSelector = getDomPath(selectedElementRef.current);
+    const currentScrollTop = doc.documentElement.scrollTop || doc.body?.scrollTop || 0;
+    const entry = historyManager.current.redo(currentCleanHtml, currentTargetSelector, currentScrollTop);
     if (!entry) return;
 
     doc.body.innerHTML = entry.html;
+    injectInspectorStyles(doc);
     ensureBadgeElement(doc);
-    setSelectedElement(null);
     setImageTarget(null);
     setCardSiblingInfo(null);
     setIsDirty(true);
     syncHistoryState();
     refreshSections();
-  }, [getIframeDoc, stopEditingElement, ensureBadgeElement, refreshSections, syncHistoryState]);
+
+    handleRestoreVisualFeedback(doc, entry.targetSelector, entry.scrollTop);
+  }, [getIframeDoc, stopEditingElement, ensureBadgeElement, refreshSections, syncHistoryState, handleRestoreVisualFeedback, injectInspectorStyles]);
 
   const resetHistory = useCallback(() => {
     historyManager.current.reset();
@@ -483,7 +646,7 @@ export function useVisualBridge({
       updateCardSibling(target);
 
       // Kích hoạt sửa chữ nếu click vào chữ đã chọn
-      if (selectedElement && (selectedElement === target || selectedElement.contains(target))) {
+      if (selectedElementRef.current && (selectedElementRef.current === target || selectedElementRef.current.contains(target))) {
         const textTarget = target.closest(TEXT_TAGS_SELECTOR) as HTMLElement;
         if (textTarget) {
           startEditingElement(textTarget, doc);
@@ -655,11 +818,9 @@ export function useVisualBridge({
       doc.removeEventListener('mouseover', handleMouseOver);
       doc.removeEventListener('mouseout', handleMouseOut);
       doc.removeEventListener('selectionchange', handleSelectionChange);
-      cleanupInspectorUI(doc);
     };
   }, [
     mode,
-    selectedElement,
     getIframeDoc,
     injectInspectorStyles,
     ensureBadgeElement,
@@ -734,7 +895,7 @@ export function useVisualBridge({
     const doc = getIframeDoc();
     if (!doc) return;
 
-    captureSnapshot('Định dạng chữ');
+    captureSnapshot('Định dạng chữ', selectedElement);
     executeFormatCommand(doc, command, value);
     setIsDirty(true);
 
@@ -742,12 +903,12 @@ export function useVisualBridge({
       const pos = calculateSelectionPosition(iframeRef.current);
       if (pos) setSelectionPos(pos);
     }, 50);
-  }, [getIframeDoc, iframeRef, captureSnapshot]);
+  }, [getIframeDoc, iframeRef, captureSnapshot, selectedElement]);
 
   // Thay thế ảnh
   const replaceSelectedImage = useCallback((newUrl: string) => {
     if (!imageTarget || !imageTarget.element) return;
-    captureSnapshot('Đổi ảnh');
+    captureSnapshot('Đổi ảnh', imageTarget.element);
     applyImageToElement(imageTarget.element, newUrl);
     setIsDirty(true);
     setImageTarget((prev) => (prev ? { ...prev, currentUrl: newUrl } : null));
@@ -769,7 +930,7 @@ export function useVisualBridge({
 
   // Hoán đổi vị trí 2 Section
   const reorderSections = useCallback((fromIndex: number, toIndex: number) => {
-    captureSnapshot('Đổi thứ tự khối');
+    captureSnapshot('Đổi thứ tự khối', sectionsList[fromIndex]?.element);
     const success = moveSectionInDOM(sectionsList, fromIndex, toIndex);
     if (success) {
       setIsDirty(true);
@@ -781,7 +942,7 @@ export function useVisualBridge({
   const toggleHideSection = useCallback((index: number) => {
     const sec = sectionsList[index];
     if (sec && sec.element) {
-      captureSnapshot('Ẩn/hiện khối');
+      captureSnapshot('Ẩn/hiện khối', sec.element);
       toggleSectionVisibilityInDOM(sec.element);
       setIsDirty(true);
       refreshSections();
@@ -802,7 +963,7 @@ export function useVisualBridge({
   // Hoán đổi vị trí Card con trong Grid
   const moveCardSibling = useCallback((direction: 'prev' | 'next') => {
     if (!cardSiblingInfo) return;
-    captureSnapshot('Đổi thứ tự thẻ');
+    captureSnapshot('Đổi thứ tự thẻ', cardSiblingInfo.element);
     const success = moveCardSiblingInDOM(cardSiblingInfo.element, direction);
     if (success) {
       setIsDirty(true);

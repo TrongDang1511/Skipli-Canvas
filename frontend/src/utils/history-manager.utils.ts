@@ -2,6 +2,8 @@ export interface HistoryEntry {
   html: string;
   label: string;
   timestamp: number;
+  targetSelector?: string;
+  scrollTop?: number;
 }
 
 /**
@@ -18,9 +20,9 @@ export class HistoryManager {
   }
 
   /**
-   * Đẩy snapshot trạng thái trước thay đổi vào stack hoàn tác
+   * Đẩy snapshot trạng thái trước thay đổi vào stack hoàn tác kèm vị trí phần tử tác động
    */
-  pushSnapshot(html: string, label: string): void {
+  pushSnapshot(html: string, label: string, targetSelector?: string, scrollTop?: number): void {
     if (!html) return;
 
     // Tránh đẩy snapshot trùng lặp liên tiếp
@@ -32,6 +34,8 @@ export class HistoryManager {
       html,
       label,
       timestamp: Date.now(),
+      targetSelector,
+      scrollTop,
     });
 
     // Giới hạn số bước tối đa (FIFO)
@@ -46,7 +50,7 @@ export class HistoryManager {
   /**
    * Hoàn tác bước trước đó: pop từ undoStack, push currentHtml vào redoStack
    */
-  undo(currentHtml: string): HistoryEntry | null {
+  undo(currentHtml: string, currentTargetSelector?: string, currentScrollTop?: number): HistoryEntry | null {
     if (this.undoStack.length === 0) return null;
 
     const entryToRestore = this.undoStack.pop()!;
@@ -56,6 +60,8 @@ export class HistoryManager {
         html: currentHtml,
         label: entryToRestore.label,
         timestamp: Date.now(),
+        targetSelector: currentTargetSelector,
+        scrollTop: currentScrollTop,
       });
 
       if (this.redoStack.length > this.maxSize) {
@@ -69,7 +75,7 @@ export class HistoryManager {
   /**
    * Làm lại bước vừa hoàn tác: pop từ redoStack, push currentHtml vào undoStack
    */
-  redo(currentHtml: string): HistoryEntry | null {
+  redo(currentHtml: string, currentTargetSelector?: string, currentScrollTop?: number): HistoryEntry | null {
     if (this.redoStack.length === 0) return null;
 
     const entryToRestore = this.redoStack.pop()!;
@@ -79,6 +85,8 @@ export class HistoryManager {
         html: currentHtml,
         label: entryToRestore.label,
         timestamp: Date.now(),
+        targetSelector: currentTargetSelector,
+        scrollTop: currentScrollTop,
       });
 
       if (this.undoStack.length > this.maxSize) {
@@ -135,6 +143,15 @@ export function getCleanBodySnapshot(doc: Document): string {
 
   clone.querySelectorAll('.skipli-hovered').forEach((el) => el.classList.remove('skipli-hovered'));
   clone.querySelectorAll('.skipli-selected').forEach((el) => el.classList.remove('skipli-selected'));
+  clone.querySelectorAll('.skipli-undo-highlight').forEach((el) => {
+    el.classList.remove('skipli-undo-highlight');
+    const htmlEl = el as HTMLElement;
+    htmlEl.style.removeProperty('background-color');
+    htmlEl.style.removeProperty('outline');
+    htmlEl.style.removeProperty('outline-offset');
+    htmlEl.style.removeProperty('box-shadow');
+    htmlEl.style.removeProperty('transition');
+  });
   clone.querySelectorAll('.skipli-text-editing').forEach((el) => {
     el.classList.remove('skipli-text-editing');
     el.removeAttribute('contenteditable');
