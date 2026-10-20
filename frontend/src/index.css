@@ -15,6 +15,13 @@
     background-color: #070F1E;
     color: #F8FAFC;
   }
+
+  textarea:focus,
+  input:focus,
+  textarea:focus-visible,
+  input:focus-visible {
+    outline: none !important;
+  }
 }
 
 /* Light Scrollbar (Default) */
