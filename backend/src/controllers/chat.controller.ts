@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { goclawService } from '../services/goclaw.service';
+import { goclawService, ChatCompletionOptions } from '../services/goclaw.service';
 import { sessionService } from '../services/session.service';
 import { ChatRequestDto } from '../dtos/chat.dto';
 import { unmaskHtmlAssets } from '../utils/asset-masker.utils';
+import { Session } from '../models/session.model';
 
 export class ChatController {
   public sendChat = async (
@@ -15,8 +16,8 @@ export class ChatController {
     const requestStartTime = Date.now();
 
     try {
-      let contextOptions: { history?: any[]; currentHtml?: string; codeUrl?: string; sessionTitle?: string } = {};
-      let currentSession: any = null;
+      let contextOptions: ChatCompletionOptions = {};
+      let currentSession: Session | null = null;
 
       if (userId && sessionId && typeof sessionId === 'string' && sessionId.trim()) {
         try {
