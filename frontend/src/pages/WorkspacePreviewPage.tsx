@@ -3,7 +3,7 @@ import { useSession } from '../contexts/SessionContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useChatStream } from '../hooks/useChatStream';
 import { ViewportMode, ViewMode, ChatMessage } from '../types/chat.types';
-import { MasterSidebar } from '../components/layout/MasterSidebar';
+import { WorkspaceHeader } from '../components/layout/WorkspaceHeader';
 import { HomeDashboard } from '../components/features/workspace/HomeDashboard';
 import { ChatSidebar } from '../components/features/workspace/ChatSidebar';
 import { CanvasPreview } from '../components/features/workspace/CanvasPreview';
@@ -26,8 +26,8 @@ export const WorkspacePreviewPage: FC = () => {
     fetchSessions,
     fetchStorageFiles,
     fetchGroupedStorageFiles,
-    setSidebarOpen,
     updateActiveSessionLatestHtml,
+    renameSession,
   } = useSession();
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
@@ -132,16 +132,7 @@ export const WorkspacePreviewPage: FC = () => {
     }
   };
 
-  const handleNewWeb = () => {
-    resetCanvas();
-    setActiveSessionId(null);
-  };
-
   const handleSendPrompt = async (promptText: string) => {
-    // Khi người dùng ấn gửi prompt ở Dashboard hoặc bắt đầu chat, tự động thu gọn thanh chat history
-    if (!hasStartedChat) {
-      setSidebarOpen(false);
-    }
     await sendPrompt(promptText, activeSessionId || undefined);
   };
 
@@ -229,33 +220,47 @@ export const WorkspacePreviewPage: FC = () => {
     }
   };
 
+  const handleBackToDashboard = () => {
+    resetCanvas();
+    setActiveSessionId(null);
+  };
+
+  const isWorkspaceEditorOpen = hasStartedChat || Boolean(activeSessionId);
+
   return (
     <div
       className={cn(
-        'h-screen w-full flex overflow-hidden font-sans transition-colors duration-200',
+        'h-screen w-full flex flex-col overflow-hidden font-sans transition-colors duration-200',
         theme === 'dark' ? 'dark bg-[#0B192C] text-stone-100' : 'light bg-[#FAF9F6] text-slate-900'
       )}
     >
-      {/* 1. Master Collapsible History Sidebar (ChatGPT / Gemini Style) */}
-      <MasterSidebar
-        onNewWeb={handleNewWeb}
-        onSelectSession={handleSelectSession}
-      />
-
-      {/* 2. Main Workspace Layout */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Dynamic Workspace Body */}
-        {!hasStartedChat ? (
-          /* Home Dashboard khi chưa chọn hoặc bắt đầu phiên */
-          <HomeDashboard
-            userName={user?.name || user?.email?.split('@')[0]}
-            onStartChat={handleSendPrompt}
-            isStreaming={isStreaming}
+      {!isWorkspaceEditorOpen ? (
+        /* MÀN HÌNH 1: DASHBOARD (Quản lý tất cả Projects & Storage theo chuẩn Lovable) */
+        <HomeDashboard
+          userName={user?.name || user?.email?.split('@')[0]}
+          onStartChat={handleSendPrompt}
+          onSelectSession={handleSelectSession}
+          isStreaming={isStreaming}
+        />
+      ) : (
+        /* MÀN HÌNH 2: WORKSPACE EDITOR (Chỉ dành riêng cho 1 Project - Không gian làm việc tối đa) */
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Header trên cùng của Workspace Editor: Logo SkipliCanvas (click -> Back to Dashboard) */}
+          <WorkspaceHeader
+            sessionTitle={activeSession?.title}
+            activeVersion={activeSession?.versionCount ? `v1.${activeSession.versionCount}` : undefined}
+            onBackToDashboard={handleBackToDashboard}
+            onNewProject={handleBackToDashboard}
+            onRenameTitle={async (newTitle: string) => {
+              if (activeSessionId) {
+                await renameSession(activeSessionId, newTitle);
+              }
+            }}
           />
-        ) : (
-          /* Split-Screen Workspace khi đã có nội dung chat & preview */
+
+          {/* 2 Cột Làm Việc Tập Trung: Chat Bên Trái (35%) & Live Preview / Code Bên Phải (65%) */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Khung Chat Bên Trái */}
+            {/* Khung Chat Riêng Của Dự Án */}
             <ChatSidebar
               messages={messages}
               isStreaming={isStreaming}
@@ -267,7 +272,7 @@ export const WorkspacePreviewPage: FC = () => {
               prefillPrompt={prefillPrompt}
             />
 
-            {/* Khung Live Preview Canvas hoặc Code Viewer Bên Phải */}
+            {/* Khung Live Preview Canvas hoặc Code Viewer Cực Rộng Rãi */}
             {viewMode === 'preview' ? (
               <CanvasPreview
                 presignedUrl={presignedUrl || activeSession?.presignedUrl}
@@ -289,8 +294,8 @@ export const WorkspacePreviewPage: FC = () => {
               />
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Thông báo Toast sang trọng khi lưu hoặc có sự kiện */}
       <Toast

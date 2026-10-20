@@ -267,7 +267,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="Mô tả giao diện hoặc tính năng bạn muốn tạo (vd: Landing page khách sạn 5 sao...)"
             disabled={isStreaming}
-            className="w-full resize-none bg-transparent outline-hidden text-xs text-slate-900 dark:text-stone-100 placeholder:text-slate-400 dark:placeholder:text-stone-400 leading-relaxed max-h-40 font-sans"
+            className="w-full resize-none bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-xs text-slate-900 dark:text-stone-100 placeholder:text-slate-400 dark:placeholder:text-stone-400 leading-relaxed max-h-40 font-sans"
           />
 
           <div className="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-700/60 mt-1">
