@@ -13,11 +13,6 @@ interface SessionContextType {
   activeSession: Session | null;
   isLoadingSessions: boolean;
   isLoadingStorage: boolean;
-  isSidebarOpen: boolean;
-  activeTab: 'chats' | 'storage';
-  setActiveTab: (tab: 'chats' | 'storage') => void;
-  toggleSidebar: () => void;
-  setSidebarOpen: (open: boolean) => void;
   fetchSessions: () => Promise<void>;
   fetchStorageFiles: () => Promise<void>;
   fetchGroupedStorageFiles: () => Promise<void>;
@@ -41,8 +36,6 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
   const [isLoadingStorage, setIsLoadingStorage] = useState<boolean>(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'chats' | 'storage'>('chats');
 
   const fetchSessions = useCallback(async () => {
     if (!user) {
@@ -101,13 +94,6 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, [fetchSessions, fetchStorageFiles, fetchGroupedStorageFiles]);
 
   useEffect(() => {
-    if (activeTab === 'storage') {
-      fetchStorageFiles();
-      fetchGroupedStorageFiles();
-    }
-  }, [activeTab, fetchStorageFiles, fetchGroupedStorageFiles]);
-
-  useEffect(() => {
     if (activeSessionId) {
       const found = sessions.find((s) => s.id === activeSessionId) || null;
       setActiveSession(found);
@@ -115,10 +101,6 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
       setActiveSession(null);
     }
   }, [activeSessionId, sessions]);
-
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen((prev) => !prev);
-  }, []);
 
   const selectSession = useCallback(
     async (sessionId: string): Promise<SessionDetail | null> => {
@@ -234,11 +216,6 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
         activeSession,
         isLoadingSessions,
         isLoadingStorage,
-        isSidebarOpen,
-        activeTab,
-        setActiveTab,
-        toggleSidebar,
-        setSidebarOpen: setIsSidebarOpen,
         fetchSessions,
         fetchStorageFiles,
         fetchGroupedStorageFiles,

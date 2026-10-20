@@ -28,12 +28,3 @@ export interface SessionDetail {
   messages: SessionMessage[];
 }
 
-export interface StorageItem {
-  id: string;
-  sessionId: string;
-  sessionTitle: string;
-  version: string;
-  htmlContent: string;
-  createdAt: string;
-  sizeBytes: number;
-}
