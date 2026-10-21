@@ -232,7 +232,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             type="button"
             onClick={onSave}
             disabled={isSaving || !isDirty}
-            title={isDirty ? 'Có thay đổi chưa lưu' : 'Mọi thay đổi đã được lưu'}
+            title={isDirty ? 'Lưu thay đổi (Ctrl+S)' : 'Mọi thay đổi đã được lưu'}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border',
               isDirty
@@ -246,6 +246,14 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               <Save className="w-3 h-3 stroke-[1.75]" />
             )}
             <span>{isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
+            <kbd className={cn(
+              'text-[9px] font-medium px-1 py-0.2 rounded border transition',
+              isDirty
+                ? 'bg-amber-400/40 border-amber-600/30 text-slate-950'
+                : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+            )}>
+              Ctrl+S
+            </kbd>
             {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-800 dark:bg-amber-400 ml-0.5 animate-pulse" />}
           </button>
         )}

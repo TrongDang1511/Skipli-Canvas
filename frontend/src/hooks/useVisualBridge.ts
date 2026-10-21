@@ -486,6 +486,29 @@ export function useVisualBridge({
     }
   }, [iframeRef]);
 
+  // Hành động Lưu Thay Đổi
+  const handleSave = useCallback(async () => {
+    const doc = getIframeDoc();
+    if (!doc || !onSaveHtml) return;
+
+    // Chốt văn bản đang gõ dở nếu có trước khi trích xuất HTML sạch
+    const currentEditing = doc.querySelector('.skipli-text-editing') as HTMLElement;
+    if (currentEditing) {
+      stopEditingElement(currentEditing);
+    }
+
+    try {
+      setIsSaving(true);
+      const cleanHtml = cleanInspectorArtifacts(doc);
+      await onSaveHtml(cleanHtml);
+      setIsDirty(false);
+    } catch (err) {
+      console.error('Lỗi khi lưu HTML trực quan:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [getIframeDoc, onSaveHtml, stopEditingElement]);
+
   // Thiết lập các listeners khi ở Edit Mode hoặc khi iframe load
   const attachBridgeListeners = useCallback(() => {
     const doc = getIframeDoc();
@@ -699,13 +722,22 @@ export function useVisualBridge({
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
 
-      // Xử lý phím tắt Undo (Ctrl+Z) và Redo (Ctrl+Y, Ctrl+Shift+Z) trong iframe
+      // Xử lý phím tắt Lưu (Ctrl+S), Undo (Ctrl+Z) và Redo (Ctrl+Y, Ctrl+Shift+Z) trong iframe
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       if (isCtrlOrCmd) {
         const key = e.key.toLowerCase();
+
+        // 1. Phím tắt Lưu (Ctrl+S / Cmd+S)
+        if (key === 's') {
+          e.preventDefault();
+          e.stopPropagation();
+          handleSave();
+          return;
+        }
+
         const isEditingInTarget = target && (target.isContentEditable || target.closest('.skipli-text-editing'));
 
-        // Chỉ chặn và can thiệp khi KHÔNG đang focus trực tiếp gõ chữ trong thẻ contenteditable
+        // Chỉ chặn và can thiệp Undo/Redo khi KHÔNG đang focus trực tiếp gõ chữ trong thẻ contenteditable
         if (!isEditingInTarget) {
           if (key === 'z') {
             e.preventDefault();
@@ -833,6 +865,7 @@ export function useVisualBridge({
     iframeRef,
     performUndo,
     performRedo,
+    handleSave,
   ]);
 
   useEffect(() => {
@@ -856,21 +889,29 @@ export function useVisualBridge({
     };
   }, [attachBridgeListeners, refreshSections, iframeRef]);
 
-  // Lắng nghe phím tắt Ctrl+Z / Ctrl+Y từ Parent React Window
+  // Lắng nghe phím tắt Ctrl+S / Ctrl+Z / Ctrl+Y từ Parent React Window
   useEffect(() => {
     const handleWindowKeyDown = (e: KeyboardEvent) => {
       if (mode !== 'visual_edit') return;
-
-      // Bỏ qua nếu người dùng đang nhập liệu trên các input bên ngoài (ví dụ thanh Chat)
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || (activeEl as HTMLElement).isContentEditable)) {
-        return;
-      }
 
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       if (!isCtrlOrCmd) return;
 
       const key = e.key.toLowerCase();
+
+      // 1. Phím tắt Lưu (Ctrl+S / Cmd+S)
+      if (key === 's') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+
+      // Bỏ qua Undo/Redo nếu người dùng đang nhập liệu trên các input bên ngoài (ví dụ thanh Chat)
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || (activeEl as HTMLElement).isContentEditable)) {
+        return;
+      }
+
       if (key === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -888,7 +929,23 @@ export function useVisualBridge({
     return () => {
       window.removeEventListener('keydown', handleWindowKeyDown);
     };
-  }, [mode, performUndo, performRedo]);
+  }, [mode, performUndo, performRedo, handleSave]);
+
+  // Cảnh báo chống mất dữ liệu khi người dùng chưa lưu mà vô tình F5 hoặc đóng Tab
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Chuẩn W3C để trình duyệt hiển thị hộp thoại cảnh báo rời đi
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   // Thực thi lệnh định dạng văn bản
   const applyFormat = useCallback((command: string, value?: string) => {
@@ -974,23 +1031,6 @@ export function useVisualBridge({
       }
     }
   }, [cardSiblingInfo, iframeRef, captureSnapshot]);
-
-  // Hành động Lưu Thay Đổi
-  const handleSave = useCallback(async () => {
-    const doc = getIframeDoc();
-    if (!doc || !onSaveHtml) return;
-
-    try {
-      setIsSaving(true);
-      const cleanHtml = cleanInspectorArtifacts(doc);
-      await onSaveHtml(cleanHtml);
-      setIsDirty(false);
-    } catch (err) {
-      console.error('Lỗi khi lưu HTML trực quan:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [getIframeDoc, onSaveHtml]);
 
   // Lấy HTML sạch
   const cleanHtmlForExport = useCallback((): string | null => {

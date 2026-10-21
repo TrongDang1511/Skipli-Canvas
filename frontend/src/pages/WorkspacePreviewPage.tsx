@@ -108,10 +108,10 @@ export const WorkspacePreviewPage: FC = () => {
         isOpen: true,
         type: 'success',
         title: 'Lưu Thành Công',
-        message: 'Mã nguồn website và các hình ảnh mới đã được đồng bộ an toàn lên Cloud.',
+        message: 'Mọi thay đổi trên website đã được lưu thành công.',
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu website lên Cloud';
+      const msg = err instanceof Error ? err.message : 'Không thể lưu thay đổi website';
       setToastInfo({
         isOpen: true,
         type: 'error',
