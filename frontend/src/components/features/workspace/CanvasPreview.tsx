@@ -49,6 +49,16 @@ function prepareSafePreviewHtml(rawHtml: string): string {
 
   // 1. Phân loại liên kết thông minh & Bảo lưu Event Bubbling cho các nút bấm tương tác
   document.addEventListener('click', function(e) {
+    // Nếu đang ở chế độ Chỉnh Sửa (Visual Edit), chặn tuyệt đối điều hướng và cuộn trang của liên kết
+    var mode = document.documentElement.getAttribute('data-skipli-mode');
+    if (mode === 'visual_edit') {
+      var aTag = e.target.closest('a');
+      if (aTag) {
+        e.preventDefault();
+      }
+      return;
+    }
+
     var a = e.target.closest('a');
     if (a) {
       var href = (a.getAttribute('href') || '').trim();

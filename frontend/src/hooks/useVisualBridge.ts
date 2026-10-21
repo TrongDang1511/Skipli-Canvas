@@ -168,6 +168,8 @@ export function useVisualBridge({
         box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.25) !important;
         cursor: text !important;
         background-color: rgba(212, 175, 55, 0.04) !important;
+        user-select: text !important;
+        -webkit-user-drag: none !important;
       }
       #skipli-inspector-badge {
         position: absolute;
@@ -655,13 +657,13 @@ export function useVisualBridge({
       const link = target.closest('a');
       if (link) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
 
       const button = target.closest('button, [role="button"], input[type="button"], input[type="submit"]');
       if (button) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
 
       // Nhận diện ảnh và thẻ card
@@ -669,7 +671,7 @@ export function useVisualBridge({
       updateCardSibling(target);
 
       // Kích hoạt sửa chữ nếu click vào chữ đã chọn
-      if (selectedElementRef.current && (selectedElementRef.current === target || selectedElementRef.current.contains(target))) {
+      if (selectedElementRef.current && (selectedElementRef.current === target || selectedElementRef.current.contains(target) || target.contains(selectedElementRef.current))) {
         const textTarget = target.closest(TEXT_TAGS_SELECTOR) as HTMLElement;
         if (textTarget) {
           startEditingElement(textTarget, doc);
@@ -700,7 +702,7 @@ export function useVisualBridge({
       const imgTarget = target.closest('img') || (isImageTarget(target) ? target : null);
       if (imgTarget) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         updateImageTarget(target);
         setIsImageModalOpen(true);
         return;
@@ -709,7 +711,7 @@ export function useVisualBridge({
       const textTarget = target.closest(TEXT_TAGS_SELECTOR) as HTMLElement;
       if (textTarget) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         startEditingElement(textTarget, doc);
       }
     };
@@ -766,7 +768,7 @@ export function useVisualBridge({
       }
 
       const tagName = target.tagName.toLowerCase();
-      if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'button'].includes(tagName)) {
+      if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'button', 'a'].includes(tagName)) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           stopEditingElement(target);
