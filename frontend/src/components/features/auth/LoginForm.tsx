@@ -22,7 +22,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     clearError();
 
     if (!email || !password) {
-      setFormError('Vui lòng điền đầy đủ email và mật khẩu');
+      setFormError('Please fill in both email and password');
       return;
     }
 
@@ -51,7 +51,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       />
 
       <Input
-        label="Mật khẩu"
+        label="Password"
         type={showPassword ? 'text' : 'password'}
         placeholder="••••••••"
         value={password}
@@ -77,19 +77,19 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         isLoading={isLoading}
         className="w-full mt-2 group"
       >
-        <span>Đăng nhập vào Skipli Canvas</span>
+        <span>Sign in to Skipli Canvas</span>
         <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
       </Button>
 
       <div className="pt-3 text-center">
         <p className="text-xs text-navy-600">
-          Chưa có tài khoản?{' '}
+          Don't have an account?{' '}
           <button
             type="button"
             onClick={onSwitchToRegister}
             className="font-semibold text-navy-950 hover:text-gold-600 underline underline-offset-4 cursor-pointer transition-colors"
           >
-            Tạo tài khoản mới
+            Create an account
           </button>
         </p>
       </div>

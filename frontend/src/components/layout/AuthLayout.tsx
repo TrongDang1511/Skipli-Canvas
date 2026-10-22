@@ -47,7 +47,7 @@ export const AuthLayout: FC<AuthLayoutProps> = ({ title, subtitle, children }) =
         <div className="max-w-lg w-full mx-auto pt-10 border-t border-beige-100 text-[11px] text-navy-400 flex items-center justify-between">
           <span>© 2026 Skipli Inc. All rights reserved.</span>
           <span className="flex items-center gap-1 hover:text-navy-700 cursor-pointer transition-colors">
-            Bảo mật & Điều khoản <ArrowUpRight className="w-3 h-3" />
+            Privacy & Terms <ArrowUpRight className="w-3 h-3" />
           </span>
         </div>
       </div>

@@ -8,11 +8,11 @@ export const AuthPage: FC = () => {
 
   return (
     <AuthLayout
-      title={mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản mới'}
+      title={mode === 'login' ? 'Sign In' : 'Create an Account'}
       subtitle={
         mode === 'login'
-          ? 'Chào mừng bạn quay trở lại với Skipli Canvas AI Web Builder'
-          : 'Bắt đầu biến ý tưởng thành website hoàn chỉnh trong vài giây với AI'
+          ? 'Welcome back to Skipli Canvas AI Web Builder'
+          : 'Turn your ideas into production-ready websites in seconds with AI'
       }
     >
       {mode === 'login' ? (
