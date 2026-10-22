@@ -131,7 +131,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   const createNewSession = useCallback(
-    async (title = 'Dự án Mới', initialPrompt?: string): Promise<Session> => {
+    async (title = 'New Project', initialPrompt?: string): Promise<Session> => {
       try {
         const created = await sessionApi.createSession(title, initialPrompt);
         setSessions((prev) => [created, ...prev]);
