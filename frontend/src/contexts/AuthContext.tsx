@@ -63,10 +63,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       const errorMsg =
         err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Đăng nhập không thành công'
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Sign in failed'
           : err instanceof Error
           ? err.message
-          : 'Đăng nhập không thành công';
+          : 'Sign in failed';
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {
@@ -85,10 +85,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       const errorMsg =
         err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Đăng ký không thành công'
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Registration failed'
           : err instanceof Error
           ? err.message
-          : 'Đăng ký không thành công';
+          : 'Registration failed';
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {

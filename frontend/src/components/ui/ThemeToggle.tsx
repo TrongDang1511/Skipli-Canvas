@@ -22,7 +22,7 @@ export const ThemeToggle: FC<ThemeToggleProps> = ({ className, showLabel = false
     <button
       onClick={handleClick}
       type="button"
-      title={isDark ? 'Chuyển sang Chế độ Sáng (Light Mode)' : 'Chuyển sang Chế độ Tối (Dark Mode)'}
+      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       className={cn(
         'relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border shadow-xs cursor-pointer select-none active:scale-95 z-30',
         isDark
@@ -46,7 +46,7 @@ export const ThemeToggle: FC<ThemeToggleProps> = ({ className, showLabel = false
         />
       </div>
       <span className="font-semibold text-xs tracking-wide">
-        {showLabel ? (isDark ? 'Chế độ Tối' : 'Chế độ Sáng') : (isDark ? 'Tối' : 'Sáng')}
+        {showLabel ? (isDark ? 'Dark Mode' : 'Light Mode') : (isDark ? 'Dark' : 'Light')}
       </span>
     </button>
   );

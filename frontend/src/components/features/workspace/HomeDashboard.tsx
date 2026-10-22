@@ -33,25 +33,25 @@ interface HomeDashboardProps {
 }
 
 const QUICK_SUGGESTIONS = [
-  'Quán Bún Xiêm Lo phong cách Luxury & Warm Cream',
-  'Landing page Khách sạn & Resort 5 sao ven biển',
-  'Quán Cà Phê phong cách Indochine Heritage cổ điển',
-  'Portfolio cá nhân dành cho Kiến trúc sư tối giản',
+  'Luxury Artisan Bakery & Warm Cream Cafe',
+  '5-Star Coastal Hotel & Beach Resort Landing Page',
+  'Indochine Heritage Specialty Coffee Roasters',
+  'Minimalist Architect & Interior Design Portfolio',
 ];
 
 function formatRelativeTime(dateStr?: string): string {
-  if (!dateStr) return 'Mới tạo';
+  if (!dateStr) return 'Just now';
   const date = new Date(dateStr);
   const now = new Date();
   const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diffSec < 60) return 'Vừa xong';
+  if (diffSec < 60) return 'Just now';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffMin < 60) return `${diffMin}m ago`;
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ trước`;
+  if (diffHour < 24) return `${diffHour}h ago`;
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return `${diffDay} ngày trước`;
-  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export const HomeDashboard: FC<HomeDashboardProps> = ({
@@ -199,7 +199,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                 type="button"
                 onClick={logout}
                 className="p-1.5 text-slate-400 hover:text-red-600 dark:text-stone-400 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                title="Đăng xuất"
+                title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -216,14 +216,14 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
         </div>
 
         <h1 className="text-3xl md:text-5xl font-extrabold text-[#0B192C] dark:text-white tracking-tight leading-tight text-center max-w-3xl mb-3">
-          Hôm nay bạn muốn thiết kế trang web gì,{' '}
+          What website would you like to build today,{' '}
           <span className="text-amber-600 dark:text-[#D4AF37] underline decoration-amber-500/40 decoration-2 underline-offset-8">
-            {userName || 'bạn'}?
+            {userName || 'Creator'}?
           </span>
         </h1>
 
         <p className="text-xs md:text-sm text-slate-700 dark:text-stone-300 font-medium text-center max-w-xl mb-6 font-sans leading-relaxed">
-          Mô tả ý tưởng kinh doanh của bạn. Skipli AI sẽ tự động phân tích ngành nghề, phối màu Luxury và lập trình website hoàn chỉnh trong giây lát.
+          Describe your business concept. Skipli AI will analyze the industry, curate a luxury palette, and generate a production-ready website in seconds.
         </p>
 
         {/* Khung nhập Prompt */}
@@ -234,13 +234,13 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ví dụ: Tạo website ẩm thực cho quán Bún Xiêm Lo với tông màu ấm Warm Cream & Navy, có menu món ăn, giỏ hàng đặt món và bản đồ vị trí..."
+            placeholder="e.g. Build an artisan French bakery website with warm cream and navy styling, featuring an interactive menu, cart drawer, and reservation form..."
             className="w-full resize-none bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-sm font-medium text-slate-950 dark:text-white placeholder:text-slate-500 dark:placeholder:text-stone-400 leading-relaxed font-sans"
           />
 
           <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700/60 mt-2">
             <span className="text-xs font-semibold text-slate-700 dark:text-stone-300 hidden sm:inline-flex items-center gap-1">
-              Nhấn <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-bold rounded text-[10px] font-mono border border-slate-300 dark:border-slate-600">Enter</kbd> để tạo website
+              Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-bold rounded text-[10px] font-mono border border-slate-300 dark:border-slate-600">Enter</kbd> to generate website
             </span>
 
             <button
@@ -254,7 +254,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               )}
             >
               <Wand2 className="w-4 h-4 text-slate-950" />
-              <span>Tạo Web Ngay</span>
+              <span>Generate Website</span>
               <Send className="w-3.5 h-3.5 ml-0.5 text-slate-950" />
             </button>
           </div>
@@ -262,7 +262,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
 
         {/* Gợi ý ý tưởng nhanh */}
         <div className="flex items-center gap-2 flex-wrap justify-center mt-5 max-w-3xl">
-          <span className="text-xs font-bold text-slate-900 dark:text-stone-100">Gợi ý nhanh:</span>
+          <span className="text-xs font-bold text-slate-900 dark:text-stone-100">Quick suggestions:</span>
           {QUICK_SUGGESTIONS.map((item, idx) => (
             <button
               key={idx}
@@ -296,7 +296,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               )}
             >
               <FolderOpen className={cn('w-4 h-4', activeTab === 'projects' ? 'text-amber-600 dark:text-[#D4AF37]' : 'text-slate-500 dark:text-slate-400')} />
-              <span>Dự Án Của Tôi</span>
+              <span>My Projects</span>
               <span
                 className={cn(
                   'text-xs px-2 py-0.5 rounded-full font-mono font-bold',
@@ -320,7 +320,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               )}
             >
               <HardDrive className={cn('w-4 h-4', activeTab === 'storage' ? 'text-amber-600 dark:text-[#D4AF37]' : 'text-slate-500 dark:text-slate-400')} />
-              <span>Kho Lưu Trữ Cloud</span>
+              <span>Cloud Storage</span>
               <span
                 className={cn(
                   'text-xs px-2 py-0.5 rounded-full font-mono font-bold',
@@ -341,7 +341,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
             className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-400/80"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Tạo Dự Án Mới</span>
+            <span>New Project</span>
           </button>
         </div>
 
@@ -364,17 +364,17 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                   <Globe className="w-8 h-8 stroke-[1.75]" />
                 </div>
                 <h3 className="text-base font-extrabold text-slate-950 dark:text-white mb-1.5">
-                  Chưa có dự án website nào
+                  No website projects yet
                 </h3>
                 <p className="text-xs font-medium text-slate-600 dark:text-stone-300 max-w-sm mx-auto mb-5 leading-relaxed font-sans">
-                  Hãy nhập ý tưởng của bạn vào ô bên trên để bắt đầu xây dựng trang web đầu tiên cùng Skipli AI!
+                  Enter your prompt above to start crafting your first website with Skipli AI!
                 </p>
                 <button
                   type="button"
                   onClick={focusPromptInput}
                   className="px-5 py-2.5 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
                 >
-                  Tạo Website Đầu Tiên
+                  Create First Website
                 </button>
               </div>
             ) : (
@@ -411,7 +411,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                             type="button"
                             onClick={(e) => handleStartRename(e, session.id, session.title)}
                             className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-[#D4AF37] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                            title="Đổi tên dự án"
+                            title="Rename project"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -422,7 +422,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                               setDeletingId(session.id);
                             }}
                             className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition cursor-pointer"
-                            title="Xóa dự án"
+                            title="Delete project"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -451,7 +451,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                               type="button"
                               onClick={(e) => handleSaveRename(e, session.id)}
                               className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded cursor-pointer"
-                              title="Lưu"
+                              title="Save"
                             >
                               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                             </button>
@@ -459,7 +459,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                               type="button"
                               onClick={handleCancelRename}
                               className="p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer"
-                              title="Hủy"
+                              title="Cancel"
                             >
                               <X className="w-3.5 h-3.5 stroke-[2.5]" />
                             </button>
@@ -469,7 +469,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                             className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-[#D4AF37] transition-colors line-clamp-2 leading-snug"
                             title={session.title}
                           >
-                            {session.title || 'Dự án không tên'}
+                            {session.title || 'Untitled Project'}
                           </h4>
                         )}
 
@@ -479,7 +479,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                             onClick={(e) => e.stopPropagation()}
                           >
                             <span className="text-xs font-bold text-red-600 dark:text-red-400">
-                              Xóa dự án này?
+                              Delete this project?
                             </span>
                             <div className="flex items-center gap-1.5">
                               <button
@@ -487,14 +487,14 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                                 onClick={(e) => handleConfirmDelete(e, session.id)}
                                 className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition cursor-pointer"
                               >
-                                Xóa
+                                Delete
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeletingId(null)}
                                 className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-stone-300 rounded-lg text-[11px] font-bold transition cursor-pointer"
                               >
-                                Hủy
+                                Cancel
                               </button>
                             </div>
                           </div>
@@ -509,7 +509,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-stone-300 group-hover:text-amber-600 dark:group-hover:text-[#D4AF37] transition-colors">
-                          <span>Mở</span>
+                          <span>Open</span>
                           <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                         </div>
                       </div>
@@ -527,10 +527,10 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
             <div className="mb-4">
               <h3 className="text-sm font-extrabold text-[#0B192C] dark:text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#D4AF37]" />
-                <span>Kho Tệp & Các Phiên Bản HTML Đã Lưu</span>
+                <span>HTML Files & Stored Versions</span>
               </h3>
               <p className="text-xs font-medium text-slate-600 dark:text-stone-300 mt-1 font-sans">
-                Toàn bộ các phiên bản HTML sinh ra theo từng dự án đều được phân nhóm và bảo vệ an toàn trên MinIO S3.
+                All HTML versions generated across projects are safely grouped and backed up in Cloud Storage.
               </p>
             </div>
 
@@ -559,7 +559,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
 
       {/* Footer */}
       <footer className="text-center text-xs text-slate-400 dark:text-stone-500 py-4 border-t border-slate-200/80 dark:border-slate-800/60 mt-auto">
-        Skipli Canvas © 2026. Built with GoClaw AI Engine & Navy Luxury Design System.
+        Skipli Canvas © 2026. Powered by Skipli AI Engine & Navy Luxury Design System.
       </footer>
     </div>
   );

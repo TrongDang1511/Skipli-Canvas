@@ -10,11 +10,11 @@ export const LUXURY_TEXT_COLORS: TextColorOption[] = [
 ];
 
 export const HIGHLIGHT_COLORS: TextColorOption[] = [
-  { label: 'Vàng nắng', value: '#FEF08A', previewBg: 'bg-yellow-200' },
-  { label: 'Xanh ngọc', value: '#CCFBF1', previewBg: 'bg-teal-100' },
-  { label: 'Cam đào', value: '#FFEDD5', previewBg: 'bg-orange-100' },
-  { label: 'Hồng phấn', value: '#FCE7F3', previewBg: 'bg-pink-100' },
-  { label: 'Không màu', value: 'transparent', previewBg: 'bg-transparent border border-dashed border-slate-400' },
+  { label: 'Sunny Yellow', value: '#FEF08A', previewBg: 'bg-yellow-200' },
+  { label: 'Soft Mint', value: '#CCFBF1', previewBg: 'bg-teal-100' },
+  { label: 'Peach Cream', value: '#FFEDD5', previewBg: 'bg-orange-100' },
+  { label: 'Blush Pink', value: '#FCE7F3', previewBg: 'bg-pink-100' },
+  { label: 'None', value: 'transparent', previewBg: 'bg-transparent border border-dashed border-slate-400' },
 ];
 
 /**
@@ -83,6 +83,6 @@ export function executeFormatCommand(
       doc.execCommand(command, false, value);
     }
   } catch (err) {
-    console.error(`[TextFormatter] Không thể thực thi lệnh định dạng ${command}:`, err);
+    console.error(`[TextFormatter] Failed to execute formatting command ${command}:`, err);
   }
 }

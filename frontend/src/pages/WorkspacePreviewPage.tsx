@@ -19,8 +19,10 @@ export const WorkspacePreviewPage: FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const {
+    sessions,
     activeSession,
     activeSessionId,
+    isLoadingSession,
     setActiveSessionId,
     selectSession,
     fetchSessions,
@@ -29,6 +31,8 @@ export const WorkspacePreviewPage: FC = () => {
     updateActiveSessionLatestHtml,
     renameSession,
   } = useSession();
+
+  const currentSession = activeSession || sessions.find((s) => s.id === activeSessionId);
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
@@ -78,8 +82,8 @@ export const WorkspacePreviewPage: FC = () => {
       setToastInfo({
         isOpen: true,
         type: 'error',
-        title: 'Chưa Chọn Phiên',
-        message: 'Vui lòng bắt đầu hoặc chọn một phiên hội thoại trước khi lưu.',
+        title: 'No Active Session',
+        message: 'Please start or select a project before saving.',
       });
       return;
     }
@@ -107,15 +111,15 @@ export const WorkspacePreviewPage: FC = () => {
       setToastInfo({
         isOpen: true,
         type: 'success',
-        title: 'Lưu Thành Công',
-        message: 'Mọi thay đổi trên website đã được lưu thành công.',
+        title: 'Saved Successfully',
+        message: 'All changes on the website have been saved.',
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể lưu thay đổi website';
+      const msg = err instanceof Error ? err.message : 'Failed to save website changes';
       setToastInfo({
         isOpen: true,
         type: 'error',
-        title: 'Lưu Thất Bại',
+        title: 'Save Failed',
         message: msg,
       });
     }
@@ -165,10 +169,10 @@ export const WorkspacePreviewPage: FC = () => {
         setToastInfo({
           isOpen: true,
           type: 'success',
-          title: 'Khôi Phục Mốc Thành Công',
+          title: 'Milestone Restored',
           message: result.restoredVersion
-            ? `Đã khôi phục giao diện về đúng phiên bản ${result.restoredVersion}!`
-            : 'Đã hoàn tác giao diện về mốc chỉnh sửa thủ công!',
+            ? `Reverted website layout to version ${result.restoredVersion}!`
+            : 'Reverted website to manual edit milestone!',
         });
         setRollbackTarget(null);
         return;
@@ -191,18 +195,18 @@ export const WorkspacePreviewPage: FC = () => {
       setToastInfo({
         isOpen: true,
         type: 'success',
-        title: 'Khôi Phục Thành Công',
+        title: 'Rollback Successful',
         message: result.restoredVersion
-          ? `Đã khôi phục về phiên bản ${result.restoredVersion}. Câu prompt đã được điền lại vào ô chat!`
-          : 'Đã hoàn tác về trạng thái ban đầu. Bạn có thể sửa câu prompt và tạo lại ngay!',
+          ? `Reverted to version ${result.restoredVersion}. The prompt has been restored in the chat input!`
+          : 'Reverted to initial state. You can edit the prompt and regenerate immediately!',
       });
       setRollbackTarget(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi hoàn tác về phiên bản trước';
+      const msg = err instanceof Error ? err.message : 'Failed to rollback to previous version';
       setToastInfo({
         isOpen: true,
         type: 'error',
-        title: 'Hoàn Tác Thất Bại',
+        title: 'Rollback Failed',
         message: msg,
       });
     } finally {
@@ -247,8 +251,8 @@ export const WorkspacePreviewPage: FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Header trên cùng của Workspace Editor: Logo SkipliCanvas (click -> Back to Dashboard) */}
           <WorkspaceHeader
-            sessionTitle={activeSession?.title}
-            activeVersion={activeSession?.versionCount ? `v1.${activeSession.versionCount}` : undefined}
+            sessionTitle={currentSession?.title}
+            activeVersion={currentSession?.versionCount ? `v1.${currentSession.versionCount}` : undefined}
             onBackToDashboard={handleBackToDashboard}
             onNewProject={handleBackToDashboard}
             onRenameTitle={async (newTitle: string) => {
@@ -264,9 +268,10 @@ export const WorkspacePreviewPage: FC = () => {
             <ChatSidebar
               messages={messages}
               isStreaming={isStreaming}
+              isLoadingSession={isLoadingSession}
               onSendPrompt={handleSendPrompt}
               onStopGeneration={stopGeneration}
-              sessionTitle={activeSession?.title}
+              sessionTitle={currentSession?.title}
               onStartRollback={handleStartRollback}
               onRollbackMilestone={handleStartRollbackMilestone}
               prefillPrompt={prefillPrompt}
@@ -284,6 +289,7 @@ export const WorkspacePreviewPage: FC = () => {
                 setViewMode={setViewMode}
                 onExport={handleExportHtml}
                 isStreaming={isStreaming}
+                isLoadingSession={isLoadingSession}
               />
             ) : (
               <CodeViewer

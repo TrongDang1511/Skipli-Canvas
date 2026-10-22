@@ -23,12 +23,12 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     clearError();
 
     if (!email || !password) {
-      setFormError('Vui lòng điền đầy đủ email và mật khẩu');
+      setFormError('Please fill in both email and password');
       return;
     }
 
     if (password.length < 6) {
-      setFormError('Mật khẩu phải có ít nhất 6 ký tự');
+      setFormError('Password must be at least 6 characters');
       return;
     }
 
@@ -46,9 +46,9 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       )}
 
       <Input
-        label="Họ và tên"
+        label="Full Name"
         type="text"
-        placeholder="Nguyễn Văn A"
+        placeholder="John Doe"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         leftIcon={<UserIcon className="w-4 h-4 text-navy-400" />}
@@ -66,9 +66,9 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       />
 
       <Input
-        label="Mật khẩu"
+        label="Password"
         type={showPassword ? 'text' : 'password'}
-        placeholder="Tối thiểu 6 ký tự"
+        placeholder="At least 6 characters"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         leftIcon={<Lock className="w-4 h-4 text-navy-400" />}
@@ -92,19 +92,19 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         isLoading={isLoading}
         className="w-full mt-2 group"
       >
-        <span>Đăng ký tài khoản</span>
+        <span>Create Account</span>
         <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
       </Button>
 
       <div className="pt-3 text-center">
         <p className="text-xs text-navy-600">
-          Đã có tài khoản?{' '}
+          Already have an account?{' '}
           <button
             type="button"
             onClick={onSwitchToLogin}
             className="font-semibold text-navy-950 hover:text-gold-600 underline underline-offset-4 cursor-pointer transition-colors"
           >
-            Đăng nhập ngay
+            Sign in now
           </button>
         </p>
       </div>

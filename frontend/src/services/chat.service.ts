@@ -39,7 +39,7 @@ export class ChatService {
             localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
             localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
             window.location.reload();
-            throw new Error('Phiên làm việc hết hạn.');
+            throw new Error('Session expired.');
           }
         }
       }
@@ -49,7 +49,7 @@ export class ChatService {
         const message =
           errorData?.message ||
           errorData?.error ||
-          `Máy chủ phản hồi lỗi: ${response.status} ${response.statusText}`;
+          `Server error: ${response.status} ${response.statusText}`;
         throw new Error(message);
       }
 
@@ -59,7 +59,7 @@ export class ChatService {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw error;
       }
-      const errMsg = error instanceof Error ? error.message : 'Lỗi kết nối máy chủ AI';
+      const errMsg = error instanceof Error ? error.message : 'AI server connection error';
       throw new Error(errMsg);
     }
   }
@@ -75,7 +75,7 @@ export class ChatService {
     }
 
     if (!content) {
-      return `✨ Đã xây dựng và cập nhật thành công giao diện ${version || 'mới'} trên Live Preview Canvas.`;
+      return `✨ Successfully built and rendered version ${version || 'update'} on Live Preview Canvas.`;
     }
 
     if (
@@ -83,7 +83,7 @@ export class ChatService {
       content.includes('failover candidates exhausted') ||
       content.includes('rate_limit')
     ) {
-      return '⚠️ AI Engine tạm thời gián đoạn ở lượt này do OpenRouter bị nghẽn mạng. Vui lòng bấm "Tạo Web" hoặc gửi lại câu lệnh để AI tiếp tục cập nhật giao diện!';
+      return '⚠️ AI engine temporarily interrupted due to network traffic. Please click "Generate" or resend your prompt to continue!';
     }
 
     let textOnly = content.replace(/```[a-z]*[\s\S]*?```/gi, '');
@@ -99,7 +99,7 @@ export class ChatService {
     const isCodeLabelArtifact = /^(html|css|js|javascript|json|markdown|xml|code|mã\s*nguồn)[:\s]*$/i.test(textOnly.trim());
 
     if (!textOnly || textOnly.length < 5 || isCodeLabelArtifact) {
-      return `✨ Đã xây dựng và cập nhật thành công giao diện ${version || 'mới'} trên Live Preview Canvas.`;
+      return `✨ Successfully built and rendered version ${version || 'update'} on Live Preview Canvas.`;
     }
 
     return textOnly;

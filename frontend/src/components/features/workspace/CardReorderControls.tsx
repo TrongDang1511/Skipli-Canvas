@@ -28,7 +28,7 @@ export const CardReorderControls: FC<CardReorderControlsProps> = ({
         onMouseDown={(e) => e.preventDefault()}
         onClick={onMovePrev}
         disabled={!cardInfo.canMovePrev}
-        title="Đổi chỗ thẻ này sang trước"
+        title="Move card backward"
         className="p-1 hover:bg-white/10 rounded transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-[#D4AF37] dark:text-white"
       >
         <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -43,7 +43,7 @@ export const CardReorderControls: FC<CardReorderControlsProps> = ({
         onMouseDown={(e) => e.preventDefault()}
         onClick={onMoveNext}
         disabled={!cardInfo.canMoveNext}
-        title="Đổi chỗ thẻ này sang sau"
+        title="Move card forward"
         className="p-1 hover:bg-white/10 rounded transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-[#D4AF37] dark:text-white"
       >
         <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />

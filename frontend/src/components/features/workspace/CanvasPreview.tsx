@@ -80,7 +80,7 @@ function prepareSafePreviewHtml(rawHtml: string): string {
             return;
           }
         } catch(err) {}
-        showPreviewToast('Đã cuộn tới khối tương ứng!');
+        showPreviewToast('Scrolled to section!');
         return;
       }
 
@@ -98,7 +98,7 @@ function prepareSafePreviewHtml(rawHtml: string): string {
 
       // Case 5: Liên kết tương đối (/, /about, menu.html) -> Chặn tuyệt đối để chống lồng Web Builder vào canvas
       e.preventDefault();
-      showPreviewToast('Trang "' + href + '" sẽ hoạt động trên website thực tế khi xuất bản!');
+      showPreviewToast('Page "' + href + '" will be active on the published website!');
       return;
     }
   }, true);
@@ -106,7 +106,7 @@ function prepareSafePreviewHtml(rawHtml: string): string {
   // 2. Chặn HTTP reload khi submit form, nhưng cho phép JS event listeners của website xử lý logic
   document.addEventListener('submit', function(e) {
     e.preventDefault();
-    showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
+    showPreviewToast('Form submission simulated in preview mode!');
   }, true);
 
   // 3. Navigation Guard: Chống script trong website vô tình gọi window.location làm reload iframe
@@ -135,6 +135,7 @@ interface CanvasPreviewProps {
   setViewMode: (mode: ViewMode) => void;
   onExport: () => void;
   isStreaming: boolean;
+  isLoadingSession?: boolean;
 }
 
 export const CanvasPreview: FC<CanvasPreviewProps> = ({
@@ -147,6 +148,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   setViewMode,
   onExport,
   isStreaming,
+  isLoadingSession = false,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasStorageError, setHasStorageError] = useState<boolean>(false);
@@ -157,13 +159,16 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   // Chuẩn bị mã HTML an toàn có nhúng inline guard script chống iframe bị điều hướng
   const safeHtml = useMemo(() => prepareSafePreviewHtml(currentHtml), [currentHtml]);
 
-  // Đồng bộ prop htmlContent khi có thay đổi từ bên ngoài (ví dụ AI sinh code mới)
+  // Đồng bộ prop htmlContent khi có thay đổi từ bên ngoài (ví dụ AI sinh code mới hoặc đổi session)
   useEffect(() => {
     if (htmlContent) {
       setCurrentHtml(htmlContent);
+      setHasStorageError(false);
       setReloadKey((prev) => prev + 1);
+    } else if (!presignedUrl) {
+      setCurrentHtml('');
     }
-  }, [htmlContent]);
+  }, [htmlContent, presignedUrl]);
 
   // Visual Bridge Hook quản lý Iframe DOM, Editor mode và Inspector
   const {
@@ -327,35 +332,47 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
             <Loader2 className="w-9 h-9 stroke-[1.75] text-[#D4AF37] animate-spin mb-3" />
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
               <Sparkles className="w-4 h-4 stroke-[1.75] text-[#D4AF37]" />
-              <span>Skipli AI Engine đang kiến tạo giao diện...</span>
+              <span>Skipli AI Engine is generating layout...</span>
             </h3>
             <p className="text-xs text-slate-600 dark:text-stone-300 mt-1 font-sans">
-              Đang phân tích yêu cầu và render trực tiếp lên Live Preview
+              Analyzing prompt and rendering directly to Live Preview
             </p>
           </div>
         )}
 
         <div className={cn('transition-all duration-300 ease-out bg-white dark:bg-[#0B192C] overflow-hidden flex flex-col relative', getContainerStyles())}>
-          {hasStorageError ? (
+          {(isLoadingSession || (isCheckingS3 && !currentHtml)) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#FAF9F6] dark:bg-[#081220] select-none p-8 text-center animate-fadeIn">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-[#1E3E62] border border-amber-500/30 flex items-center justify-center mb-4 shadow-sm">
+                <Loader2 className="w-7 h-7 stroke-[2] text-[#D4AF37] animate-spin" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight mb-1">
+                Synchronizing website interface...
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-stone-400 max-w-xs leading-relaxed font-sans">
+                Fetching source code and images directly from Cloud Storage
+              </p>
+            </div>
+          ) : hasStorageError ? (
             <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#FAF9F6] dark:bg-[#081220] select-none">
               <div className="w-16 h-16 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
                 <FileQuestion className="w-8 h-8 stroke-[1.75] text-[#D4AF37]" />
               </div>
 
               <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">
-                Tệp Giao Diện Không Còn Tồn Tại
+                Layout File Not Found
               </h3>
               
               <p className="text-xs text-slate-500 dark:text-stone-400 max-w-sm mb-4 leading-relaxed font-sans">
-                Mã nguồn HTML phiên bản này đã bị xóa hoặc không còn tồn tại trên hệ thống lưu trữ Cloud.
+                The HTML source for this version was removed or is no longer available on Cloud Storage.
               </p>
 
               <div className="bg-white dark:bg-[#0F1D32] border border-slate-200 dark:border-slate-800 rounded-xl p-3 max-w-xs text-left text-[11px] text-slate-600 dark:text-stone-300 shadow-xs mb-4">
                 <div className="flex items-center gap-1.5 font-semibold text-[#D4AF37] mb-1">
                   <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
-                  <span>Hướng xử lý:</span>
+                  <span>Suggested Action:</span>
                 </div>
-                <span>Gửi câu lệnh mới ở khung chat bên trái để AI tự động kiến tạo lại giao diện website cho phiên này.</span>
+                <span>Send a new prompt in the chat panel to regenerate the layout for this session.</span>
               </div>
 
               <button
@@ -363,7 +380,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-[#D4AF37] rounded-xl font-bold text-xs transition border border-amber-400/60 cursor-pointer shadow-xs active:scale-95"
               >
                 <RotateCw className="w-3.5 h-3.5 stroke-[1.75]" />
-                <span>Thử Kiểm Tra Lại</span>
+                <span>Check Again</span>
               </button>
             </div>
           ) : currentHtml ? (
@@ -389,9 +406,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-white dark:bg-[#0B192C] text-slate-400 p-6 text-center select-none">
               <Globe className="w-12 h-12 stroke-[1.5] text-slate-300 dark:text-slate-600 mb-3" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-stone-200">Khung xem trước trực tiếp (Live Preview)</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-stone-200">Live Preview Canvas</p>
               <p className="text-xs text-slate-400 dark:text-stone-400 mt-1 max-w-xs">
-                Nhập yêu cầu vào khung chat bên trái để AI tự động vẽ giao diện website tại đây.
+                Enter a prompt in the chat panel to start generating your website here.
               </p>
             </div>
           )}

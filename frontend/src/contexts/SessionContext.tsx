@@ -13,6 +13,7 @@ interface SessionContextType {
   activeSession: Session | null;
   isLoadingSessions: boolean;
   isLoadingStorage: boolean;
+  isLoadingSession: boolean;
   fetchSessions: () => Promise<void>;
   fetchStorageFiles: () => Promise<void>;
   fetchGroupedStorageFiles: () => Promise<void>;
@@ -36,6 +37,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
   const [isLoadingStorage, setIsLoadingStorage] = useState<boolean>(false);
+  const [isLoadingSession, setIsLoadingSession] = useState<boolean>(false);
 
   const fetchSessions = useCallback(async () => {
     if (!user) {
@@ -95,17 +97,21 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     if (activeSessionId) {
-      const found = sessions.find((s) => s.id === activeSessionId) || null;
-      setActiveSession(found);
+      if (!isLoadingSession) {
+        const found = sessions.find((s) => s.id === activeSessionId) || null;
+        setActiveSession(found);
+      }
     } else {
       setActiveSession(null);
     }
-  }, [activeSessionId, sessions]);
+  }, [activeSessionId, sessions, isLoadingSession]);
 
   const selectSession = useCallback(
     async (sessionId: string): Promise<SessionDetail | null> => {
       try {
+        setIsLoadingSession(true);
         setActiveSessionId(sessionId);
+        setActiveSession(null);
         const detail = await sessionApi.fetchSessionDetail(sessionId);
         if (detail?.session) {
           setActiveSession(detail.session);
@@ -117,13 +123,15 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
       } catch (err) {
         console.error('[SessionContext] Failed to select session:', err);
         return null;
+      } finally {
+        setIsLoadingSession(false);
       }
     },
     []
   );
 
   const createNewSession = useCallback(
-    async (title = 'Dự án Mới', initialPrompt?: string): Promise<Session> => {
+    async (title = 'New Project', initialPrompt?: string): Promise<Session> => {
       try {
         const created = await sessionApi.createSession(title, initialPrompt);
         setSessions((prev) => [created, ...prev]);
@@ -216,6 +224,7 @@ export const SessionProvider: FC<{ children: ReactNode }> = ({ children }) => {
         activeSession,
         isLoadingSessions,
         isLoadingStorage,
+        isLoadingSession,
         fetchSessions,
         fetchStorageFiles,
         fetchGroupedStorageFiles,

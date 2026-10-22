@@ -99,7 +99,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={onRefresh}
-          title="Tải lại trang"
+          title="Reload preview"
           disabled={isCheckingS3}
           className="p-1 text-slate-400 hover:text-slate-800 dark:text-stone-400 dark:hover:text-white rounded transition cursor-pointer disabled:opacity-50"
         >
@@ -108,7 +108,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
-        {/* 1. Bộ chuyển đổi: [👁️ Xem Thực Tế] vs [✏️ Chỉnh Sửa Trực Quan] */}
+        {/* 1. Bộ chuyển đổi: [👁️ Preview] vs [✏️ Visual Edit] vs [💻 Code] */}
         <div className="flex items-center bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80">
           <button
             type="button"
@@ -116,7 +116,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               setViewMode('preview');
               setEditorMode('preview');
             }}
-            title="Chế độ xem thực tế: Thử nghiệm tương tác nút bấm, giỏ hàng, popup modal, đổi tab mượt mà"
+            title="Interactive Preview: Test links, buttons, cart drawers, modals, and tabs"
             className={cn(
               'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
               viewMode === 'preview' && editorMode === 'preview'
@@ -125,7 +125,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             )}
           >
             <Eye className="w-3 h-3 stroke-[1.75] text-[#D4AF37]" />
-            <span className="hidden sm:inline">Xem Thực Tế</span>
+            <span className="hidden sm:inline">Preview</span>
           </button>
 
           <button
@@ -134,7 +134,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               setViewMode('preview');
               setEditorMode('visual_edit');
             }}
-            title="Chế độ chỉnh sửa trực quan: Click vào bất kỳ khối, chữ, nút bấm hoặc ảnh để chỉnh sửa"
+            title="Visual Editor: Click any element, text, button, or image to edit"
             className={cn(
               'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
               viewMode === 'preview' && editorMode === 'visual_edit'
@@ -143,13 +143,13 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             )}
           >
             <PenTool className="w-3 h-3 stroke-[1.75] text-[#D4AF37]" />
-            <span className="hidden sm:inline">Chỉnh Sửa</span>
+            <span className="hidden sm:inline">Edit</span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('code')}
-            title="Xem mã nguồn HTML"
+            title="View HTML Source Code"
             className={cn(
               'flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
               viewMode === 'code'
@@ -158,7 +158,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             )}
           >
             <Code2 className="w-3 h-3 stroke-[1.75] text-slate-500 dark:text-stone-400" />
-            <span className="hidden md:inline">Mã Nguồn</span>
+            <span className="hidden md:inline">Code</span>
           </button>
         </div>
 
@@ -167,7 +167,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           <button
             type="button"
             onClick={onToggleSectionDrawer}
-            title="Xem danh sách và đổi thứ tự các khối Section trên trang"
+            title="View and reorder layout sections"
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border',
               isSectionDrawerOpen
@@ -176,7 +176,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             )}
           >
             <Layers className="w-3.5 h-3.5 stroke-[1.75] text-[#D4AF37]" />
-            <span className="hidden sm:inline">Cấu Trúc Khối</span>
+            <span className="hidden sm:inline">Sections</span>
           </button>
         )}
 
@@ -187,7 +187,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               type="button"
               onClick={onUndo}
               disabled={!canUndo}
-              title={canUndo ? `Hoàn tác: ${lastUndoLabel || 'Thao tác trước'} (Ctrl+Z)` : 'Không có thao tác nào để hoàn tác (Ctrl+Z)'}
+              title={canUndo ? `Undo: ${lastUndoLabel || 'Previous action'} (Ctrl+Z)` : 'Nothing to undo (Ctrl+Z)'}
               className={cn(
                 'flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
                 canUndo
@@ -207,7 +207,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
               type="button"
               onClick={onRedo}
               disabled={!canRedo}
-              title={canRedo ? `Làm lại: ${lastRedoLabel || 'Thao tác vừa hoàn tác'} (Ctrl+Y)` : 'Không có thao tác nào để làm lại (Ctrl+Y)'}
+              title={canRedo ? `Redo: ${lastRedoLabel || 'Previous undone action'} (Ctrl+Y)` : 'Nothing to redo (Ctrl+Y)'}
               className={cn(
                 'flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
                 canRedo
@@ -225,14 +225,13 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           </div>
         )}
 
-
         {/* 2. Nút Lưu Thay Đổi (Hiển thị khi ở chế độ Chỉnh Sửa) */}
         {editorMode === 'visual_edit' && (
           <button
             type="button"
             onClick={onSave}
             disabled={isSaving || !isDirty}
-            title={isDirty ? 'Lưu thay đổi (Ctrl+S)' : 'Mọi thay đổi đã được lưu'}
+            title={isDirty ? 'Save changes (Ctrl+S)' : 'All changes saved'}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border',
               isDirty
@@ -245,7 +244,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             ) : (
               <Save className="w-3 h-3 stroke-[1.75]" />
             )}
-            <span>{isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
+            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
             <kbd className={cn(
               'text-[9px] font-medium px-1 py-0.2 rounded border transition',
               isDirty
@@ -265,7 +264,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           <button
             type="button"
             onClick={() => setViewport('desktop')}
-            title="Máy tính để bàn (Desktop)"
+            title="Desktop"
             className={cn(
               'p-1.5 rounded-md transition cursor-pointer',
               viewport === 'desktop'
@@ -278,7 +277,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           <button
             type="button"
             onClick={() => setViewport('tablet')}
-            title="Máy tính bảng (Tablet)"
+            title="Tablet"
             className={cn(
               'p-1.5 rounded-md transition cursor-pointer',
               viewport === 'tablet'
@@ -291,7 +290,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           <button
             type="button"
             onClick={() => setViewport('mobile')}
-            title="Điện thoại di động (Mobile)"
+            title="Mobile"
             className={cn(
               'p-1.5 rounded-md transition cursor-pointer',
               viewport === 'mobile'
@@ -311,7 +310,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
         {isStreaming && (
           <span className="ml-auto flex items-center gap-1 text-[10px] text-[#D4AF37] font-sans font-medium shrink-0">
             <Loader2 className="w-3 h-3 stroke-[1.75] animate-spin text-[#D4AF37]" />
-            <span className="hidden 2xl:inline">Đang tạo...</span>
+            <span className="hidden 2xl:inline">Generating...</span>
           </span>
         )}
       </div>
@@ -321,10 +320,10 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
         <button
           onClick={onOpenNewTab}
           disabled={!presignedUrl || hasStorageError}
-          title="Mở toàn màn hình"
+          title="Open in new tab (Full screen)"
           className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-slate-900 dark:hover:text-white font-medium transition cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <span className="hidden md:inline">Toàn màn hình</span>
+          <span className="hidden md:inline">Full Screen</span>
           <ExternalLink className="w-3.5 h-3.5 stroke-[1.75] text-slate-400 dark:text-stone-400" />
         </button>
 
@@ -333,11 +332,11 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
         <button
           onClick={onExport}
           disabled={!presignedUrl}
-          title="Tải mã HTML về máy"
+          title="Download HTML file"
           className="flex items-center gap-1.5 px-3 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
         >
           <Download className="w-3.5 h-3.5 stroke-[1.75]" />
-          <span>Tải HTML</span>
+          <span>Export HTML</span>
         </button>
       </div>
     </div>
