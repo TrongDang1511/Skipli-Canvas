@@ -63,7 +63,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'bold')}
-        title="In đậm (Ctrl+B)"
+        title="Bold (Ctrl+B)"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <Bold className="w-3.5 h-3.5 stroke-[2]" />
@@ -72,7 +72,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'italic')}
-        title="In nghiêng (Ctrl+I)"
+        title="Italic (Ctrl+I)"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <Italic className="w-3.5 h-3.5 stroke-[2]" />
@@ -81,7 +81,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'underline')}
-        title="Gạch chân (Ctrl+U)"
+        title="Underline (Ctrl+U)"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <Underline className="w-3.5 h-3.5 stroke-[2]" />
@@ -90,7 +90,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'strikeThrough')}
-        title="Gạch ngang chữ"
+        title="Strikethrough"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <Strikethrough className="w-3.5 h-3.5 stroke-[2]" />
@@ -102,7 +102,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'justifyLeft')}
-        title="Căn lề trái"
+        title="Align Left"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <AlignLeft className="w-3.5 h-3.5 stroke-[2]" />
@@ -111,7 +111,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'justifyCenter')}
-        title="Căn giữa"
+        title="Align Center"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <AlignCenter className="w-3.5 h-3.5 stroke-[2]" />
@@ -120,7 +120,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'justifyRight')}
-        title="Căn lề phải"
+        title="Align Right"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <AlignRight className="w-3.5 h-3.5 stroke-[2]" />
@@ -132,7 +132,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'insertUnorderedList')}
-        title="Danh sách dấu chấm (Bullet list)"
+        title="Bullet List"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <List className="w-3.5 h-3.5 stroke-[2]" />
@@ -141,7 +141,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'insertOrderedList')}
-        title="Danh sách số thứ tự (Numbered list)"
+        title="Numbered List"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer text-slate-700 dark:text-stone-200 hover:text-slate-950 dark:hover:text-white"
       >
         <ListOrdered className="w-3.5 h-3.5 stroke-[2]" />
@@ -158,7 +158,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
             setShowColorPicker(!showColorPicker);
             setShowHighlightPicker(false);
           }}
-          title="Đổi màu chữ (Bảng màu Luxury)"
+          title="Text Color (Luxury Palette)"
           className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer flex items-center gap-0.5"
         >
           <Baseline className="w-3.5 h-3.5 stroke-[2] text-[#D4AF37]" />
@@ -190,7 +190,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
             setShowHighlightPicker(!showHighlightPicker);
             setShowColorPicker(false);
           }}
-          title="Màu dạ quang bôi sáng"
+          title="Highlight Color"
           className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] rounded-md transition cursor-pointer flex items-center gap-0.5"
         >
           <Highlighter className="w-3.5 h-3.5 stroke-[2] text-amber-500" />
@@ -220,7 +220,7 @@ export const FloatingTextToolbar: FC<FloatingTextToolbarProps> = ({
       <button
         type="button"
         onMouseDown={(e) => handleAction(e, 'removeFormat')}
-        title="Gỡ định dạng (Trở về chữ mặc định)"
+        title="Clear Formatting"
         className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#1E3E62] text-rose-500 hover:text-rose-600 rounded-md transition cursor-pointer"
       >
         <Eraser className="w-3.5 h-3.5 stroke-[2]" />

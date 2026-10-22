@@ -297,7 +297,7 @@ export function useVisualBridge({
         const targetSelector = getDomPath(targetEl);
         const doc = targetEl.ownerDocument;
         const scrollTop = doc?.documentElement?.scrollTop || doc?.body?.scrollTop || 0;
-        historyManager.current.pushSnapshot(preEditTextSnapshotRef.current, 'Sửa chữ', targetSelector, scrollTop);
+        historyManager.current.pushSnapshot(preEditTextSnapshotRef.current, 'Edit Text', targetSelector, scrollTop);
         syncHistoryState();
       }
     }
@@ -555,7 +555,7 @@ export function useVisualBridge({
           'padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 500; ' +
           'box-shadow: 0 10px 25px rgba(0,0,0,0.3); opacity: 0; transform: translateY(8px); ' +
           'transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 6px;';
-        toast.innerHTML = `<span style="color:#D4AF37; font-weight:700;">✨ [Bản Xem Thử]</span> ${message}`;
+        toast.innerHTML = `<span style="color:#D4AF37; font-weight:700;">✨ [Live Preview]</span> ${message}`;
         container.appendChild(toast);
 
         requestAnimationFrame(() => {
@@ -600,7 +600,7 @@ export function useVisualBridge({
             } catch {
               // fallback nếu selector không hợp lệ
             }
-            showPreviewToast('Đã cuộn tới khối tương ứng!');
+            showPreviewToast('Scrolled to corresponding section!');
             return;
           }
 
@@ -618,7 +618,7 @@ export function useVisualBridge({
 
           // Case 5: Liên kết tương đối (/, /about, menu.html) -> Chặn tuyệt đối để không làm iframe điều hướng
           e.preventDefault();
-          showPreviewToast(`Trang "${href}" sẽ hoạt động trên website thực tế khi xuất bản!`);
+          showPreviewToast(`Page "${href}" will be active on the published website!`);
           return;
         }
 
@@ -627,7 +627,7 @@ export function useVisualBridge({
 
       const handlePreviewSubmit = (e: Event) => {
         e.preventDefault();
-        showPreviewToast('Biểu mẫu đã ghi nhận thông tin trong giao diện xem thử!');
+        showPreviewToast('Form submission simulated in preview mode!');
       };
 
       doc.addEventListener('click', handlePreviewClick, true);
@@ -954,7 +954,7 @@ export function useVisualBridge({
     const doc = getIframeDoc();
     if (!doc) return;
 
-    captureSnapshot('Định dạng chữ', selectedElement);
+    captureSnapshot('Format Text', selectedElement);
     executeFormatCommand(doc, command, value);
     setIsDirty(true);
 
@@ -967,7 +967,7 @@ export function useVisualBridge({
   // Thay thế ảnh
   const replaceSelectedImage = useCallback((newUrl: string) => {
     if (!imageTarget || !imageTarget.element) return;
-    captureSnapshot('Đổi ảnh', imageTarget.element);
+    captureSnapshot('Replace Image', imageTarget.element);
     applyImageToElement(imageTarget.element, newUrl);
     setIsDirty(true);
     setImageTarget((prev) => (prev ? { ...prev, currentUrl: newUrl } : null));
@@ -989,7 +989,7 @@ export function useVisualBridge({
 
   // Hoán đổi vị trí 2 Section
   const reorderSections = useCallback((fromIndex: number, toIndex: number) => {
-    captureSnapshot('Đổi thứ tự khối', sectionsList[fromIndex]?.element);
+    captureSnapshot('Reorder Sections', sectionsList[fromIndex]?.element);
     const success = moveSectionInDOM(sectionsList, fromIndex, toIndex);
     if (success) {
       setIsDirty(true);
@@ -1001,7 +1001,7 @@ export function useVisualBridge({
   const toggleHideSection = useCallback((index: number) => {
     const sec = sectionsList[index];
     if (sec && sec.element) {
-      captureSnapshot('Ẩn/hiện khối', sec.element);
+      captureSnapshot('Toggle Section Visibility', sec.element);
       toggleSectionVisibilityInDOM(sec.element);
       setIsDirty(true);
       refreshSections();
@@ -1022,7 +1022,7 @@ export function useVisualBridge({
   // Hoán đổi vị trí Card con trong Grid
   const moveCardSibling = useCallback((direction: 'prev' | 'next') => {
     if (!cardSiblingInfo) return;
-    captureSnapshot('Đổi thứ tự thẻ', cardSiblingInfo.element);
+    captureSnapshot('Reorder Cards', cardSiblingInfo.element);
     const success = moveCardSiblingInDOM(cardSiblingInfo.element, direction);
     if (success) {
       setIsDirty(true);

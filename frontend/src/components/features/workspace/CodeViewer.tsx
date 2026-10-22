@@ -60,13 +60,13 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
             <FileCode className="w-4 h-4 text-amber-500 dark:text-[#D4AF37]" />
             <span className="font-semibold text-slate-800 dark:text-stone-200">index.html</span>
             <span className="text-[10px] text-slate-500 dark:text-stone-400 bg-slate-100 dark:bg-[#112240] px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
-              {lines.length} dòng ({new Blob([activeCode]).size} bytes)
+              {lines.length} lines ({new Blob([activeCode]).size} bytes)
             </span>
           </div>
 
           <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
 
-          {/* View Mode Toggle: Xem Trước / Mã Nguồn */}
+          {/* View Mode Toggle: Preview / Code */}
           <div className="flex items-center bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
             <button
               type="button"
@@ -79,7 +79,7 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
               )}
             >
               <Eye className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Xem Trước</span>
+              <span>Preview</span>
             </button>
 
             <button
@@ -93,7 +93,7 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
               )}
             >
               <Code2 className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Mã Nguồn</span>
+              <span>Code</span>
             </button>
           </div>
         </div>
@@ -105,12 +105,12 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Đã sao chép!</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span>
             </>
           ) : (
             <>
               <Copy className="w-3.5 h-3.5 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Sao chép mã</span>
+              <span>Copy Code</span>
             </>
           )}
         </button>
@@ -121,16 +121,16 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 select-none">
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-            <span className="text-xs font-sans">Đang tải mã nguồn...</span>
+            <span className="text-xs font-sans">Loading source code...</span>
           </div>
         ) : hasError ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 select-none bg-[#FAF9F6] dark:bg-[#081220] rounded-lg border border-slate-200 dark:border-slate-800">
             <FileQuestion className="w-12 h-12 text-amber-500 dark:text-[#D4AF37] mb-3" />
             <h4 className="text-sm font-bold text-slate-800 dark:text-stone-200 mb-1 font-sans">
-              Không Thể Nạp Mã Nguồn
+              Unable to Load Source Code
             </h4>
             <p className="text-xs text-slate-500 dark:text-stone-400 font-sans max-w-sm">
-              Tệp HTML của phiên bản này không còn tồn tại trên hệ thống lưu trữ.
+              The HTML source file for this version is no longer available on cloud storage.
             </p>
           </div>
         ) : (

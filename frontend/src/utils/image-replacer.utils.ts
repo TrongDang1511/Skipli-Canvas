@@ -48,7 +48,7 @@ export function readImageFileAsDataUrl(file: File): Promise<string> {
       if (typeof reader.result === 'string') {
         resolve(reader.result);
       } else {
-        reject(new Error('Không thể đọc file ảnh'));
+        reject(new Error('Failed to read image file'));
       }
     };
     reader.onerror = () => reject(reader.error);

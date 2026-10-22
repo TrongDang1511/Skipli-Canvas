@@ -60,10 +60,10 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
           <Layers className="w-4 h-4 stroke-[2] text-[#D4AF37]" />
           <div>
             <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-              Cấu Trúc Khối Website
+              Section Navigator
             </h3>
             <span className="text-[10px] text-slate-400 dark:text-stone-400">
-              {sections.length} khối section
+              {sections.length} sections
             </span>
           </div>
         </div>
@@ -81,9 +81,9 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
         {sections.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
             <Compass className="w-8 h-8 stroke-[1.5] text-slate-300 dark:text-slate-600 mb-2" />
-            <span className="text-xs font-semibold">Chưa phát hiện khối Section</span>
+            <span className="text-xs font-semibold">No sections detected</span>
             <span className="text-[11px] text-slate-400 mt-0.5">
-              Tải lại trang hoặc tạo giao diện mới để đồng bộ
+              Reload page or generate a new layout to synchronize
             </span>
           </div>
         ) : (
@@ -115,7 +115,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
                 <div
                   onClick={() => onSelectSection(sec.element)}
                   className="flex-1 min-w-0 cursor-pointer"
-                  title="Nhấp để cuộn tới khối này trên website"
+                  title="Click to scroll to this section"
                 >
                   <div className="flex items-center gap-1">
                     <span className="text-xs font-semibold text-slate-800 dark:text-stone-200 truncate group-hover:text-amber-600 dark:group-hover:text-[#D4AF37] transition">
@@ -126,7 +126,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
                     <span className="uppercase font-mono font-medium text-[9px] bg-slate-200/70 dark:bg-slate-700 px-1 rounded">
                       {sec.tag}
                     </span>
-                    <span>Vị trí #{index + 1}</span>
+                    <span>Position #{index + 1}</span>
                   </div>
                 </div>
 
@@ -140,7 +140,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
                       if (!isFirst) onMoveSection(index, index - 1);
                     }}
                     disabled={isFirst}
-                    title="Di chuyển lên trên"
+                    title="Move up"
                     className="p-1 text-slate-400 hover:text-navy-900 dark:hover:text-white rounded transition disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <ChevronUp className="w-3.5 h-3.5 stroke-[2]" />
@@ -154,7 +154,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
                       if (!isLast) onMoveSection(index, index + 1);
                     }}
                     disabled={isLast}
-                    title="Di chuyển xuống dưới"
+                    title="Move down"
                     className="p-1 text-slate-400 hover:text-navy-900 dark:hover:text-white rounded transition disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <ChevronDown className="w-3.5 h-3.5 stroke-[2]" />
@@ -167,7 +167,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
                       e.stopPropagation();
                       onToggleVisibility(index);
                     }}
-                    title={sec.isHidden ? 'Hiện khối này' : 'Tạm ẩn khối này'}
+                    title={sec.isHidden ? 'Show section' : 'Hide section'}
                     className={cn(
                       'p-1 rounded transition cursor-pointer',
                       sec.isHidden
@@ -191,7 +191,7 @@ export const SectionNavigatorDrawer: FC<SectionNavigatorDrawerProps> = ({
       {/* Footer Gợi Ý */}
       <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 text-[11px] text-slate-500 dark:text-stone-400 flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#070F1E]">
         <CornerDownRight className="w-3.5 h-3.5 stroke-[2] text-[#D4AF37] shrink-0" />
-        <span>Kéo thả thẻ hoặc dùng mũi tên để đổi thứ tự khối trên web.</span>
+        <span>Drag cards or use arrows to reorder layout sections.</span>
       </div>
     </aside>
   );

@@ -5,8 +5,8 @@ import { SectionItemInfo, CardSiblingInfo } from '../types/editor.types';
  */
 function extractSectionName(el: HTMLElement, index: number): string {
   const tagName = el.tagName.toLowerCase();
-  if (tagName === 'header') return 'Khối Header / Điều Hướng';
-  if (tagName === 'footer') return 'Khối Footer / Chân Trang';
+  if (tagName === 'header') return 'Header / Navigation';
+  if (tagName === 'footer') return 'Footer';
 
   // Tìm tiêu đề h1/h2/h3 đầu tiên
   const heading = el.querySelector('h1, h2, h3');
@@ -23,13 +23,13 @@ function extractSectionName(el: HTMLElement, index: number): string {
 
   // Tìm theo class phổ biến
   const cls = el.className?.toString().toLowerCase() || '';
-  if (cls.includes('hero')) return 'Khối Hero Banner';
-  if (cls.includes('about')) return 'Khối Giới Thiệu';
-  if (cls.includes('menu') || cls.includes('product')) return 'Khối Sản Phẩm / Menu';
-  if (cls.includes('testimonial') || cls.includes('review')) return 'Khối Đánh Giá';
-  if (cls.includes('contact')) return 'Khối Liên Hệ';
+  if (cls.includes('hero')) return 'Hero Banner';
+  if (cls.includes('about')) return 'About Us';
+  if (cls.includes('menu') || cls.includes('product')) return 'Products / Menu';
+  if (cls.includes('testimonial') || cls.includes('review')) return 'Reviews / Testimonials';
+  if (cls.includes('contact')) return 'Contact Us';
 
-  return `Khối Section ${index + 1}`;
+  return `Section ${index + 1}`;
 }
 
 /**

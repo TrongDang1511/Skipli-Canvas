@@ -6,33 +6,33 @@ export function getElementTagLabel(element: HTMLElement): string {
 
   // Nhận diện theo thẻ tiêu đề
   if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
-    return `Tiêu đề (${tagName.toUpperCase()})`;
+    return `Heading (${tagName.toUpperCase()})`;
   }
 
   // Nhận diện theo văn bản
-  if (tagName === 'p') return 'Đoạn văn (P)';
-  if (tagName === 'span') return 'Chữ (Span)';
-  if (tagName === 'a') return 'Đường dẫn (Link)';
-  if (tagName === 'button') return 'Nút bấm (Button)';
+  if (tagName === 'p') return 'Paragraph (P)';
+  if (tagName === 'span') return 'Text (Span)';
+  if (tagName === 'a') return 'Link (A)';
+  if (tagName === 'button') return 'Button';
 
   // Nhận diện theo phương tiện
-  if (tagName === 'img') return 'Hình ảnh (IMG)';
-  if (tagName === 'svg') return 'Biểu tượng (Icon)';
+  if (tagName === 'img') return 'Image (IMG)';
+  if (tagName === 'svg') return 'Icon (SVG)';
   if (tagName === 'video') return 'Video';
 
   // Nhận diện theo khối bố cục
-  if (tagName === 'section') return 'Khối Section';
-  if (tagName === 'header') return 'Khối Header';
-  if (tagName === 'footer') return 'Khối Footer';
-  if (tagName === 'nav') return 'Thanh Điều Hướng';
+  if (tagName === 'section') return 'Section';
+  if (tagName === 'header') return 'Header';
+  if (tagName === 'footer') return 'Footer';
+  if (tagName === 'nav') return 'Navbar (Nav)';
 
   // Nhận diện theo class phổ biến
   const className = element.className?.toString().toLowerCase() || '';
-  if (className.includes('card')) return 'Thẻ (Card)';
-  if (className.includes('grid')) return 'Lưới (Grid)';
-  if (className.includes('container')) return 'Khung Chứa (Container)';
+  if (className.includes('card')) return 'Card';
+  if (className.includes('grid')) return 'Grid';
+  if (className.includes('container')) return 'Container';
 
-  return `Khối (${tagName.toUpperCase()})`;
+  return `Element (${tagName.toUpperCase()})`;
 }
 
 /**
