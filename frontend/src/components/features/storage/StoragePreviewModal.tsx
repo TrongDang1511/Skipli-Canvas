@@ -112,18 +112,18 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
                 href={file.presignedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Mở tab mới"
+                title="Open in new tab"
                 className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span className="hidden sm:inline">Mở Tab Mới</span>
+                <span className="hidden sm:inline">Open in New Tab</span>
               </a>
             )}
 
             <button
               onClick={handleDownloadClick}
               disabled={isDownloading}
-              title="Tải file HTML trực tiếp từ S3 (Hạn 10s)"
+              title="Download HTML file directly from Cloud Storage"
               className="py-2 px-3.5 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs border border-amber-400/50 transition active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isDownloading ? (
@@ -131,12 +131,12 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
               ) : (
                 <Download className="w-4 h-4 text-slate-950" />
               )}
-              <span>Tải HTML</span>
+              <span>Download HTML</span>
             </button>
 
             <button
               onClick={onClose}
-              title="Đóng cửa sổ"
+              title="Close"
               className="p-2 text-slate-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-white hover:bg-red-50 dark:hover:bg-red-500/20 rounded-xl transition cursor-pointer ml-1"
             >
               <X className="w-5 h-5" />
@@ -150,7 +150,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-[#081220]/80 backdrop-blur-xs">
               <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin mb-3" />
               <p className="text-xs font-medium text-slate-700 dark:text-stone-300">
-                Đang nạp giao diện xem nhanh từ S3 Cloud...
+                Loading quick preview from Cloud Storage...
               </p>
             </div>
           )}
@@ -166,9 +166,9 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-stone-400 p-8 text-center">
               <HardDrive className="w-12 h-12 text-slate-400 mb-3" />
-              <p className="font-semibold text-sm">Không thể nạp link xem preview</p>
+              <p className="font-semibold text-sm">Unable to load preview link</p>
               <p className="text-xs text-slate-400 mt-1">
-                Link Presigned URL của file có thể đã bị ngắt kết nối. Vui lòng thử lại sau!
+                The Presigned URL may have expired or is unavailable. Please try again later!
               </p>
             </div>
           )}
@@ -178,7 +178,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
         <div className="h-10 px-5 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#070F1E] text-[11px] text-slate-500 dark:text-stone-400">
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Chế độ Quick Preview độc lập • Không làm gián đoạn Session làm việc</span>
+            <span>Isolated Quick Preview • Does not interrupt active session</span>
           </div>
           <span className="font-mono text-[10px]">Skipli S3 Engine</span>
         </div>

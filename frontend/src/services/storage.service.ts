@@ -52,7 +52,7 @@ export class StorageService {
       }
     } catch (error) {
       console.error('[StorageService] Download error:', error);
-      alert('Không thể tải file HTML. Vui lòng thử lại sau!');
+      alert('Unable to download HTML file. Please try again later!');
     }
   }
 

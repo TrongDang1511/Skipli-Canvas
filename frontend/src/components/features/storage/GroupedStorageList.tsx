@@ -41,9 +41,9 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
     return (
       <div className="py-12 px-4 text-center text-slate-400 dark:text-stone-500 text-xs">
         <Layers className="w-8 h-8 mx-auto mb-2.5 text-slate-400/60 dark:text-stone-500/60 stroke-[1.5]" />
-        <p className="font-semibold text-slate-700 dark:text-stone-300">Chưa có mã nguồn HTML nào</p>
+        <p className="font-semibold text-slate-700 dark:text-stone-300">No HTML source files found</p>
         <p className="text-[11px] text-slate-400 dark:text-stone-500 mt-1">
-          Các phiên bản HTML sinh ra theo từng phiên chat sẽ được phân nhóm lưu trữ tại đây!
+          HTML versions generated from each session will be grouped and stored here!
         </p>
       </div>
     );
@@ -65,12 +65,12 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                 <FolderGit2 className="w-3.5 h-3.5 text-amber-600 dark:text-[#D4AF37] shrink-0" />
                 <span
                   className="font-bold text-xs text-slate-800 dark:text-stone-200 truncate max-w-[135px]"
-                  title={group.sessionTitle || 'Phiên chưa đặt tên'}
+                  title={group.sessionTitle || 'Untitled Project'}
                 >
-                  {group.sessionTitle || 'Phiên chưa đặt tên'}
+                  {group.sessionTitle || 'Untitled Project'}
                 </span>
                 <span className="text-[10px] font-medium text-slate-500 dark:text-stone-400 bg-white dark:bg-slate-800 px-1.5 py-0.2 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
-                  {group.totalFiles} bản
+                  {group.totalFiles} versions
                 </span>
               </div>
 
@@ -81,7 +81,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                   e.stopPropagation();
                   onQuickSwitchSession(group.sessionId);
                 }}
-                title={isCurrentActiveSession ? 'Đang mở trong Workspace' : 'Mở dự án này trong Workspace'}
+                title={isCurrentActiveSession ? 'Open in Workspace' : 'Open project in Workspace'}
                 className={cn(
                   'flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold transition cursor-pointer shrink-0 border',
                   isCurrentActiveSession
@@ -89,7 +89,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-stone-300 border-slate-200 dark:border-slate-700 hover:text-navy-900 dark:hover:text-white hover:border-amber-400 hover:bg-amber-500/5'
                 )}
               >
-                <span>{isCurrentActiveSession ? 'Đang mở' : 'Mở dự án'}</span>
+                <span>{isCurrentActiveSession ? 'Active' : 'Open'}</span>
                 <ArrowUpRight className="w-3 h-3 text-amber-600 dark:text-[#D4AF37]" />
               </button>
             </div>
@@ -158,7 +158,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                           {activeOrLatestFile.sizeFormatted}
                         </span>
                         <span>•</span>
-                        <span>{group.totalFiles} phiên bản</span>
+                        <span>{group.totalFiles} versions</span>
                       </div>
                     </div>
                   </div>
@@ -175,7 +175,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                           activeOrLatestFile.versionId
                         )
                       }
-                      title="Tải file HTML mới nhất"
+                      title="Download latest HTML file"
                       className="p-1.5 text-slate-700 dark:text-stone-300 bg-slate-100 dark:bg-slate-800 hover:bg-[#D4AF37] hover:text-slate-950 rounded-lg transition cursor-pointer font-semibold border border-slate-200 dark:border-slate-700/60"
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -189,7 +189,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                           e.stopPropagation();
                           toggleSessionExpand(group.sessionId);
                         }}
-                        title={isExpanded ? 'Thu gọn lịch sử phiên bản' : 'Mở xem các phiên bản trước'}
+                        title={isExpanded ? 'Collapse version history' : 'View previous versions'}
                         className={cn(
                           'p-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center',
                           isExpanded
@@ -212,7 +212,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                 {isExpanded && hasMultipleVersions && (
                   <div className="ml-3 pl-2.5 border-l-2 border-amber-500/40 dark:border-amber-500/40 my-2 space-y-1 animate-in fade-in-50 duration-200">
                     <div className="text-[10px] font-bold text-slate-700 dark:text-stone-300 uppercase tracking-wider mb-1 px-1">
-                      Lịch sử phiên bản ({group.totalFiles})
+                      Version History ({group.totalFiles})
                     </div>
                     {group.files.map((file) => {
                       const cleanVersion = file.version.replace(/\s*\([^)]*\)/g, '').trim();
@@ -246,7 +246,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                             {/* Source Type Badge */}
                             {file.type === 'manual' ? (
                               <span className="text-[9px] text-amber-700 dark:text-[#D4AF37] font-semibold shrink-0 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20">
-                                Sửa tay
+                                Manual
                               </span>
                             ) : (
                               <span className="text-[9px] text-slate-700 dark:text-stone-300 font-semibold shrink-0 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
@@ -265,7 +265,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                               onClick={(e) =>
                                 onDownloadFile(e, file.id, file.fileName, file.versionId)
                               }
-                              title={`Tải về phiên bản ${cleanVersion}`}
+                              title={`Download version ${cleanVersion}`}
                               className="p-1 rounded text-slate-500 dark:text-stone-400 hover:text-navy-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                             >
                               <Download className="w-3 h-3" />
