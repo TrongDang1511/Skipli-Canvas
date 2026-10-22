@@ -34,7 +34,7 @@ export const LoadingScreen: FC = () => {
 
         {/* Subtitle status text */}
         <p className="text-[11px] font-medium text-navy-500 tracking-wider">
-          Đang đồng bộ phiên làm việc...
+          Synchronizing workspace session...
         </p>
       </div>
     </div>
