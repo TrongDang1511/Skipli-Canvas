@@ -142,7 +142,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
         }
 
         setIsStreaming(false);
-        const errMsg = err instanceof Error ? err.message : 'Lỗi kết nối máy chủ AI';
+        const errMsg = err instanceof Error ? err.message : 'AI Server connection error';
 
         let friendlyError = errMsg;
         if (
@@ -153,7 +153,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
           errMsg.includes('model_not_found')
         ) {
           friendlyError =
-            '⚠️ OpenRouter AI Engine đang tạm thời quá tải lượt gọi miễn phí (Rate Limit 429). Hệ thống đang tự động điều hướng, vui lòng thử lại sau 10 - 20 giây!';
+            '⚠️ The AI engine is temporarily experiencing high traffic (Rate Limit 429). Please try again in 10-20 seconds!';
         }
 
         setError(friendlyError);
@@ -180,7 +180,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.isLoading
-            ? { ...msg, text: '⚠️ Đã dừng xử lý theo yêu cầu người dùng.', isLoading: false }
+            ? { ...msg, text: '⚠️ Generation stopped by user.', isLoading: false }
             : msg
         )
       );

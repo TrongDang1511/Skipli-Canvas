@@ -196,7 +196,7 @@ export const FormattedChatMessage: FC<FormattedChatMessageProps> = ({ content })
     // 4. Section Headers in Bold text: e.g. "**Ý tưởng thiết kế:**" or "**Gợi ý bước tiếp theo:**"
     const isSectionHeader =
       (/^\*\*[^*]+\*\*:?\s*$/.test(trimmed) && trimmed.length < 90) ||
-      /^(ý tưởng thiết kế|gợi ý bước tiếp theo|các phần chính|tính năng|bảng màu|typography|cấu trúc|lưu ý|key sections|features|suggestions|highlights):?$/i.test(
+      /^(design concept|next steps|key sections|features|color palette|typography|structure|notes|suggestions|highlights|overview|layout summary|ý tưởng thiết kế|gợi ý bước tiếp theo):?$/i.test(
         trimmed.replace(/\*\*/g, '').replace(/:$/, '').trim()
       );
 
