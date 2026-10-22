@@ -3,10 +3,12 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   ListObjectsV2Command,
   GetBucketVersioningCommand,
   PutBucketVersioningCommand,
   ListObjectVersionsCommand,
+  PutBucketPolicyCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client } from '../config/s3.config';
@@ -63,6 +65,43 @@ export class S3Service {
   }
 
   /**
+   * Tự động kiểm tra và cấu hình chính sách Anonymous Read (Chỉ đọc công khai)
+   * cho riêng thư mục images/ của các session và thư mục public-media/ trên MinIO,
+   * trong khi bảo vệ tuyệt đối 100% các file mã nguồn index.html là Private.
+   */
+  public async ensurePublicBucketPolicyEnabled(): Promise<boolean> {
+    try {
+      const policy = {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Sid: 'AllowPublicReadImagesOnly',
+            Effect: 'Allow',
+            Principal: '*',
+            Action: ['s3:GetObject'],
+            Resource: [
+              `arn:aws:s3:::${this.bucketName}/users/*/sessions/*/images/*`,
+              `arn:aws:s3:::${this.bucketName}/public-media/*`,
+            ],
+          },
+        ],
+      };
+
+      await s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: this.bucketName,
+          Policy: JSON.stringify(policy),
+        })
+      );
+      console.log(`[S3Service] Đã kích hoạt Public Policy cho thư mục images/ và public-media/ trên Bucket: ${this.bucketName}`);
+      return true;
+    } catch (err) {
+      console.warn('[S3Service] Kiểm tra Bucket Policy:', err);
+      return false;
+    }
+  }
+
+  /**
    * Upload file HTML lên MinIO/S3 kèm S3 Custom Metadata (x-amz-meta-*),
    * trả về VersionId tự sinh từ S3 khi ghi đè thành công.
    */
@@ -99,14 +138,24 @@ export class S3Service {
   }
 
   /**
+   * Sinh đường dẫn Public Static URL vĩnh viễn cho tệp hình ảnh lưu trên MinIO/S3,
+   * hoàn toàn không kèm query parameters hay chữ ký HMAC tạm thời.
+   */
+  public getPublicStaticUrl(s3Key: string): string {
+    const endpoint = (env.s3Endpoint || 'http://127.0.0.1:9000').replace(/\/+$/, '');
+    const cleanKey = s3Key.replace(/^\/+/, '');
+    return `${endpoint}/${this.bucketName}/${cleanKey}`;
+  }
+
+  /**
    * Upload tệp hình ảnh dạng Buffer (được bóc tách từ Base64) lên thư mục images của MinIO
-   * và sinh ngay Presigned URL cho ảnh để nạp lên Live Preview.
+   * và sinh ngay Public Static URL vĩnh viễn (0ms, không bao giờ hết hạn) cho ảnh.
    */
   public async uploadImageBuffer(
     s3Key: string,
     buffer: Buffer,
     contentType: string = 'image/png'
-  ): Promise<{ presignedUrl: string; presignedExpiresAt: number }> {
+  ): Promise<{ staticUrl: string }> {
     try {
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
@@ -117,7 +166,9 @@ export class S3Service {
       });
       await s3Client.send(command);
 
-      return await this.getOrGeneratePresignedViewUrl(s3Key);
+      return {
+        staticUrl: this.getPublicStaticUrl(s3Key),
+      };
     } catch (error) {
       console.error(`[S3Service] Error uploading image to key: ${s3Key}`, error);
       throw error;
@@ -387,6 +438,109 @@ export class S3Service {
     } catch (error) {
       console.error(`[S3Service] Error deleting object at key: ${s3Key}`, error);
       return false;
+    }
+  }
+
+  /**
+   * Xóa toàn bộ objects (bao gồm toàn bộ versions và delete markers) theo tiền tố prefix.
+   * Dùng khi xóa 1 Session hoặc dọn dẹp sạch sẽ toàn bộ thư mục con trên MinIO.
+   */
+  public async deleteObjectsByPrefix(prefix: string): Promise<number> {
+    try {
+      let totalDeleted = 0;
+      let isTruncated = true;
+      let nextKeyMarker: string | undefined;
+      let nextVersionIdMarker: string | undefined;
+
+      while (isTruncated) {
+        const listCmd = new ListObjectVersionsCommand({
+          Bucket: this.bucketName,
+          Prefix: prefix,
+          KeyMarker: nextKeyMarker,
+          VersionIdMarker: nextVersionIdMarker,
+        });
+
+        const res = await s3Client.send(listCmd);
+        const objectsToDelete: { Key: string; VersionId?: string }[] = [];
+
+        if (res.Versions && res.Versions.length > 0) {
+          for (const v of res.Versions) {
+            if (v.Key) {
+              objectsToDelete.push({ Key: v.Key, VersionId: v.VersionId });
+            }
+          }
+        }
+
+        if (res.DeleteMarkers && res.DeleteMarkers.length > 0) {
+          for (const d of res.DeleteMarkers) {
+            if (d.Key) {
+              objectsToDelete.push({ Key: d.Key, VersionId: d.VersionId });
+            }
+          }
+        }
+
+        if (objectsToDelete.length > 0) {
+          const deleteCmd = new DeleteObjectsCommand({
+            Bucket: this.bucketName,
+            Delete: {
+              Objects: objectsToDelete,
+              Quiet: true,
+            },
+          });
+          await s3Client.send(deleteCmd);
+          totalDeleted += objectsToDelete.length;
+        }
+
+        isTruncated = Boolean(res.IsTruncated);
+        nextKeyMarker = res.NextKeyMarker;
+        nextVersionIdMarker = res.NextVersionIdMarker;
+      }
+
+      return totalDeleted;
+    } catch (error) {
+      console.error(`[S3Service] Error deleting objects by prefix ${prefix}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Tự động quét và dọn dẹp các tệp ảnh mồ côi trong thư mục images/ của session trên MinIO
+   * (khi người dùng thay thế ảnh bằng ảnh khác khi edit manually, hoặc rollback về phiên bản trước).
+   */
+  public async cleanupUnreferencedSessionImages(
+    userId: string,
+    sessionId: string,
+    activeHtml: string
+  ): Promise<string[]> {
+    const prefix = `users/${userId}/sessions/${sessionId}/images/`;
+    const deletedKeys: string[] = [];
+
+    try {
+      const listCmd = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+        Prefix: prefix,
+      });
+
+      const res = await s3Client.send(listCmd);
+      if (!res.Contents || res.Contents.length === 0) {
+        return [];
+      }
+
+      for (const item of res.Contents) {
+        if (!item.Key) continue;
+        const fileName = item.Key.split('/').pop() || '';
+        // Nếu tên file ảnh không còn xuất hiện trong chuỗi HTML hiện tại
+        if (fileName && !activeHtml.includes(fileName)) {
+          await this.deleteObjectsByPrefix(item.Key);
+          deletedKeys.push(item.Key);
+          console.log(`[S3Service] Đã dọn dẹp ảnh bị thay thế/hủy bỏ trên MinIO: ${item.Key}`);
+        }
+      }
+
+      return deletedKeys;
+    } catch (error) {
+      console.error(`[S3Service] Error cleaning up unreferenced images for session ${sessionId}:`, error);
+      return [];
     }
   }
 }
