@@ -305,7 +305,7 @@ export class SessionService {
   }> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) {
-      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+      throw new Error('Project session not found');
     }
 
     // Mỗi lần lưu sửa tay sẽ là 1 version mới độc lập (ví dụ: v1.1 -> v1.2), không kèm hậu tố '(Sửa tay)'
@@ -432,7 +432,7 @@ export class SessionService {
   }> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) {
-      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+      throw new Error('Project session not found');
     }
 
     const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
@@ -457,12 +457,12 @@ export class SessionService {
     }
 
     if (targetIndex === -1) {
-      throw new Error(`Không tìm thấy tin nhắn yêu cầu khôi phục với mã: ${userMessageId}`);
+      throw new Error('Target message for rollback not found');
     }
 
     const targetUserMessage = messages[targetIndex];
     if (targetUserMessage.sender !== 'user') {
-      throw new Error('Chỉ hỗ trợ khôi phục từ tin nhắn của người dùng.');
+      throw new Error('Rollback is only supported from user messages');
     }
 
     const promptText = targetUserMessage.text || '';
@@ -565,23 +565,23 @@ export class SessionService {
   }> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
     if (!session) {
-      throw new Error(`Không tìm thấy phiên làm việc với mã: ${sessionId}`);
+      throw new Error('Project session not found');
     }
 
     const messages = await sessionRepository.findMessagesBySessionId(sessionId, userId);
     const targetIndex = messages.findIndex((m) => m.id === milestoneMessageId);
 
     if (targetIndex === -1) {
-      throw new Error(`Không tìm thấy mốc chỉnh sửa thủ công với mã: ${milestoneMessageId}`);
+      throw new Error('Manual edit milestone not found');
     }
 
     const targetMilestone = messages[targetIndex];
     if (targetMilestone.sender !== 'system' || targetMilestone.eventType !== 'manual_edit') {
-      throw new Error('Chỉ hỗ trợ khôi phục về mốc chỉnh sửa thủ công.');
+      throw new Error('Rollback is only supported for manual edit milestones');
     }
 
     if (!targetMilestone.s3VersionId) {
-      throw new Error('Mốc chỉnh sửa thủ công không chứa S3 VersionId hợp lệ.');
+      throw new Error('Milestone does not contain a valid version snapshot');
     }
 
     // 1. Phân chia message: GIỮ LẠI cả mốc sửa tay này (từ đầu đến targetIndex)

@@ -530,7 +530,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                 <span>HTML Files & Stored Versions</span>
               </h3>
               <p className="text-xs font-medium text-slate-600 dark:text-stone-300 mt-1 font-sans">
-                All HTML versions generated across projects are safely grouped and backed up on MinIO S3.
+                All HTML versions generated across projects are safely grouped and backed up in Cloud Storage.
               </p>
             </div>
 
@@ -559,7 +559,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
 
       {/* Footer */}
       <footer className="text-center text-xs text-slate-400 dark:text-stone-500 py-4 border-t border-slate-200/80 dark:border-slate-800/60 mt-auto">
-        Skipli Canvas © 2026. Built with GoClaw AI Engine & Navy Luxury Design System.
+        Skipli Canvas © 2026. Powered by Skipli AI Engine & Navy Luxury Design System.
       </footer>
     </div>
   );

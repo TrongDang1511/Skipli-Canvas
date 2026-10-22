@@ -53,7 +53,7 @@ export class SessionController {
 
       const detail = await sessionService.getSessionDetail(userId, id);
       if (!detail) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy phiên hội thoại này' });
+        res.status(404).json({ success: false, message: 'Project session not found' });
         return;
       }
 
@@ -79,7 +79,7 @@ export class SessionController {
 
       const updated = await sessionService.renameSession(userId, id, title);
       if (!updated) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy phiên hội thoại để đổi tên' });
+        res.status(404).json({ success: false, message: 'Project session not found' });
         return;
       }
 
@@ -104,13 +104,13 @@ export class SessionController {
 
       const deleted = await sessionService.deleteSession(userId, id);
       if (!deleted) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy phiên hội thoại để xóa' });
+        res.status(404).json({ success: false, message: 'Project session not found' });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Đã xóa phiên hội thoại thành công',
+        message: 'Session deleted successfully',
       });
     } catch (error) {
       next(error);

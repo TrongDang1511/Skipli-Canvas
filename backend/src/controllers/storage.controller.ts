@@ -9,7 +9,7 @@ export class StorageController {
   ): Promise<void> => {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -31,7 +31,7 @@ export class StorageController {
   ): Promise<void> => {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -56,7 +56,7 @@ export class StorageController {
     const versionId = typeof req.query.versionId === 'string' ? req.query.versionId : undefined;
 
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -65,7 +65,7 @@ export class StorageController {
       if (!result || !result.downloadUrl) {
         res.status(404).json({
           success: false,
-          message: 'Không tìm thấy tệp lưu trữ trong hệ thống Cloud',
+          message: 'File not found in storage',
         });
         return;
       }
@@ -90,7 +90,7 @@ export class StorageController {
     const { id } = req.params;
 
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Yêu cầu đăng nhập' });
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -99,14 +99,14 @@ export class StorageController {
       if (!deleted) {
         res.status(404).json({
           success: false,
-          message: 'Tệp không tồn tại hoặc bạn không có quyền xóa',
+          message: 'File not found or unauthorized to delete',
         });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Đã xóa tệp khỏi hệ thống lưu trữ thành công',
+        message: 'File deleted successfully from storage',
       });
     } catch (error: unknown) {
       next(error);

@@ -168,7 +168,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
               <HardDrive className="w-12 h-12 text-slate-400 mb-3" />
               <p className="font-semibold text-sm">Unable to load preview link</p>
               <p className="text-xs text-slate-400 mt-1">
-                The Presigned URL may have expired or is unavailable. Please try again later!
+                The preview link may have expired or is unavailable. Please try again later!
               </p>
             </div>
           )}
@@ -180,7 +180,7 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>Isolated Quick Preview • Does not interrupt active session</span>
           </div>
-          <span className="font-mono text-[10px]">Skipli S3 Engine</span>
+          <span className="font-mono text-[10px]">Skipli Cloud Storage</span>
         </div>
       </div>
     </div>
