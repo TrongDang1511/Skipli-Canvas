@@ -165,6 +165,11 @@ export class StorageService {
     );
 
     const s3KeyToDelete = target ? target.s3Key : fileIdOrS3Key;
+    if (s3KeyToDelete.endsWith('/index.html')) {
+      const sessionPrefix = s3KeyToDelete.replace(/\/index\.html$/, '/');
+      await s3Service.deleteObjectsByPrefix(sessionPrefix);
+      return true;
+    }
     const deletedS3 = await s3Service.deleteObject(s3KeyToDelete);
     return deletedS3;
   }

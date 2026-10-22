@@ -155,11 +155,13 @@ export class SessionService {
 
   public async deleteSession(userId: string, sessionId: string): Promise<boolean> {
     const session = await sessionRepository.findSessionById(sessionId, userId);
-    if (session && session.s3Key) {
+    if (session) {
       try {
-        await s3Service.deleteObject(session.s3Key);
+        // Xóa sạch toàn bộ tệp index.html và toàn bộ hình ảnh trong session trên MinIO
+        const sessionPrefix = `users/${userId}/sessions/${sessionId}/`;
+        await s3Service.deleteObjectsByPrefix(sessionPrefix);
       } catch (s3Err) {
-        console.warn('[SessionService] Delete S3 object error:', s3Err);
+        console.warn('[SessionService] Delete S3 session prefix error:', s3Err);
       }
     }
     return sessionRepository.deleteSession(sessionId, userId);
@@ -333,16 +335,16 @@ export class SessionService {
         const imageS3Key = `users/${userId}/sessions/${session.id}/images/${imageFileName}`;
 
         try {
-          // Upload ảnh lên thư mục images/ trên MinIO
+          // Upload ảnh lên thư mục images/ trên MinIO và nhận Static URL vĩnh viễn
           const s3ImageInfo = await s3Service.uploadImageBuffer(
             imageS3Key,
             imageBuffer,
             `image/${ext === 'svg' ? 'svg+xml' : ext}`
           );
 
-          // Thay thế toàn bộ Data URI bằng Presigned URL của ảnh trên MinIO
-          if (s3ImageInfo.presignedUrl) {
-            processedHtml = processedHtml.split(fullDataUri).join(s3ImageInfo.presignedUrl);
+          // Thay thế toàn bộ Data URI bằng Public Static URL của ảnh trên MinIO (không có chữ ký tạm thời)
+          if (s3ImageInfo.staticUrl) {
+            processedHtml = processedHtml.split(fullDataUri).join(s3ImageInfo.staticUrl);
           }
         } catch (imgErr) {
           console.error(`[SessionService] Lỗi khi upload ảnh ${imageFileName} lên MinIO:`, imgErr);
@@ -364,7 +366,7 @@ export class SessionService {
     const s3Info = await s3Service.getOrGeneratePresignedViewUrl(s3Key);
     const now = new Date().toISOString();
 
-    // 4. Tạo Tin nhắn mốc hệ thống (Cách B) vào Firestore
+    // 4. Tạo Tin nhắn mốc hệ thống vào Firestore
     const milestoneMessage: SessionMessage = {
       id: randomUUID(),
       sessionId: session.id,
@@ -388,6 +390,13 @@ export class SessionService {
       versionCount: nextVersionCount,
       updatedAt: now,
     });
+
+    // 6. Tự động dọn dẹp các ảnh cũ đã bị thay thế hoặc xóa bỏ khỏi HTML trên MinIO
+    try {
+      await s3Service.cleanupUnreferencedSessionImages(userId, session.id, processedHtml);
+    } catch (cleanupErr) {
+      console.warn('[SessionService] Cleanup unreferenced images error:', cleanupErr);
+    }
 
     return {
       success: true,
@@ -515,6 +524,13 @@ export class SessionService {
       updatedAt: now,
     });
 
+    // Tự động dọn dẹp các ảnh mồ côi thuộc các version bị rollback trên MinIO
+    try {
+      await s3Service.cleanupUnreferencedSessionImages(userId, session.id, restoredHtml);
+    } catch (cleanupErr) {
+      console.warn('[SessionService] Cleanup unreferenced images on user turn rollback error:', cleanupErr);
+    }
+
     return {
       success: true,
       sessionId: session.id,
@@ -622,6 +638,13 @@ export class SessionService {
       versionCount: restoredVersionNumber,
       updatedAt: now,
     });
+
+    // Tự động dọn dẹp các ảnh mồ côi thuộc các mốc bị rollback trên MinIO
+    try {
+      await s3Service.cleanupUnreferencedSessionImages(userId, session.id, restoredHtml);
+    } catch (cleanupErr) {
+      console.warn('[SessionService] Cleanup unreferenced images on milestone rollback error:', cleanupErr);
+    }
 
     return {
       success: true,
