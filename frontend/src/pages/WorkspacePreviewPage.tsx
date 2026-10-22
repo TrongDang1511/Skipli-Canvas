@@ -19,8 +19,10 @@ export const WorkspacePreviewPage: FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const {
+    sessions,
     activeSession,
     activeSessionId,
+    isLoadingSession,
     setActiveSessionId,
     selectSession,
     fetchSessions,
@@ -29,6 +31,8 @@ export const WorkspacePreviewPage: FC = () => {
     updateActiveSessionLatestHtml,
     renameSession,
   } = useSession();
+
+  const currentSession = activeSession || sessions.find((s) => s.id === activeSessionId);
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
@@ -247,8 +251,8 @@ export const WorkspacePreviewPage: FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Header trên cùng của Workspace Editor: Logo SkipliCanvas (click -> Back to Dashboard) */}
           <WorkspaceHeader
-            sessionTitle={activeSession?.title}
-            activeVersion={activeSession?.versionCount ? `v1.${activeSession.versionCount}` : undefined}
+            sessionTitle={currentSession?.title}
+            activeVersion={currentSession?.versionCount ? `v1.${currentSession.versionCount}` : undefined}
             onBackToDashboard={handleBackToDashboard}
             onNewProject={handleBackToDashboard}
             onRenameTitle={async (newTitle: string) => {
@@ -264,9 +268,10 @@ export const WorkspacePreviewPage: FC = () => {
             <ChatSidebar
               messages={messages}
               isStreaming={isStreaming}
+              isLoadingSession={isLoadingSession}
               onSendPrompt={handleSendPrompt}
               onStopGeneration={stopGeneration}
-              sessionTitle={activeSession?.title}
+              sessionTitle={currentSession?.title}
               onStartRollback={handleStartRollback}
               onRollbackMilestone={handleStartRollbackMilestone}
               prefillPrompt={prefillPrompt}
@@ -284,6 +289,7 @@ export const WorkspacePreviewPage: FC = () => {
                 setViewMode={setViewMode}
                 onExport={handleExportHtml}
                 isStreaming={isStreaming}
+                isLoadingSession={isLoadingSession}
               />
             ) : (
               <CodeViewer

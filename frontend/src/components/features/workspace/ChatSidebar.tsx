@@ -13,11 +13,13 @@ import {
   Check,
   Pencil,
   RotateCcw,
+  Loader2,
 } from 'lucide-react';
 
 interface ChatSidebarProps {
   messages: ChatMessage[];
   isStreaming: boolean;
+  isLoadingSession?: boolean;
   onSendPrompt: (prompt: string) => void;
   onStopGeneration: () => void;
   sessionTitle?: string;
@@ -29,6 +31,7 @@ interface ChatSidebarProps {
 export const ChatSidebar: FC<ChatSidebarProps> = ({
   messages,
   isStreaming,
+  isLoadingSession = false,
   onSendPrompt,
   onStopGeneration,
   sessionTitle,
@@ -116,7 +119,18 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        {messages.map((msg, index) => {
+        {isLoadingSession ? (
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center animate-fadeIn select-none">
+            <Loader2 className="w-6 h-6 stroke-[2] text-[#D4AF37] animate-spin mb-2.5" />
+            <p className="text-xs font-semibold text-slate-800 dark:text-stone-200">
+              Đang tải dữ liệu hội thoại...
+            </p>
+            <p className="text-[11px] text-slate-400 dark:text-stone-500 mt-0.5 font-sans">
+              Đang đồng bộ lịch sử các phiên bản
+            </p>
+          </div>
+        ) : (
+          messages.map((msg, index) => {
           const isSystem = msg.sender === 'system' || msg.eventType === 'manual_edit';
           const isAi = msg.sender === 'ai';
           const isUser = !isSystem && !isAi;
@@ -253,7 +267,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
               )}
             </div>
           );
-        })}
+        }))}
         <div ref={messagesEndRef} />
       </div>
 

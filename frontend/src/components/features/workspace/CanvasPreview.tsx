@@ -135,6 +135,7 @@ interface CanvasPreviewProps {
   setViewMode: (mode: ViewMode) => void;
   onExport: () => void;
   isStreaming: boolean;
+  isLoadingSession?: boolean;
 }
 
 export const CanvasPreview: FC<CanvasPreviewProps> = ({
@@ -147,6 +148,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   setViewMode,
   onExport,
   isStreaming,
+  isLoadingSession = false,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasStorageError, setHasStorageError] = useState<boolean>(false);
@@ -157,13 +159,16 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   // Chuẩn bị mã HTML an toàn có nhúng inline guard script chống iframe bị điều hướng
   const safeHtml = useMemo(() => prepareSafePreviewHtml(currentHtml), [currentHtml]);
 
-  // Đồng bộ prop htmlContent khi có thay đổi từ bên ngoài (ví dụ AI sinh code mới)
+  // Đồng bộ prop htmlContent khi có thay đổi từ bên ngoài (ví dụ AI sinh code mới hoặc đổi session)
   useEffect(() => {
     if (htmlContent) {
       setCurrentHtml(htmlContent);
+      setHasStorageError(false);
       setReloadKey((prev) => prev + 1);
+    } else if (!presignedUrl) {
+      setCurrentHtml('');
     }
-  }, [htmlContent]);
+  }, [htmlContent, presignedUrl]);
 
   // Visual Bridge Hook quản lý Iframe DOM, Editor mode và Inspector
   const {
@@ -336,7 +341,19 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
         )}
 
         <div className={cn('transition-all duration-300 ease-out bg-white dark:bg-[#0B192C] overflow-hidden flex flex-col relative', getContainerStyles())}>
-          {hasStorageError ? (
+          {(isLoadingSession || (isCheckingS3 && !currentHtml)) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#FAF9F6] dark:bg-[#081220] select-none p-8 text-center animate-fadeIn">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-[#1E3E62] border border-amber-500/30 flex items-center justify-center mb-4 shadow-sm">
+                <Loader2 className="w-7 h-7 stroke-[2] text-[#D4AF37] animate-spin" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight mb-1">
+                Đang đồng bộ giao diện website...
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-stone-400 max-w-xs leading-relaxed font-sans">
+                Đang tải mã nguồn và hình ảnh trực tiếp từ Cloud Storage
+              </p>
+            </div>
+          ) : hasStorageError ? (
             <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#FAF9F6] dark:bg-[#081220] select-none">
               <div className="w-16 h-16 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
                 <FileQuestion className="w-8 h-8 stroke-[1.75] text-[#D4AF37]" />
