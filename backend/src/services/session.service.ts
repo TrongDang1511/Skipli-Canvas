@@ -105,7 +105,7 @@ export class SessionService {
       if (msg.sender === 'system') {
         return {
           role: 'user' as const,
-          content: `[Thông báo hệ thống: Người dùng đã lưu chỉnh sửa thủ công trên giao diện]`,
+          content: `[System Notice: User saved manual edits on the canvas]`,
         };
       }
       return {
@@ -133,7 +133,7 @@ export class SessionService {
       if (words.length > 6) sessionTitle += '...';
     }
     if (!sessionTitle) {
-      sessionTitle = `Dự án mới (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+      sessionTitle = `New Project (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
     }
 
     const newSession: Session = {
@@ -373,7 +373,7 @@ export class SessionService {
       userId,
       sender: 'system',
       eventType: 'manual_edit',
-      text: 'Bạn đã lưu chỉnh sửa thủ công trên giao diện',
+      text: 'You saved manual edits on the canvas',
       version: versionStr,
       s3VersionId,
       createdAt: now,
@@ -604,7 +604,7 @@ export class SessionService {
 
     // 3. Khôi phục Canvas về đúng s3VersionId của mốc sửa tay này
     const restoredVersionId = targetMilestone.s3VersionId;
-    const restoredVersion = targetMilestone.version || 'v1.X (Sửa tay)';
+    const restoredVersion = targetMilestone.version || 'v1.X (Manual Edit)';
     let restoredPresignedUrl = '';
     let restoredPresignedExpiresAt: number | undefined = undefined;
     let restoredHtml = '';

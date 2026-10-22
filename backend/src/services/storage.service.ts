@@ -90,7 +90,7 @@ export class StorageService {
 
       result.push({
         sessionId: session.id,
-        sessionTitle: session.title || 'Dự án không tên',
+        sessionTitle: session.title || 'Untitled Project',
         activeVersion,
         totalFiles: files.length,
         updatedAt: session.updatedAt || (files[0]?.createdAt ?? new Date().toISOString()),
