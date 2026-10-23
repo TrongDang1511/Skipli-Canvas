@@ -1,103 +1,232 @@
 import { ReactNode, FC } from 'react';
-import { ArrowUpRight, ArrowUp, Sparkles } from 'lucide-react';
+import { Sparkles, Globe, ShieldCheck, Zap, Layers, ArrowUpRight } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 interface AuthLayoutProps {
-  title: string;
-  subtitle: string;
+  mode: 'login' | 'register';
+  onSwitchMode: (mode: 'login' | 'register') => void;
   children: ReactNode;
 }
 
-export const AuthLayout: FC<AuthLayoutProps> = ({ title, subtitle, children }) => {
+export const AuthLayout: FC<AuthLayoutProps> = ({
+  mode,
+  onSwitchMode,
+  children,
+}) => {
   return (
-    <div className="min-h-screen w-full bg-beige-50 flex flex-col lg:flex-row font-sans text-navy-950 selection:bg-gold-200">
-      {/* LEFT PANEL: Auth Form Area (Chiếm không gian chính 56%-60%) */}
-      <div className="w-full lg:w-[56%] xl:w-[58%] flex flex-col justify-between p-8 sm:p-14 lg:p-18 xl:p-22 bg-white border-r border-beige-200 z-10">
-        <div className="max-w-lg w-full mx-auto">
-          {/* Logo & Brand Header: Logo đã crop sạch viền trong suốt, chữ nằm sát rạt biểu tượng */}
-          <div className="flex items-center gap-2 sm:gap-2.5 mb-6 sm:mb-8">
+    <div className="min-h-screen lg:h-screen w-full bg-[#FAF9F6] flex flex-col lg:flex-row font-sans text-[#0B192C] selection:bg-amber-100 lg:overflow-hidden">
+      {/* =========================================================================
+          LEFT PANEL: Clean Luxury Authentication Form (Tông Sáng Sang Trọng)
+          ========================================================================= */}
+      <div className="w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 bg-[#FAF9F6] border-r border-slate-200/80 z-10 lg:h-full lg:overflow-y-auto">
+        {/* Top Header: Logo */}
+        <div className="flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 select-none">
             <img
               src="/Skipli_logo.png"
               alt="Skipli Logo"
-              className="h-12 sm:h-14 lg:h-16 w-auto object-contain shrink-0 drop-shadow-sm transition-transform hover:scale-105 select-none"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              className="h-8 w-auto object-contain shrink-0 drop-shadow-2xs"
             />
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#E11D48] tracking-tight">
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-xl tracking-tight text-[#0B192C]">
                 Skipli
               </span>
-              <span className="font-serif italic font-bold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-gold-600 via-amber-500 to-gold-400 bg-clip-text text-transparent">
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
                 Canvas
               </span>
             </div>
           </div>
 
-          {/* Form Header */}
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-navy-950 tracking-tight">{title}</h1>
-            <p className="mt-1.5 text-xs sm:text-sm text-navy-600 leading-relaxed">{subtitle}</p>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-white border border-slate-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+            <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+            AI Web Architect
+          </span>
+        </div>
+
+        {/* Center Content: Mode Tabs + Sliding Form Track */}
+        <div className="max-w-md w-full mx-auto my-auto py-6 shrink-0">
+          {/* Segmented Mode Switcher */}
+          <div className="grid grid-cols-2 p-1 bg-slate-200/70 rounded-xl mb-6 border border-slate-200/90 select-none">
+            <button
+              type="button"
+              onClick={() => onSwitchMode('login')}
+              className={cn(
+                'py-2 text-xs font-bold rounded-lg transition-all cursor-pointer relative z-10',
+                mode === 'login'
+                  ? 'bg-white text-[#0B192C] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => onSwitchMode('register')}
+              className={cn(
+                'py-2 text-xs font-bold rounded-lg transition-all cursor-pointer relative z-10',
+                mode === 'register'
+                  ? 'bg-white text-[#0B192C] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              Create Account
+            </button>
           </div>
 
-          {/* Form Content */}
           {children}
         </div>
 
-        {/* Footer info */}
-        <div className="max-w-lg w-full mx-auto pt-10 border-t border-beige-100 text-[11px] text-navy-400 flex items-center justify-between">
+        {/* Bottom Footer */}
+        <div className="max-w-md w-full mx-auto pt-4 border-t border-slate-200/70 text-[11px] text-slate-400 flex items-center justify-between shrink-0">
           <span>© 2026 Skipli Inc. All rights reserved.</span>
-          <span className="flex items-center gap-1 hover:text-navy-700 cursor-pointer transition-colors">
-            Privacy & Terms <ArrowUpRight className="w-3 h-3" />
+          <span className="flex items-center gap-1 hover:text-slate-700 cursor-pointer transition-colors">
+            Terms & Privacy <ArrowUpRight className="w-3 h-3" />
           </span>
         </div>
       </div>
 
-      {/* RIGHT PANEL: Visual Hero Area (Gradient Navy Blue + Aurora Glow + Floating Lovable-style Prompt Bar) */}
-      <div className="hidden lg:flex flex-1 relative p-8 xl:p-12 items-center justify-center overflow-hidden bg-[#0B192C]">
-        {/* Navy Aurora Glowing Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0B192C] via-[#152e4d] to-[#081220]" />
-        
-        {/* Glowing Orbs (Navy + Blue + Subtle Gold Accent) */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-600/25 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gold-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+      {/* =========================================================================
+          RIGHT PANEL: Lovable / Vercel Interactive Mock Canvas Showcase
+          ========================================================================= */}
+      <div className="hidden lg:flex flex-1 relative p-10 xl:p-14 flex-col justify-between overflow-hidden bg-[#0B192C] text-white lg:h-full">
+        {/* Subtle Background Gradients & Tech Grid */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0B192C] via-[#10243E] to-[#070F1E] pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.035] pointer-events-none" />
 
-        {/* Ambient Subtle Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
-
-        {/* Floating Center Prompt Box (Mô phỏng Lovable style thanh lịch) */}
-        <div className="relative w-full max-w-md z-10">
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-2 shadow-2xl shadow-navy-950/60 flex items-center gap-3 group transition-all duration-300 hover:border-gold-400/40">
-            {/* Logo Icon inside input bar */}
-            <div className="pl-3 py-1 flex items-center shrink-0">
-              <img
-                src="/Skipli_logo.png"
-                alt="Skipli"
-                className="h-6 w-auto object-contain opacity-90"
-              />
-            </div>
-
-            {/* Prompt text with blinking cursor */}
-            <div className="flex-1 flex items-center text-xs sm:text-sm text-beige-100 font-medium tracking-wide">
-              <span>Ask Skipli Canvas to build your next web app</span>
-              <span className="inline-block w-0.5 h-4 bg-gold-400 ml-1 animate-pulse" />
-            </div>
-
-            {/* Submit Arrow Button */}
-            <button
-              type="button"
-              className="w-8 h-8 rounded-xl bg-white text-navy-950 flex items-center justify-center shrink-0 shadow-md group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </button>
+        {/* Top Badges Bar */}
+        <div className="relative z-10 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs text-amber-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold text-[11px]">Production Live Preview Engine</span>
           </div>
 
-          {/* Floating Feature Badge */}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-navy-900/80 text-gold-300 border border-gold-500/30 backdrop-blur-md shadow-xs">
-              <Sparkles className="w-3 h-3 text-gold-400" />
-              Powered by Skipli AI Engine
-            </span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+            <span className="text-[#D4AF37]">✦</span>
+            <span>Skipli Canvas Engine</span>
+          </div>
+        </div>
+
+        {/* Centerpiece: Floating Mock Canvas Window */}
+        <div className="relative z-10 my-auto py-6 max-w-xl mx-auto w-full">
+          {/* Main Browser Window */}
+          <div className="bg-slate-900/90 rounded-2xl border border-slate-700/80 shadow-2xl backdrop-blur-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.01]">
+            {/* Browser Header Bar */}
+            <div className="h-9 px-3.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between text-xs select-none">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-0.5 bg-slate-900 border border-slate-700/60 rounded-md text-[10px] text-slate-300 font-mono">
+                <Globe className="w-2.5 h-2.5 text-[#D4AF37]" />
+                <span className="truncate max-w-[200px]">preview.skipli-canvas.app/heritage-roasters</span>
+              </div>
+
+              <div className="flex items-center gap-1 text-[10px] text-[#D4AF37] font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-ping" />
+                <span>v1.3</span>
+              </div>
+            </div>
+
+            {/* Inner Mock Website Preview */}
+            <div className="p-5 bg-[#FAF9F6] text-slate-900 space-y-4 select-none font-sans">
+              {/* Mock Website Navbar */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-[#0B192C] text-[#D4AF37] flex items-center justify-center text-xs font-extrabold">
+                    H
+                  </span>
+                  <span className="font-extrabold text-xs tracking-tight text-[#0B192C]">
+                    Heritage Coffee Roasters
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">Menu</span>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">Our Story</span>
+                  <span className="text-[10px] font-bold bg-[#0B192C] text-white px-2 py-0.5 rounded-md flex items-center gap-1">
+                    Cart <span className="bg-[#D4AF37] text-slate-950 px-1 rounded-full text-[9px]">2</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Mock Website Hero Section */}
+              <div className="grid grid-cols-5 gap-3 items-center py-1">
+                <div className="col-span-3 space-y-1.5">
+                  <span className="inline-block text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                    ★ 4.9/5 Heritage Quality
+                  </span>
+                  <h3 className="font-extrabold text-sm text-[#0B192C] leading-snug">
+                    Artisan Roasts Crafted for True Connoisseurs
+                  </h3>
+                  <p className="text-[10px] text-slate-600 line-clamp-2">
+                    Fresh single-origin beans roasted daily in Lower Manhattan. Order online with express delivery.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button type="button" className="text-[10px] font-bold bg-[#D4AF37] text-slate-950 px-2.5 py-1 rounded shadow-xs">
+                      Order Online
+                    </button>
+                    <button type="button" className="text-[10px] font-medium text-slate-700 border border-slate-300 px-2.5 py-1 rounded">
+                      Explore Beans
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mock Card */}
+                <div className="col-span-2 bg-white p-2.5 rounded-xl border border-slate-200/90 shadow-xs space-y-1.5">
+                  <div className="w-full h-16 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                    📷 Signature Roast
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-[#0B192C]">Sumatra Mandheling</span>
+                    <span className="font-extrabold text-amber-600">$22.00</span>
+                  </div>
+                  <div className="w-full py-1 bg-slate-900 text-white text-[9px] font-bold rounded text-center">
+                    + Add to Cart
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Floating Pill Badges around the Canvas */}
+          <div className="absolute -top-3 -right-3 bg-white text-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 shadow-xl flex items-center gap-2 text-xs font-semibold animate-bounce duration-1000">
+            <Zap className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <span>Interactive Live Preview</span>
+          </div>
+
+          <div className="absolute -bottom-4 -left-3 bg-[#0B192C]/95 text-white px-3.5 py-1.5 rounded-xl border border-slate-700 shadow-2xl flex items-center gap-2 text-xs font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Protected Brand Media</span>
+          </div>
+        </div>
+
+        {/* Bottom Feature Highlights Bar */}
+        <div className="relative z-10 pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-4 text-center shrink-0">
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[#D4AF37] font-bold text-xs">
+              <Zap className="w-3 h-3" />
+              <span>Intelligent Generation</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Adaptive layouts & curated copy</p>
+          </div>
+
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[#D4AF37] font-bold text-xs">
+              <Layers className="w-3 h-3" />
+              <span>Visual Point & Click</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Edit text & images effortlessly</p>
+          </div>
+
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[#D4AF37] font-bold text-xs">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Cloud Versioning</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Rollback anytime with 0 data loss</p>
           </div>
         </div>
       </div>

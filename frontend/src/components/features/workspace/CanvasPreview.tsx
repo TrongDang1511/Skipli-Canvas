@@ -126,6 +126,7 @@ function prepareSafePreviewHtml(rawHtml: string): string {
 }
 
 interface CanvasPreviewProps {
+  sessionId?: string;
   presignedUrl?: string;
   htmlContent?: string;
   onSaveHtml?: (cleanHtml: string) => Promise<void>;
@@ -139,6 +140,7 @@ interface CanvasPreviewProps {
 }
 
 export const CanvasPreview: FC<CanvasPreviewProps> = ({
+  sessionId,
   presignedUrl,
   htmlContent,
   onSaveHtml,
@@ -276,6 +278,10 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   };
 
   const handleOpenNewTab = () => {
+    if (sessionId) {
+      window.open(`/preview/${sessionId}`, '_blank');
+      return;
+    }
     if (presignedUrl && !hasStorageError) {
       window.open(presignedUrl, '_blank');
     }

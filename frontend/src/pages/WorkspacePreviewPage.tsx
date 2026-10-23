@@ -1,4 +1,5 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../contexts/SessionContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useChatStream } from '../hooks/useChatStream';
@@ -18,6 +19,9 @@ import { cn } from '../utils/cn';
 export const WorkspacePreviewPage: FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { sessionId: routeSessionId, tab: routeTab } = useParams<{ sessionId?: string; tab?: string }>();
+  const navigate = useNavigate();
+
   const {
     sessions,
     activeSession,
@@ -32,10 +36,10 @@ export const WorkspacePreviewPage: FC = () => {
     renameSession,
   } = useSession();
 
-  const currentSession = activeSession || sessions.find((s) => s.id === activeSessionId);
+  const currentSession = activeSession || sessions.find((s) => s.id === (routeSessionId || activeSessionId));
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
-  const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const [viewMode, setViewMode] = useState<ViewMode>(routeTab === 'code' ? 'code' : 'preview');
   const [rollbackTarget, setRollbackTarget] = useState<{
     message: ChatMessage;
     index: number;
@@ -70,12 +74,58 @@ export const WorkspacePreviewPage: FC = () => {
       await Promise.all([fetchSessions(), fetchStorageFiles(), fetchGroupedStorageFiles()]);
       if (newOrExistingSessionId) {
         setActiveSessionId(newOrExistingSessionId);
+        if (routeSessionId !== newOrExistingSessionId) {
+          navigate(`/workspace/${newOrExistingSessionId}`, { replace: true });
+        }
       }
       if (newHtml) {
         updateActiveSessionLatestHtml(newHtml);
       }
     },
   });
+
+  // Tự động đồng bộ URL params -> load session
+  useEffect(() => {
+    if (routeSessionId) {
+      if (routeSessionId !== activeSessionId) {
+        selectSession(routeSessionId).then((detail) => {
+          if (detail) {
+            loadSession(
+              detail.messages || [],
+              detail.session.latestHtml || '',
+              detail.session.presignedUrl
+            );
+          }
+        });
+      }
+    } else {
+      if (activeSessionId) {
+        resetCanvas();
+        setActiveSessionId(null);
+      }
+    }
+  }, [routeSessionId]);
+
+  // Đồng bộ tab trên URL -> viewMode
+  useEffect(() => {
+    if (routeTab === 'code') {
+      setViewMode('code');
+    } else {
+      setViewMode('preview');
+    }
+  }, [routeTab]);
+
+  const handleSetViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    const targetId = routeSessionId || activeSessionId;
+    if (targetId) {
+      if (mode === 'code') {
+        navigate(`/workspace/${targetId}/code`, { replace: true });
+      } else {
+        navigate(`/workspace/${targetId}`, { replace: true });
+      }
+    }
+  };
 
   const handleSaveHtml = async (cleanHtml: string) => {
     if (!activeSessionId) {
@@ -133,6 +183,9 @@ export const WorkspacePreviewPage: FC = () => {
         detail.session.latestHtml || '',
         detail.session.presignedUrl
       );
+      if (routeSessionId !== sessionId) {
+        navigate(`/workspace/${sessionId}`);
+      }
     }
   };
 
@@ -227,9 +280,10 @@ export const WorkspacePreviewPage: FC = () => {
   const handleBackToDashboard = () => {
     resetCanvas();
     setActiveSessionId(null);
+    navigate('/dashboard');
   };
 
-  const isWorkspaceEditorOpen = hasStartedChat || Boolean(activeSessionId);
+  const isWorkspaceEditorOpen = Boolean(routeSessionId || activeSessionId || hasStartedChat);
 
   return (
     <div
@@ -280,13 +334,14 @@ export const WorkspacePreviewPage: FC = () => {
             {/* Khung Live Preview Canvas hoặc Code Viewer Cực Rộng Rãi */}
             {viewMode === 'preview' ? (
               <CanvasPreview
+                sessionId={currentSession?.id || activeSessionId || routeSessionId}
                 presignedUrl={presignedUrl || activeSession?.presignedUrl}
                 htmlContent={extractedHtml || activeSession?.latestHtml}
                 onSaveHtml={handleSaveHtml}
                 viewport={viewport}
                 setViewport={setViewport}
                 viewMode={viewMode}
-                setViewMode={setViewMode}
+                setViewMode={handleSetViewMode}
                 onExport={handleExportHtml}
                 isStreaming={isStreaming}
                 isLoadingSession={isLoadingSession}
@@ -296,7 +351,7 @@ export const WorkspacePreviewPage: FC = () => {
                 code={extractedHtml}
                 presignedUrl={presignedUrl || activeSession?.presignedUrl}
                 viewMode={viewMode}
-                setViewMode={setViewMode}
+                setViewMode={handleSetViewMode}
               />
             )}
           </div>
