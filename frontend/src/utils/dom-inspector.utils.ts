@@ -37,37 +37,19 @@ export function getElementTagLabel(element: HTMLElement): string {
 
 /**
  * Dọn sạch các class, thẻ style, thẻ badge do Inspector chèn vào
- * Đảm bảo mã HTML khi lưu hoặc xuất bản 100% nguyên bản, không chứa rác code
+ * Đồng thời loại bỏ thẻ style khổng lồ do runtime của Tailwind CDN tự động tiêm vào,
+ * đảm bảo mã HTML lưu lên S3 thu nhỏ từ ~98KB về ~15-20KB, không bị cắt cụt ký tự.
  */
 export function cleanInspectorArtifacts(doc: Document): string {
-  // 1. Gỡ bỏ thẻ style của inspector
-  const styleTag = doc.getElementById('skipli-inspector-styles');
-  if (styleTag) {
-    styleTag.remove();
-  }
-
-  // 2. Gỡ bỏ badge inspector và toast preview
-  const badgeEl = doc.getElementById('skipli-inspector-badge');
-  if (badgeEl) {
-    badgeEl.remove();
-  }
-
-  const toastContainer = doc.getElementById('skipli-preview-toast-container');
-  if (toastContainer) {
-    toastContainer.remove();
-  }
-
-  const guardScript = doc.getElementById('skipli-preview-guard');
-  if (guardScript) {
-    guardScript.remove();
-  }
-
-  // 3. Xóa các class highlight trên toàn bộ elements
+  // 1. Dọn dẹp trạng thái highlight trên live DOM để không còn viền inspector
   const hoveredEls = doc.querySelectorAll('.skipli-hovered');
   hoveredEls.forEach((el) => el.classList.remove('skipli-hovered'));
 
   const selectedEls = doc.querySelectorAll('.skipli-selected');
   selectedEls.forEach((el) => el.classList.remove('skipli-selected'));
+
+  const undoEls = doc.querySelectorAll('.skipli-undo-highlight');
+  undoEls.forEach((el) => el.classList.remove('skipli-undo-highlight'));
 
   const editingEls = doc.querySelectorAll('.skipli-text-editing');
   editingEls.forEach((el) => {
@@ -77,10 +59,47 @@ export function cleanInspectorArtifacts(doc: Document): string {
     el.removeAttribute('data-original-content');
   });
 
-  // Gỡ bỏ bất kỳ thẻ nào còn sót contenteditable
   const contentEditables = doc.querySelectorAll('[contenteditable]');
   contentEditables.forEach((el) => el.removeAttribute('contenteditable'));
 
+  // 2. Clone toàn bộ tài liệu HTML để bóc tách mã nguồn xuất bản mà KHÔNG làm giật giao diện iframe đang xem
+  const clone = doc.documentElement.cloneNode(true) as HTMLElement;
+
+  // Gỡ bỏ thẻ style, badge và toast của inspector trên bản clone
+  clone.querySelector('#skipli-inspector-styles')?.remove();
+  clone.querySelector('#skipli-inspector-badge')?.remove();
+  clone.querySelector('#skipli-preview-toast-container')?.remove();
+  clone.querySelector('#skipli-preview-guard')?.remove();
+
+  // Gỡ bỏ thuộc tính chế độ editor trên thẻ <html> và class trạng thái trên <body>
+  clone.removeAttribute('data-skipli-mode');
+  const cloneBody = clone.querySelector('body') || (clone.tagName.toLowerCase() === 'body' ? clone : null);
+  if (cloneBody) {
+    cloneBody.classList.remove('skipli-visual-edit-active', 'skipli-preview-active');
+    if (cloneBody.classList.length === 0) {
+      cloneBody.removeAttribute('class');
+    }
+  }
+
+  // 3. Phương án 1: Bóc tách và loại bỏ triệt để thẻ <style> do runtime của cdn.tailwindcss.com tự động tiêm vào
+  // Giúp thu nhỏ dung lượng HTML từ ~98KB về ~15-20KB, ngăn GoClaw web_fetch bị tràn giới hạn 60.000 ký tự.
+  // Khi người dùng xem trang hoặc tải file về máy, cdn.tailwindcss.com sẽ tự động phân tích class và biên dịch lại siêu tốc (~5ms).
+  const styleTags = clone.querySelectorAll('style');
+  styleTags.forEach((styleEl) => {
+    const css = styleEl.textContent || '';
+    const isTailwindRuntime =
+      css.includes('tailwindcss') ||
+      css.includes('--tw-border-spacing-x') ||
+      css.includes('--tw-ring-offset-shadow') ||
+      css.includes('--tw-pan-x') ||
+      (css.includes('--tw-') && css.includes('*,::after,::before'));
+
+    if (isTailwindRuntime) {
+      styleEl.remove();
+    }
+  });
+
   // 4. Trả về toàn bộ chuỗi HTML sạch
-  return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  return '<!DOCTYPE html>\n' + clone.outerHTML;
 }
+
