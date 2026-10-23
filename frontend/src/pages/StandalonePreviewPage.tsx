@@ -227,7 +227,7 @@ export const StandalonePreviewPage: FC = () => {
         <div className="bg-[#0B192C]/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full border border-slate-700/80 shadow-2xl flex items-center gap-3 text-xs">
           {/* Logo & Title */}
           <div className="flex items-center gap-2 pr-3 border-r border-slate-700/80">
-            <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+            <img src="/Skipli_logo.png" alt="Skipli" className="h-4 w-auto object-contain select-none" />
             <span className="font-semibold text-white truncate max-w-[160px] md:max-w-xs">
               {session.title || 'Untitled Website'}
             </span>
