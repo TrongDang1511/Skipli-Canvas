@@ -15,13 +15,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-navy-800">
+          <label htmlFor={inputId} className="block text-xs font-bold text-slate-700 select-none">
             {label}
           </label>
         )}
-        <div className="relative rounded-lg shadow-xs">
+        <div className="relative rounded-xl shadow-2xs">
           {leftIcon && (
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-400">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
               {leftIcon}
             </div>
           )}
@@ -29,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              'block w-full rounded-lg border border-beige-300 bg-white px-3.5 py-2.5 text-sm text-navy-950 placeholder:text-navy-300 transition-all duration-200 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none',
+              'block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-[#0B192C] focus:ring-2 focus:ring-[#D4AF37]/30 focus:outline-none',
               leftIcon && 'pl-10',
               rightIcon && 'pr-10',
               error && 'border-red-500 focus:border-red-500 focus:ring-red-500',

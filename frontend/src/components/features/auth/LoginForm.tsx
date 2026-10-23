@@ -40,12 +40,12 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       )}
 
       <Input
-        label="Email"
+        label="Work Email"
         type="email"
-        placeholder="name@company.com"
+        placeholder="alex@company.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        leftIcon={<Mail className="w-4 h-4 text-navy-400" />}
+        leftIcon={<Mail className="w-4 h-4 text-slate-400" />}
         required
         autoComplete="email"
       />
@@ -56,12 +56,12 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         placeholder="••••••••"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        leftIcon={<Lock className="w-4 h-4 text-navy-400" />}
+        leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
         rightIcon={
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-navy-400 hover:text-navy-700 focus:outline-none cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -75,19 +75,19 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         variant="navy"
         size="lg"
         isLoading={isLoading}
-        className="w-full mt-2 group"
+        className="w-full mt-2 group bg-[#0B192C] hover:bg-[#1E3E62] text-white shadow-md active:scale-98 transition-all"
       >
-        <span>Sign in to Skipli Canvas</span>
-        <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
+        <span>Sign In to Workspace</span>
+        <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1 text-[#D4AF37]" />
       </Button>
 
-      <div className="pt-3 text-center">
-        <p className="text-xs text-navy-600">
-          Don't have an account?{' '}
+      <div className="pt-2 text-center">
+        <p className="text-xs text-slate-500">
+          New to Skipli Canvas?{' '}
           <button
             type="button"
             onClick={onSwitchToRegister}
-            className="font-semibold text-navy-950 hover:text-gold-600 underline underline-offset-4 cursor-pointer transition-colors"
+            className="font-bold text-[#0B192C] hover:text-amber-700 underline underline-offset-4 cursor-pointer transition-colors"
           >
             Create an account
           </button>
