@@ -212,9 +212,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
     },
   });
 
-  // Tải nội dung tệp trực tiếp từ MinIO S3 (Nguồn chân lý duy nhất)
+  // Tải nội dung tệp trực tiếp từ MinIO S3 khi chưa có sẵn htmlContent
   useEffect(() => {
-    if (!presignedUrl) {
+    if (!presignedUrl || htmlContent) {
       setHasStorageError(false);
       return;
     }
@@ -393,16 +393,19 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
               sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
               className="w-full h-full border-none bg-white"
             />
-          ) : presignedUrl ? (
-            /* Fallback nạp qua presignedUrl khi chưa lấy được nội dung HTML */
-            <iframe
-              ref={iframeRef}
-              key={`preview-url-${reloadKey}`}
-              title="Skipli Live Preview"
-              src={presignedUrl}
-              sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
-              className="w-full h-full border-none bg-white"
-            />
+          ) : (presignedUrl || isCheckingS3) ? (
+            /* Khi đang đồng bộ mã nguồn từ S3: Hiển thị trạng thái tải nhẹ nhàng, không render iframe cross-origin gây chớp giật */
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#FAF9F6] dark:bg-[#081220] select-none p-8 text-center animate-fadeIn">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-[#1E3E62] border border-amber-500/30 flex items-center justify-center mb-4 shadow-sm">
+                <Loader2 className="w-7 h-7 stroke-[2] text-[#D4AF37] animate-spin" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight mb-1">
+                Synchronizing website interface...
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-stone-400 max-w-xs leading-relaxed font-sans">
+                Fetching source code and images directly from Cloud Storage
+              </p>
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-white dark:bg-[#0B192C] text-slate-400 p-6 text-center select-none">
               <Globe className="w-12 h-12 stroke-[1.5] text-slate-300 dark:text-slate-600 mb-3" />
