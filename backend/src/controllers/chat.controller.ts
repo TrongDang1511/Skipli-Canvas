@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { goclawService, ChatCompletionOptions } from '../services/goclaw.service';
 import { sessionService } from '../services/session.service';
 import { ChatRequestDto } from '../dtos/chat.dto';
-import { unmaskHtmlAssets } from '../utils/asset-masker.utils';
 import { Session } from '../models/session.model';
 
 export class ChatController {
@@ -26,7 +25,6 @@ export class ChatController {
             currentSession = sessionCtx.session;
             contextOptions = {
               history: sessionCtx.history,
-              currentHtml: sessionCtx.latestHtml,
               codeUrl: sessionCtx.codeUrl,
               sessionTitle: sessionCtx.session?.title,
             };
@@ -38,14 +36,8 @@ export class ChatController {
 
       const response = await goclawService.chatCompletion(prompt, contextOptions);
       const rawContent = response.text;
-      let extractedHtml = goclawService.extractHtml(rawContent, requestStartTime);
-
-      // Phục hồi lại toàn bộ link ảnh MinIO S3 / CDN gốc của người dùng từ bảng ánh xạ Token
-      if (extractedHtml && response.assetMap && response.assetMap.size > 0) {
-        extractedHtml = unmaskHtmlAssets(extractedHtml, response.assetMap);
-      }
-
-      const fullContent = goclawService.cleanTextResponse(rawContent);
+      const extractedHtml = goclawService.extractHtml(rawContent, requestStartTime);
+      const fullContent = goclawService.cleanTextResponse(rawContent, prompt);
 
       let savedSessionId = sessionId;
       let savedVersion = currentSession?.versionCount

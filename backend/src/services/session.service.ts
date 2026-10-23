@@ -81,15 +81,6 @@ export class SessionService {
 
     if (session.s3Key) {
       try {
-        const s3Html = await s3Service.getHtmlContent(session.s3Key, session.s3VersionId);
-        if (s3Html && s3Html.trim()) {
-          latestHtml = s3Html;
-        }
-      } catch (readErr) {
-        console.warn('[SessionService] Error reading latestHtml from S3:', readErr);
-      }
-
-      try {
         // Sinh Presigned URL dạng text/plain để AI gọi web_fetch đọc raw code on-demand
         codeUrl = await s3Service.getPresignedRawCodeUrl(session.s3Key, session.s3VersionId);
       } catch (codeUrlErr) {
@@ -352,7 +343,14 @@ export class SessionService {
       }
     }
 
-    // 2. Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại index.html và bắt VersionId mới
+    // 2. Phương án 1: Lọc bỏ thẻ <style> khổng lồ do Tailwind CDN runtime sinh ra nếu có (chống tràn 60K ký tự)
+    processedHtml = processedHtml
+      .replace(/<style\b[^>]*>[\s\S]*?(?:tailwindcss|--tw-border-spacing-x|--tw-pan-x)[\s\S]*?<\/style>/gi, '')
+      .replace(/\s*data-skipli-mode="[^"]*"/gi, '')
+      .replace(/\s*skipli-visual-edit-active/gi, '')
+      .replace(/\s*skipli-preview-active/gi, '');
+
+    // Ghi đè file HTML hoàn chỉnh lên MinIO S3 tại index.html và bắt VersionId mới
     const uploadRes = await s3Service.uploadHtml(s3Key, processedHtml, {
       sessionId: session.id,
       sessionTitle: session.title,

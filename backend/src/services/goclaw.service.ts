@@ -4,7 +4,6 @@ import os from 'os';
 import path from 'path';
 import { env } from '../config/env.config';
 import { goclawConfig } from '../config/goclaw.config';
-import { maskHtmlAssets } from '../utils/asset-masker.utils';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -13,125 +12,183 @@ export interface ChatMessage {
 
 export interface ChatCompletionResponse {
   text: string;
-  assetMap?: Map<string, string>;
 }
 
 export interface ChatCompletionOptions {
   history?: ChatMessage[];
-  currentHtml?: string;
   codeUrl?: string;
   sessionTitle?: string;
 }
 
 export class GoClawService {
+  public classifyIntent(
+    prompt: string,
+    isInitialTurn: boolean = false
+  ): 'CONSULTATION' | 'CODE_OPERATION' {
+    if (!prompt || !prompt.trim()) return isInitialTurn ? 'CODE_OPERATION' : 'CONSULTATION';
+
+    const clean = prompt.toLowerCase().trim();
+
+    // 1. Explicit force-override: Command to apply, build, or implement immediately
+    const forceActionPatterns = [
+      /\b(apply|implement|execute)\b/i,
+      /\b(do it|make the change|make those changes|apply (it|them|this|the changes))\b/i,
+      /\b(go ahead and (update|change|add|fix|make|swap|restyle))\b/i,
+      /\b(sửa luôn|làm luôn|áp dụng|thực hiện ngay|cập nhật ngay)\b/i,
+    ];
+    if (forceActionPatterns.some((pattern) => pattern.test(clean))) {
+      return 'CODE_OPERATION';
+    }
+
+    // 2. Comprehensive Consultation & Advisory Patterns (English + Vietnamese)
+    const consultPatterns = [
+      // Direct inquiry / Advice words
+      /\b(advice|advise|suggestion|suggestions|suggest|recommend|recommendations|critique|feedback|review|evaluate|evaluation|assessment|ideas?|brainstorm|thoughts?|opinion|inspiration)\b/i,
+      // Questions about design, strategy, aesthetics
+      /\b(what do you think|what are your thoughts|how do you feel about|what would you (do|recommend|suggest|choose))\b/i,
+      /\b(any (ideas|suggestions|thoughts|advice|tips|recommendations|alternatives))\b/i,
+      /\b(give me (advice|ideas|feedback|suggestions|critique|tips|options))\b/i,
+      /\b(pros and cons|difference between|best practices?|is it better to|should (i|we)|could (i|we))\b/i,
+      /\b(how (can|should|do|would) (i|we|users|customers))\b/i,
+      /\b(why (is|should|would|does))\b/i,
+      /\b(explain|tell me (about|more)|what is the (best|difference))\b/i,
+      // Vietnamese consultation keywords
+      /\b(tư vấn|gợi ý|ý kiến|nghĩ sao|có nên|đánh giá|nhận xét|góp ý|chia sẻ|giải thích|là gì|như thế nào|làm sao|theo bạn)\b/i,
+    ];
+
+    // 3. Comprehensive Code Action & Modification Patterns (English + Vietnamese)
+    const actionPatterns = [
+      // Create / Build
+      /\b(create|build|generate|develop|design|code|launch|put together|set up|setup|start)\b/i,
+      // Modify / Update / Restyle
+      /\b(update|modify|change|tweak|adjust|customize|edit|restyle|redesign|revamp|rework|reorganize|refactor|recolor|retheme|rewrite|revise)\b/i,
+      // Add / Insert / Embed
+      /\b(add|insert|include|embed|append|attach|place|put|integrate)\b/i,
+      // Remove / Delete / Hide
+      /\b(remove|delete|drop|hide|omit|get rid of|take out|eliminate|strip out)\b/i,
+      // Replace / Swap / Switch / Fix
+      /\b(replace|swap|switch|substitute|fix|repair|correct|resolve|patch)\b/i,
+      // Colloquial English command phrases: "make the...", "turn the...", "make it...", "hook up..."
+      /\b(make (the|it)|turn (the|it)|set (the|it)|swap (the|out)|switch (to|the)|hook up)\b/i,
+      // Vietnamese action keywords
+      /\b(tạo web|làm web|xây dựng|viết code|thiết kế web|sửa|đổi màu|thay màu|đổi font|thay ảnh|đổi ảnh|thêm|bớt|xóa|cập nhật|thay đổi|áp dụng|triển khai|viết lại)\b/i,
+    ];
+
+    const hasConsult = consultPatterns.some((pattern) => pattern.test(clean));
+    const hasAction = actionPatterns.some((pattern) => pattern.test(clean));
+
+    // Pure consultation without any action commands
+    if (hasConsult && !hasAction) {
+      return 'CONSULTATION';
+    }
+
+    // Question structure detection: if user asks a question with "?" and has consultation cues
+    if (clean.includes('?') && hasConsult) {
+      return 'CONSULTATION';
+    }
+
+    // Direct action command
+    if (hasAction) {
+      return 'CODE_OPERATION';
+    }
+
+    // 4. Structural Fallback for prompts with NO explicit keywords:
+    // Case A: Initial Turn (no web yet) -> user describes their business or what they want built
+    if (isInitialTurn) {
+      // Unless they specifically asked a question with "?", default to building the website
+      if (clean.includes('?') && (clean.startsWith('what') || clean.startsWith('how') || clean.startsWith('why') || clean.startsWith('can you'))) {
+        return 'CONSULTATION';
+      }
+      return 'CODE_OPERATION';
+    }
+
+    // Case B: Turn 2+ (existing web already exists)
+    // If the prompt is ambiguous or outside keywords, it is MUCH safer to treat as CONSULTATION (chat)
+    // rather than accidentally rebuilding or modifying the page when user was just commenting!
+    return 'CONSULTATION';
+  }
+
   public async chatCompletion(
     prompt: string,
     options: ChatCompletionOptions = {}
   ): Promise<ChatCompletionResponse> {
-    const { history = [], currentHtml, codeUrl, sessionTitle } = options;
+    const { history = [], codeUrl, sessionTitle } = options;
 
     let finalPrompt = '';
-    let assetMap: Map<string, string> | undefined;
 
     const historyBlock =
       history && history.length > 0
-        ? `\n\n[LỊCH SỬ ĐOẠN CHAT GẦN NHẤT (10 TIN NHẮN)]:\n` +
+        ? `\n\n[CONVERSATION HISTORY (LAST 10 MESSAGES)]:\n` +
           history
-            .map((msg) => `${msg.role === 'user' ? 'Người dùng' : 'AI Assistant'}: ${msg.content}`)
+            .map((msg) => `${msg.role === 'user' ? 'User' : 'AI Assistant'}: ${msg.content}`)
             .join('\n\n')
         : '';
 
-    if (codeUrl && codeUrl.trim()) {
-      // =========================================================================
-      // HTTP ON-DEMAND URL CONTEXT + EMBEDDED CONVERSATION HISTORY
-      // Giải quyết triệt để vấn đề GoClaw stateless + MinIO URL 200 OK
-      // =========================================================================
-      finalPrompt = `[SKIPLI AI ADAPTIVE ARCHITECT DIRECTIVE]:
-Bạn là Kiến trúc sư UI/UX kiêm Kỹ sư Frontend chịu trách nhiệm phát triển và tinh chỉnh website cho người dùng.
+    const isInitialTurn = !codeUrl || !codeUrl.trim();
+    const intent = this.classifyIntent(prompt, isInitialTurn);
+    const intentLabel =
+      intent === 'CONSULTATION'
+        ? 'CONSULTATION & STRATEGY ADVICE'
+        : isInitialTurn
+        ? 'NEW WEBSITE CREATION (INITIAL BUILD)'
+        : 'CODE REFINEMENT (UPDATE & EDIT)';
 
-[LIÊN KẾT MÃ NGUỒN WEBSITE HIỆN TẠI]:
-Toàn bộ mã nguồn HTML hiện tại của website đang được lưu trữ tại liên kết sau:
+    const hasVietnameseMarks = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(prompt);
+    const languageInstruction = hasVietnameseMarks
+      ? '1. Language Adaptation: The user is communicating in Vietnamese. You MUST generate all website copy and formulate your chat reply strictly in Vietnamese.'
+      : '1. Language Adaptation: Strictly match the user\'s language. If English, generate all website copy and formulate your chat reply strictly in English. If another language, adapt accordingly.';
+
+    if (codeUrl && codeUrl.trim()) {
+      // Turn 2+ with presigned S3 URL
+      finalPrompt = `[REQUEST CLASSIFICATION]: ${intentLabel}
+
+[CURRENT SOURCE CODE URL]:
 ${codeUrl}
 ${historyBlock}
 
-[YÊU CẦU HIỆN TẠI CỦA NGƯỜI DÙNG]:
+[USER REQUIREMENTS]:
 "${prompt}"
 
-[HƯỚNG DẪN QUY TRÌNH THỰC THI BẮT BUỘC]:
-1. TRƯỜNG HỢP NGƯỜI DÙNG HỎI Ý KIẾN / TƯ VẤN / TRAO ĐỔI (Không yêu cầu cập nhật code):
-   - Bạn có thể gọi tool 'web_fetch' với url="${codeUrl}" nếu cần đọc qua mã nguồn hiện tại để tư vấn chính xác, hoặc dựa vào lịch sử đoạn chat để trả lời.
-   - Tuyệt đối KHÔNG gọi tool 'write_file'.
-   - Trả lời bằng tiếng Việt tự nhiên, ấm áp, sâu sắc và chuyên nghiệp.
-
-2. TRƯỜNG HỢP NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA / ĐỔI MÀU / THAY ĐỔI GIAO DIỆN / CẬP NHẬT CODE:
-   - Bước 1 (Đọc mã gốc): Gọi tool 'web_fetch' với url="${codeUrl}" và extractMode="text" để tải về 100% mã nguồn HTML hiện tại của website.
-   - Bước 2 (Viết code mới): Dựa trên mã nguồn gốc vừa lấy được từ 'web_fetch', thực hiện thay đổi theo đúng yêu cầu của người dùng. BẮT BUỘC giữ nguyên toàn bộ các phần, thẻ script, phong cách và cấu trúc website hiện có.
-   - Bước 3 (Lưu code): Gọi tool 'write_file' với path="index.html" ĐÚNG 1 LẦN DUY NHẤT để ghi đè toàn bộ mã HTML mới hoàn chỉnh (>250 dòng).
-   - Bước 4 (Dừng lại & Báo cáo): Sau khi gọi 'write_file', KHÔNG gọi thêm bất kỳ công cụ nào khác. Trả lời tóm tắt bằng tiếng Việt giải thích những điểm vừa cập nhật.
-
-[ĐIỀU CẤM TUYỆT ĐỐI]:
-- Tuyệt đối KHÔNG xuất mã nguồn HTML thô hoặc khối code \`\`\`html trong lời chat trò chuyện.`;
-    } else if (currentHtml && currentHtml.trim()) {
-      // 1. Kỹ thuật Token Masking: Thay thế toàn bộ link ảnh MinIO S3 & CDN bằng token ngắn
-      const maskedResult = maskHtmlAssets(currentHtml.trim());
-      const maskedHtml = maskedResult.maskedHtml;
-      assetMap = maskedResult.assetMap;
-
-      // INCREMENTAL EDITING (Turn 2+) - Adaptive Dual-Mode Directive in English
-      finalPrompt = `[SKIPLI ADAPTIVE ASSISTANT & EDIT DIRECTIVE]:
-You are an expert Frontend Architect & UI/UX Consultant working on an EXISTING single-file website project: "${sessionTitle || 'Website'}".
-
-CURRENT HTML CONTEXT:
-\`\`\`html
-${maskedHtml}
-\`\`\`
+[EXECUTION WORKFLOW & SKILL GUIDELINES]:
+${languageInstruction}
+2. Execution Workflow:
+${
+  intent === 'CONSULTATION'
+    ? `   - CONSULTATION REQUEST: You may call 'web_fetch' with url="${codeUrl}" and extractMode="text" if needed to inspect the current code, or formulate direct, insightful architectural advice in chat. Strictly DO NOT call 'write_file'.`
+    : `   - CODE REFINEMENT / UPDATE REQUEST:
+     * Step 1: Call tool 'web_fetch' with url="${codeUrl}" and extractMode="text" to inspect the full current HTML code.
+     * Step 2: Refine the code strictly per user instructions, adhering to all equipped design standards (Tailwind CDN, Lucide CDN, Vanilla JS Cart, 8 core sections). NEVER call 'use_skill' or 'read_file'.
+     * Step 3: Call tool 'write_file' with filename "[topic]_${Date.now()}.html" (or "index.html") EXACTLY ONCE to save the complete single-file HTML document (>200 lines).
+     * Step 4 (Hard-Stop): After writing the file, NEVER call 'list_files' or any other tool. Stop immediately and summarize your design updates in the user's language. Never output raw HTML code or \`\`\`html blocks in chat.`
+}`;
+    } else {
+      // Turn 1 (Initial Creation)
+      finalPrompt = `[REQUEST CLASSIFICATION]: ${intentLabel}
 ${historyBlock}
 
-USER'S MESSAGE:
+[USER REQUIREMENTS]:
 "${prompt}"
 
-CRITICAL DUAL-MODE INTENT EVALUATION & EXECUTION RULES:
-
-Mode 1: CONVERSATIONAL, ADVISORY, OR INQUIRY INTENT
-- If the user's message is asking for ideas, suggestions, critique, recommendations, explanations, feature listings, or general questions WITHOUT an explicit command to update the website code (e.g., "liệt kê những thứ hay ho bạn nghĩ hệ thống nên có", "gợi ý tính năng", "giải thích code", "website này có tốt không?"):
-  * STRICTLY FORBIDDEN: Do NOT call 'write_file' or ANY other tools.
-  * Do NOT touch or overwrite the HTML file.
-  * Provide a warm, insightful, structured, and comprehensive response directly in natural Vietnamese.
-
-Mode 2: EXPLICIT CODE / UI / DESIGN MODIFICATION INTENT
-- If the user explicitly asks to modify, add, delete, restyle, or change content/sections in the website (e.g., "đổi màu nền...", "thêm mục...", "sửa chữ...", "áp dụng các gợi ý trên vào web"):
-  * Rule 1 (Asset Immutability): You MUST preserve all '__SKIPLI_ASSET_X__' tokens EXACTLY verbatim inside their respective <img> src or CSS background-image attributes. Never remove or change them.
-  * Rule 2 (Tool Invocation): Call the tool 'write_file' with path="index.html" EXACTLY ONCE to save the complete updated single-file HTML (>250 lines) to disk.
-  * Rule 3 (Hard-Stop): After calling 'write_file' once, DO NOT call any further tools. Output your friendly summary in Vietnamese explaining the enhancements made.
-
-GENERAL PROHIBITION:
-- Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your conversational chat reply.`;
-    } else {
-      // INITIAL CREATION (Turn 1)
-      finalPrompt = `[SKIPLI MASTER DESIGN & ARCHITECTURE DIRECTIVE]:
-You are an elite Digital UI/UX Architect. Design and construct a high-converting, single-file HTML website with:
-1. Light & Luxurious aesthetic: Warm White background (#FAF9F6), Deep Navy (#0B192C), Metallic Gold (#D4AF37), Google Fonts (Outfit / Plus Jakarta Sans), Tailwind CSS CDN, and Lucide Icons CDN.
-2. High-converting copywriting: Single H1, outcome-oriented CTAs, trust rating (4.9/5★), and SEO meta tags.
-3. All 8 comprehensive sections:
-   - Sticky Glassmorphism Header & Navbar with floating Cart Icon & badge.
-   - High-Impact Hero Banner with dual CTAs and trust rating pill.
-   - Brand Story Bento Grid with 3 metric highlight cards.
-   - Categorized Product Grid with Category Tab Filters ("All", "Signatures", "Side Dishes", "Beverages"), real prices, and Add to Cart.
-   - Value Proposition / Key Features Grid with Lucide stroke icons.
-   - Customer Testimonials with 5-star gold ratings & portrait avatars.
-   - Interactive Reservation / Order Form with submit Toast notification.
-   - 4-Column Luxury Footer & Slide-Over Cart Drawer with 100% Vanilla JS interactivity.
-4. Clean SVG Data URI placeholders or unique high-resolution Unsplash photo URLs for all cards.
-
-MANDATORY 2-STEP WORKFLOW & HARD-STOP RULE:
-- Step 1: Execute tool 'write_file' with path="index.html" EXACTLY ONCE to save the complete single-file HTML (>250 lines) to disk.
-- Step 2: Do NOT call any more tools (do NOT call write_file again, do NOT call use_skill). Immediately output your conversational response: a warm, insightful summary in natural Vietnamese explaining what you designed and built, and suggesting next steps for the user.
-- PROHIBITION: Absolutely DO NOT output raw HTML code or \`\`\`html code blocks in your chat response.
-
-User Request: ${prompt}`;
+[EXECUTION WORKFLOW & SKILL GUIDELINES]:
+${languageInstruction}
+2. Execution Workflow:
+${
+  intent === 'CONSULTATION'
+    ? `   - CONSULTATION REQUEST: Analyze, brainstorm, and advise on brand identity, color schemes, and layout directly in chat. Strictly DO NOT call 'write_file'.`
+    : `   - WEBSITE CREATION REQUEST:
+     * Build a complete, responsive, zero-laziness single-page web app (>200 lines of code with all 8 core sections) adhering to equipped design standards (Tailwind CDN, Lucide CDN, Vanilla JS Cart). NEVER call 'use_skill' or 'read_file'.
+     * Use elegant SVG Placeholders with camera icon and 'Click to upload image' (or 'Chạm để tải ảnh' if Vietnamese) or sharp Unsplash images for media.
+     * Call tool 'write_file' with filename "[topic]_${Date.now()}.html" (or "index.html") EXACTLY ONCE to save the single-file HTML to workspace.
+     * Hard-Stop: After writing the file, NEVER call 'list_files' or any other tool. Stop immediately and summarize your design highlights in the user's language.
+     * Never output raw HTML code or \`\`\`html blocks in chat.`
+}`;
     }
 
     const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: goclawConfig.systemPrompt,
+      },
       ...history,
       {
         role: 'user',
@@ -146,7 +203,7 @@ User Request: ${prompt}`;
           model: goclawConfig.agentId,
           messages,
           stream: false,
-          max_tokens: 8192,
+          max_tokens: 32768,
         },
         {
           headers: {
@@ -165,7 +222,7 @@ User Request: ${prompt}`;
         responseData?.content ||
         '';
 
-      return { text: content, assetMap };
+      return { text: content };
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data
@@ -177,28 +234,37 @@ User Request: ${prompt}`;
     }
   }
 
-  public cleanTextResponse(rawText: string): string {
+  public cleanTextResponse(rawText: string, userPrompt?: string): string {
+    const isVietnamese = Boolean(
+      userPrompt &&
+      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(userPrompt)
+    );
+
     if (!rawText || !rawText.trim()) {
-      return 'Tôi đã khởi tạo và xây dựng xong giao diện website theo đúng yêu cầu của bạn. Toàn bộ mã nguồn đã được lưu trữ an toàn trên MinIO Cloud và nạp trực tiếp vào khung Live Preview bên cạnh. Bạn có thể xem thử hoặc dùng chế độ Chỉnh Sửa Trực Quan để đổi chữ, thay ảnh tùy ý!';
+      return isVietnamese
+        ? 'Tôi đã hoàn thành giao diện website theo đúng yêu cầu của bạn. Toàn bộ mã nguồn đã được tải trực tiếp vào khung xem trước (Live Preview). Bạn có thể xem ngay hoặc sử dụng chế độ chỉnh sửa trực quan (Visual Editor) để tinh chỉnh nhé!'
+        : "I have updated the website interface according to your requirements. The updated code is loaded directly into the Live Preview. You can explore it now or use the Visual Editor for hands-on adjustments!";
     }
     let cleaned = rawText;
 
-    // 1. Loại bỏ toàn bộ các khối mã ```html ... ``` hoặc ``` ... ```
+    // 1. Strip code blocks ```html ... ``` or ``` ... ```
     cleaned = cleaned.replace(/```(?:html|xml|css|javascript|js)?[\s\S]*?```/gi, '');
-    // 2. Loại bỏ khối mã chưa đóng nếu có ở cuối
+    // 2. Strip unclosed code block if at end
     cleaned = cleaned.replace(/```(?:html|xml)?[\s\S]*$/gi, '');
-    // 3. Loại bỏ các câu dẫn mã nguồn kỹ thuật (VD: "Dưới đây là mã nguồn hoàn chỉnh...")
+    // 3. Strip technical source code lead-ins
     cleaned = cleaned.replace(/(?:Dưới đây là|Sau đây là|Here is the|Mã nguồn|Source code)[^\n]*?(?:mã nguồn|source code|code|trang web|HTML)[^\n]*:?/gi, '');
-    // 4. Loại bỏ các dòng thông báo tool hệ thống (VD: `write_file` đã được thực thi thành công...)
-    cleaned = cleaned.replace(/`?write_file`?[^\n]*?(?:thành công|hoàn tất|được tạo|delivered|workspace)[^\n]*/gi, '');
-    cleaned = cleaned.replace(/\*\(?(?:Mình đã lưu|Đã lưu|File will be delivered|Tôi đã lưu)[^\n]*\)?\*/gi, '');
-    // 5. Loại bỏ comment block
+    // 4. Strip system tool messages
+    cleaned = cleaned.replace(/`?write_file`?[^\n]*?(?:thành công|hoàn tất|được tạo|delivered|workspace|successful)[^\n]*/gi, '');
+    cleaned = cleaned.replace(/\*\(?(?:Mình đã lưu|Đã lưu|File will be delivered|Tôi đã lưu|File saved)[^\n]*\)?\*/gi, '');
+    // 5. Strip comment block
     cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
-    // 6. Xóa các dòng trống liên tiếp
+    // 6. Collapse multiple newlines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
 
     if (!cleaned || !cleaned.trim()) {
-      return 'Tôi đã ghi nhận ý kiến của bạn. Nếu bạn muốn áp dụng các ý tưởng hoặc thay đổi này vào giao diện website, hãy cho tôi biết nhé!';
+      return isVietnamese
+        ? 'Tôi đã hoàn thành cập nhật giao diện website theo yêu cầu của bạn. Bạn có thể kiểm tra ngay trên Live Preview hoặc phản hồi để tôi tiếp tục tinh chỉnh nhé!'
+        : "I have completed updating the website interface according to your requirements. You can inspect it directly in the Live Preview Canvas or let me know if you would like any further adjustments!";
     }
 
     return cleaned;
@@ -212,28 +278,21 @@ User Request: ${prompt}`;
     // CHỈ chấp nhận file được tạo/chỉnh sửa TRONG lượt chat này (sau requestStartTime)
     // =========================================================================
     try {
-      const userHome = os.homedir();
-      const agentId = env.goclawAgentId;
-      const customWorkspace = env.goclawWorkspaceDir;
-
-      const searchDirs = [
-        customWorkspace,
-        agentId ? path.join(userHome, '.goclaw', 'workspace', agentId, agentId) : '',
-        agentId ? path.join(userHome, '.goclaw', 'workspace', agentId) : '',
-        path.join(userHome, '.goclaw', 'workspace'),
-        process.cwd()
-      ].filter((dir): dir is string => Boolean(dir && dir.trim()));
+      const workspaceDir =
+        env.goclawWorkspaceDir ||
+        path.join(os.homedir(), '.goclaw', 'workspace', env.goclawAgentId || 'tho-xay-web-3');
 
       // 1.1 Kiểm tra xem trong phản hồi có nhắc đến đường dẫn file .html cụ thể nào không
       if (rawText) {
-        const pathMatch = rawText.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
-                          rawText.match(/([a-zA-Z0-9_\-./\\]+\.html)/i);
+        const pathMatch =
+          rawText.match(/([C-Z]:\\[^\s"'\n\r<>*?]+\.html)/i) ||
+          rawText.match(/([a-zA-Z0-9_\-./\\]+\.html)/i);
         if (pathMatch) {
           const candidateName = pathMatch[1].replace(/[.,;:)]+$/, '').trim();
           const candidatePaths = [
             candidateName,
-            ...searchDirs.map((dir) => path.join(dir, candidateName)),
-            ...searchDirs.map((dir) => path.join(dir, path.basename(candidateName))),
+            path.join(workspaceDir, candidateName),
+            path.join(workspaceDir, path.basename(candidateName)),
           ];
           for (const cPath of candidatePaths) {
             if (fs.existsSync(cPath) && fs.statSync(cPath).isFile()) {
@@ -274,9 +333,7 @@ User Request: ${prompt}`;
         }
       };
 
-      for (const dir of searchDirs) {
-        scanDirectory(dir);
-      }
+      scanDirectory(workspaceDir);
 
       // CHỈ chấp nhận nếu file thực sự được sửa/ghi trong lượt gọi này (sau requestStartTime - 2000ms bù trừ độ trễ)
       // Tuyệt đối không nhận vơ file cũ từ các lượt chat trước (trong vòng 30 phút)!

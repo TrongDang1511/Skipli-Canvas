@@ -18,12 +18,5 @@ router.post(
   chatController.sendChat
 );
 
-router.post(
-  '/stream',
-  authenticate,
-  validateBody(chatRequestSchema),
-  chatController.sendChat
-);
-
 export default router;
 
