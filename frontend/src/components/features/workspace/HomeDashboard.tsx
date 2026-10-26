@@ -132,7 +132,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
   };
 
   return (
-    <div className="relative flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] text-slate-900 dark:text-stone-100 flex flex-col min-h-screen overflow-y-auto select-none transition-colors duration-200">
+    <div className="relative flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] text-slate-900 dark:text-stone-100 flex flex-col min-h-dvh overflow-y-auto select-none transition-colors duration-200">
       {/* Aurora Mesh Gradient Backdrop (Lovable-inspired luxury glow for Light & Dark themes) */}
       <div className="absolute top-0 inset-x-0 h-[680px] overflow-hidden pointer-events-none select-none z-0">
         {/* Ambient Top Radial Canvas */}
@@ -161,7 +161,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
       </div>
 
       {/* 1. Header Trang Tổng Quan (Dashboard Top Bar) */}
-      <header className="h-16 px-6 border-b border-slate-200/90 dark:border-slate-800/90 flex items-center justify-between bg-white/70 dark:bg-[#070F1E]/70 backdrop-blur-md sticky top-0 z-30 transition-colors">
+      <header className="h-16 px-4 sm:px-6 border-b border-slate-200/90 dark:border-slate-800/90 flex items-center justify-between bg-white/70 dark:bg-[#070F1E]/70 backdrop-blur-md sticky top-0 z-30 transition-colors">
         <div
           onClick={focusPromptInput}
           className="flex items-center gap-2.5 cursor-pointer group select-none"
@@ -209,13 +209,13 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
       </header>
 
       {/* 2. Hero Section - Khung Prompt Khởi Tạo Nhanh */}
-      <section className="relative px-6 pt-12 pb-14 max-w-5xl mx-auto w-full flex flex-col items-center z-10">
+      <section className="relative px-4 sm:px-6 pt-8 pb-10 sm:pt-12 sm:pb-14 max-w-5xl mx-auto w-full flex flex-col items-center z-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-[#0B192C]/90 backdrop-blur-md border border-slate-300/90 dark:border-slate-700/80 shadow-xs text-xs font-bold text-slate-900 dark:text-stone-100 mb-4 animate-fadeIn">
           <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-[#D4AF37]" />
           <span>Skipli AI Web Architect Engine</span>
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-extrabold text-[#0B192C] dark:text-white tracking-tight leading-tight text-center max-w-3xl mb-3">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-[#0B192C] dark:text-white tracking-tight leading-tight text-center max-w-3xl mb-3">
           What website would you like to build today,{' '}
           <span className="text-amber-600 dark:text-[#D4AF37] underline decoration-amber-500/40 decoration-2 underline-offset-8">
             {userName || 'Creator'}?
@@ -227,7 +227,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
         </p>
 
         {/* Khung nhập Prompt */}
-        <div className="w-full bg-white/95 dark:bg-[#0B192C]/95 backdrop-blur-xl border-2 border-slate-200 dark:border-slate-700/80 focus-within:border-amber-500 dark:focus-within:border-[#D4AF37] focus-within:ring-4 focus-within:ring-amber-500/15 rounded-2xl p-4 shadow-xl shadow-slate-900/5 dark:shadow-2xl dark:shadow-black/70 transition-all duration-200 max-w-3xl">
+        <div className="w-full bg-white/95 dark:bg-[#0B192C]/95 backdrop-blur-xl border-2 border-slate-200 dark:border-slate-700/80 focus-within:border-amber-500 dark:focus-within:border-[#D4AF37] focus-within:ring-4 focus-within:ring-amber-500/15 rounded-2xl p-3.5 sm:p-4 shadow-xl shadow-slate-900/5 dark:shadow-2xl dark:shadow-black/70 transition-all duration-200 max-w-3xl">
           <textarea
             ref={textareaRef}
             rows={3}
@@ -235,10 +235,10 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
             onChange={(e) => setPromptInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g. Build an artisan French bakery website with warm cream and navy styling, featuring an interactive menu, cart drawer, and reservation form..."
-            className="w-full resize-none bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-sm font-medium text-slate-950 dark:text-white placeholder:text-slate-500 dark:placeholder:text-stone-400 leading-relaxed font-sans"
+            className="w-full resize-none bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-base md:text-sm font-medium text-slate-950 dark:text-white placeholder:text-slate-500 dark:placeholder:text-stone-400 leading-relaxed font-sans"
           />
 
-          <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700/60 mt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-700/60 mt-2">
             <span className="text-xs font-semibold text-slate-700 dark:text-stone-300 hidden sm:inline-flex items-center gap-1">
               Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-bold rounded text-[10px] font-mono border border-slate-300 dark:border-slate-600">Enter</kbd> to generate website
             </span>
@@ -247,7 +247,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               onClick={handleCreate}
               disabled={!promptInput.trim() || isStreaming}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs active:scale-95 cursor-pointer ml-auto',
+                'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs active:scale-95 cursor-pointer w-full sm:w-auto sm:ml-auto touch-manipulation',
                 promptInput.trim() && !isStreaming
                   ? 'bg-[#1E3E62] text-white hover:bg-[#28507e] dark:bg-[#1E3E62] dark:text-white dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
@@ -280,16 +280,16 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
       </section>
 
       {/* 3. Dashboard Navigation Tabs: Projects & Storage */}
-      <section className="max-w-6xl mx-auto w-full px-6 pb-16 flex-1 flex flex-col z-10">
+      <section className="max-w-6xl mx-auto w-full px-4 sm:px-6 pb-16 flex-1 flex flex-col z-10">
         {/* Navigation Dock: Hộp điều hướng rõ ràng, tách biệt hoàn toàn khỏi nền ở cả 2 theme */}
-        <div className="bg-white/95 dark:bg-[#0B192C]/95 backdrop-blur-xl border border-slate-300 dark:border-slate-800 rounded-2xl p-2 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-sm dark:shadow-xl">
+        <div className="bg-white/95 dark:bg-[#0B192C]/95 backdrop-blur-xl border border-slate-300 dark:border-slate-800 rounded-2xl p-2 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm dark:shadow-xl">
           {/* Tabs Group: Segmented pill controls */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#070F1E] p-1 rounded-xl border border-slate-200/80 dark:border-slate-800/80">
+          <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-slate-100 dark:bg-[#070F1E] p-1 rounded-xl border border-slate-200/80 dark:border-slate-800/80 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('projects')}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer',
+                'flex items-center justify-center sm:justify-start gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer touch-manipulation',
                 activeTab === 'projects'
                   ? 'bg-white dark:bg-[#1E3E62] text-[#0B192C] dark:text-white shadow-xs border border-slate-200/90 dark:border-amber-500/40'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
@@ -313,7 +313,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               type="button"
               onClick={() => setActiveTab('storage')}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer',
+                'flex items-center justify-center sm:justify-start gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer touch-manipulation',
                 activeTab === 'storage'
                   ? 'bg-white dark:bg-[#1E3E62] text-[#0B192C] dark:text-white shadow-xs border border-slate-200/90 dark:border-amber-500/40'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
@@ -338,7 +338,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
           <button
             type="button"
             onClick={focusPromptInput}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95 cursor-pointer border border-[#16304d] dark:border-blue-400/30"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95 cursor-pointer border border-[#16304d] dark:border-blue-400/30 w-full sm:w-auto touch-manipulation"
           >
             <Plus className="w-4 h-4 stroke-[2.5] text-[#D4AF37] dark:text-amber-300" />
             <span>New Project</span>
@@ -349,7 +349,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
         {activeTab === 'projects' && (
           <div className="flex-1">
             {isLoadingSessions ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
@@ -379,7 +379,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               </div>
             ) : (
               /* Grid các Project Cards: Chuẩn tỷ lệ, cân đối, sắc nét */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                 {sessions.map((session: Session) => {
                   const isRenaming = editingId === session.id;
                   const isDeleting = deletingId === session.id;
@@ -523,7 +523,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
 
         {/* Nội dung Tab 2: Danh sách Kho Lưu Trữ (Storage) */}
         {activeTab === 'storage' && (
-          <div className="flex-1 bg-white dark:bg-[#0B192C] rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 p-6 shadow-sm">
+          <div className="flex-1 bg-white dark:bg-[#0B192C] rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 shadow-sm overflow-x-hidden">
             <div className="mb-4">
               <h3 className="text-sm font-extrabold text-[#0B192C] dark:text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#D4AF37]" />

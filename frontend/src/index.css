@@ -16,11 +16,54 @@
     color: #F8FAFC;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   textarea:focus,
   input:focus,
   textarea:focus-visible,
   input:focus-visible {
     outline: none !important;
+  }
+}
+
+/* =========================================================================
+   RESPONSIVE UTILITIES (Safe Area Insets & Dynamic Viewport for Mobile)
+   ========================================================================= */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+  .pt-safe {
+    padding-top: max(12px, env(safe-area-inset-top, 12px));
+  }
+  .pl-safe {
+    padding-left: max(12px, env(safe-area-inset-left, 12px));
+  }
+  .pr-safe {
+    padding-right: max(12px, env(safe-area-inset-right, 12px));
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .h-dvh {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .min-h-dvh {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .max-h-dvh {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
   }
 }
 

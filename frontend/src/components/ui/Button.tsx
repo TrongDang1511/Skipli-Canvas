@@ -17,7 +17,7 @@ export const Button: FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer touch-manipulation select-none';
 
   const variants = {
     navy: 'bg-[#1E3E62] hover:bg-[#28507e] text-white focus:ring-[#1E3E62] shadow-sm active:scale-[0.99]',

@@ -52,55 +52,55 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
   };
 
   return (
-    <main className="flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] text-slate-800 dark:text-stone-100 flex flex-col h-full overflow-hidden p-3 select-none transition-colors duration-200">
-      {/* 1. Header Bar */}
-      <div className="h-10 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-4 flex items-center justify-between text-xs mb-2 shrink-0 shadow-xs dark:shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <FileCode className="w-4 h-4 text-amber-500 dark:text-[#D4AF37]" />
-            <span className="font-semibold text-slate-800 dark:text-stone-200">index.html</span>
-            <span className="text-[10px] text-slate-500 dark:text-stone-400 bg-slate-100 dark:bg-[#112240] px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
-              {lines.length} lines ({new Blob([activeCode]).size} bytes)
+    <main className="flex-1 bg-[#FAF9F6] dark:bg-[#070F1E] text-slate-800 dark:text-stone-100 flex flex-col h-full overflow-hidden p-2 sm:p-3 select-none transition-colors duration-200">
+      {/* 1. Header Bar: Responsive top bar with nowrap badges and compact buttons */}
+      <div className="min-h-10 py-1.5 sm:py-0 px-2 sm:px-4 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg flex items-center justify-between text-xs mb-2 shrink-0 shadow-xs dark:shadow-md gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
+            <FileCode className="w-4 h-4 text-amber-500 dark:text-[#D4AF37] shrink-0" />
+            <span className="font-semibold text-slate-800 dark:text-stone-200 truncate">index.html</span>
+            <span className="text-[10px] text-slate-500 dark:text-stone-400 bg-slate-100 dark:bg-[#112240] px-1.5 sm:px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono whitespace-nowrap shrink-0">
+              {lines.length} lines<span className="hidden md:inline"> ({new Blob([activeCode]).size} bytes)</span>
             </span>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
 
           {/* View Mode Toggle: Preview / Code */}
-          <div className="flex items-center bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('preview')}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer touch-manipulation',
                 viewMode === 'preview'
                   ? 'bg-white dark:bg-[#1E3E62] text-navy-900 dark:text-white shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-stone-400 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               <Eye className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Preview</span>
+              <span className="hidden xs:inline">Preview</span>
             </button>
 
             <button
               type="button"
               onClick={() => setViewMode('code')}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer touch-manipulation',
                 viewMode === 'code'
                   ? 'bg-white dark:bg-[#1E3E62] text-navy-900 dark:text-white shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-stone-400 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               <Code2 className="w-3 h-3 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Code</span>
+              <span className="hidden xs:inline">Code</span>
             </button>
           </div>
         </div>
 
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-stone-200 hover:text-navy-900 dark:hover:text-white rounded-lg transition text-xs font-medium border border-slate-200 dark:border-white/10 cursor-pointer active:scale-95"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-stone-200 hover:text-navy-900 dark:hover:text-white rounded-lg transition text-xs font-medium border border-slate-200 dark:border-white/10 cursor-pointer active:scale-95 shrink-0 touch-manipulation"
         >
           {copied ? (
             <>
@@ -110,14 +110,15 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
           ) : (
             <>
               <Copy className="w-3.5 h-3.5 text-amber-500 dark:text-[#D4AF37]" />
-              <span>Copy Code</span>
+              <span className="hidden xs:inline">Copy Code</span>
+              <span className="xs:hidden">Copy</span>
             </>
           )}
         </button>
       </div>
 
       {/* 2. Code Body with Line Numbers */}
-      <div className="flex-1 bg-white dark:bg-[#070F1E] border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-auto p-4 font-mono text-xs leading-relaxed select-text shadow-xs relative">
+      <div className="flex-1 bg-white dark:bg-[#070F1E] border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-auto p-2 sm:p-4 font-mono text-xs leading-relaxed select-text shadow-xs relative">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 select-none">
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
@@ -138,10 +139,10 @@ export const CodeViewer: FC<CodeViewerProps> = ({ code: propCode, presignedUrl, 
             <tbody>
               {lines.map((line, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition">
-                  <td className="w-12 text-right pr-4 text-slate-400 dark:text-stone-600 select-none text-[11px] font-mono align-top">
+                  <td className="w-8 sm:w-12 text-right pr-2 sm:pr-4 text-slate-400 dark:text-stone-600 select-none text-[10px] sm:text-[11px] font-mono align-top">
                     {idx + 1}
                   </td>
-                  <td className="text-slate-800 dark:text-stone-300 whitespace-pre font-mono align-top">
+                  <td className="text-slate-800 dark:text-stone-300 whitespace-pre font-mono align-top text-[11px] sm:text-xs">
                     {line || ' '}
                   </td>
                 </tr>

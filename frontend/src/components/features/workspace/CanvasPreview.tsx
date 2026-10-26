@@ -14,6 +14,7 @@ import {
   Loader2,
   FileQuestion,
   Camera,
+  MessageSquare,
 } from 'lucide-react';
 
 /**
@@ -137,6 +138,7 @@ interface CanvasPreviewProps {
   onExport: () => void;
   isStreaming: boolean;
   isLoadingSession?: boolean;
+  onSwitchToChat?: () => void;
 }
 
 export const CanvasPreview: FC<CanvasPreviewProps> = ({
@@ -151,6 +153,7 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
   onExport,
   isStreaming,
   isLoadingSession = false,
+  onSwitchToChat,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasStorageError, setHasStorageError] = useState<boolean>(false);
@@ -476,6 +479,19 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
           onToggleVisibility={toggleHideSection}
           onSelectSection={scrollToSection}
         />
+      )}
+
+      {/* Nút nổi Floating Action Button (FAB) trên Mobile để quay lại khung Chat với 1 chạm */}
+      {onSwitchToChat && (
+        <button
+          type="button"
+          onClick={onSwitchToChat}
+          className="lg:hidden fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-2.5 bg-[#1E3E62] hover:bg-[#28507e] text-white rounded-full shadow-2xl border border-blue-400/40 text-xs font-bold active:scale-95 transition-all cursor-pointer touch-manipulation backdrop-blur-md"
+          title="Quay lại khung chat với AI"
+        >
+          <MessageSquare className="w-4 h-4 text-[#D4AF37]" />
+          <span>Sửa web (Chat)</span>
+        </button>
       )}
     </div>
   </main>
