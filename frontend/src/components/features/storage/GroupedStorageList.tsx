@@ -64,7 +64,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
               <div className="flex items-center gap-1.5 min-w-0 pr-2">
                 <FolderGit2 className="w-3.5 h-3.5 text-amber-600 dark:text-[#D4AF37] shrink-0" />
                 <span
-                  className="font-bold text-xs text-slate-800 dark:text-stone-200 truncate max-w-[135px]"
+                  className="font-bold text-xs text-slate-800 dark:text-stone-200 truncate max-w-[120px] sm:max-w-[220px]"
                   title={group.sessionTitle || 'Untitled Project'}
                 >
                   {group.sessionTitle || 'Untitled Project'}
@@ -176,7 +176,7 @@ export const GroupedStorageList: FC<GroupedStorageListProps> = ({
                         )
                       }
                       title="Download latest HTML file"
-                      className="p-1.5 text-slate-700 dark:text-stone-300 bg-slate-100 dark:bg-slate-800 hover:bg-[#D4AF37] hover:text-slate-950 rounded-lg transition cursor-pointer font-semibold border border-slate-200 dark:border-slate-700/60"
+                      className="p-1.5 text-slate-700 dark:text-stone-300 bg-slate-100 dark:bg-slate-800 hover:bg-[#1E3E62] hover:text-white dark:hover:bg-[#28507e] rounded-lg transition cursor-pointer font-semibold border border-slate-200 dark:border-slate-700/60"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>

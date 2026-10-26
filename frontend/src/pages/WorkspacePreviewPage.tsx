@@ -40,6 +40,7 @@ export const WorkspacePreviewPage: FC = () => {
 
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>(routeTab === 'code' ? 'code' : 'preview');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'preview'>('preview');
   const [rollbackTarget, setRollbackTarget] = useState<{
     message: ChatMessage;
     index: number;
@@ -253,6 +254,7 @@ export const WorkspacePreviewPage: FC = () => {
   };
 
   const handleSendPrompt = async (promptText: string) => {
+    setMobileTab('chat');
     await sendPrompt(promptText, activeSessionId || undefined);
   };
 
@@ -351,7 +353,7 @@ export const WorkspacePreviewPage: FC = () => {
   return (
     <div
       className={cn(
-        'h-screen w-full flex flex-col overflow-hidden font-sans transition-colors duration-200',
+        'min-h-dvh h-dvh w-full flex flex-col overflow-hidden font-sans transition-colors duration-200',
         theme === 'dark' ? 'dark bg-[#0B192C] text-stone-100' : 'light bg-[#FAF9F6] text-slate-900'
       )}
     >
@@ -377,30 +379,42 @@ export const WorkspacePreviewPage: FC = () => {
                 await renameSession(activeSessionId, newTitle);
               }
             }}
+            mobileTab={mobileTab}
+            onSelectMobileTab={setMobileTab}
+            isStreaming={isStreaming}
           />
 
           {/* 2 Cột Làm Việc Tập Trung: Chat Bên Trái & Live Preview / Code Bên Phải có thể Kéo Resize */}
           <div className="flex-1 flex overflow-hidden relative">
             {/* Khung Chat Riêng Của Dự Án */}
-            <ChatSidebar
-              width={chatWidth}
-              messages={messages}
-              isStreaming={isStreaming}
-              isLoadingSession={isLoadingSession}
-              onSendPrompt={handleSendPrompt}
-              onStopGeneration={stopGeneration}
-              sessionTitle={currentSession?.title}
-              onStartRollback={handleStartRollback}
-              onRollbackMilestone={handleStartRollbackMilestone}
-              prefillPrompt={prefillPrompt}
-            />
+            <div
+              className={cn(
+                'h-full flex-col shrink-0',
+                mobileTab === 'chat' ? 'flex w-full' : 'hidden lg:flex'
+              )}
+              style={typeof window !== 'undefined' && window.innerWidth >= 1024 && chatWidth ? { width: `${chatWidth}px` } : undefined}
+            >
+              <ChatSidebar
+                width={chatWidth}
+                messages={messages}
+                isStreaming={isStreaming}
+                isLoadingSession={isLoadingSession}
+                onSendPrompt={handleSendPrompt}
+                onStopGeneration={stopGeneration}
+                sessionTitle={currentSession?.title}
+                onStartRollback={handleStartRollback}
+                onRollbackMilestone={handleStartRollbackMilestone}
+                prefillPrompt={prefillPrompt}
+                onSwitchToPreview={() => setMobileTab('preview')}
+              />
+            </div>
 
-            {/* Thanh Kéo Tinh Chỉnh Kích Thước (Draggable Resizer) */}
+            {/* Thanh Kéo Tinh Chỉnh Kích Thước (Draggable Resizer) - Chỉ kích hoạt trên Desktop */}
             <div
               onMouseDown={handleMouseDownResize}
               onDoubleClick={handleDoubleClickReset}
               className={cn(
-                'relative flex items-center justify-center w-2 -ml-1 z-30 group cursor-col-resize select-none transition-colors shrink-0',
+                'relative hidden lg:flex items-center justify-center w-2 -ml-1 z-30 group cursor-col-resize select-none transition-colors shrink-0',
                 isDragging
                   ? 'bg-[#1E3E62] dark:bg-[#D4AF37]'
                   : 'bg-transparent hover:bg-[#1E3E62]/30 dark:hover:bg-[#D4AF37]/30'
@@ -432,7 +446,12 @@ export const WorkspacePreviewPage: FC = () => {
             </div>
 
             {/* Khung Live Preview Canvas hoặc Code Viewer Cực Rộng Rãi */}
-            <div className="flex-1 min-w-0 h-full overflow-hidden">
+            <div
+              className={cn(
+                'flex-1 min-w-0 h-full overflow-hidden',
+                mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'
+              )}
+            >
               {viewMode === 'preview' ? (
                 <CanvasPreview
                   sessionId={currentSession?.id || activeSessionId || routeSessionId}
@@ -446,6 +465,7 @@ export const WorkspacePreviewPage: FC = () => {
                   onExport={handleExportHtml}
                   isStreaming={isStreaming}
                   isLoadingSession={isLoadingSession}
+                  onSwitchToChat={() => setMobileTab('chat')}
                 />
               ) : (
                 <CodeViewer

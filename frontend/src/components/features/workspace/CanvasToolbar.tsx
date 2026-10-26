@@ -259,8 +259,8 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
-        {/* 3. Bộ chọn Viewport */}
-        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80">
+        {/* 3. Bộ chọn Viewport (Ẩn trên mobile < sm vì người dùng đang dùng thiết bị thật) */}
+        <div className="hidden sm:flex items-center gap-0.5 bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80">
           <button
             type="button"
             onClick={() => setViewport('desktop')}
@@ -333,10 +333,11 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           onClick={onExport}
           disabled={!presignedUrl}
           title="Download HTML file"
-          className="flex items-center gap-1.5 px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap touch-manipulation"
         >
           <Download className="w-3.5 h-3.5 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
-          <span>Export HTML</span>
+          <span className="hidden sm:inline">Export HTML</span>
+          <span className="sm:hidden">Export</span>
         </button>
       </div>
     </div>

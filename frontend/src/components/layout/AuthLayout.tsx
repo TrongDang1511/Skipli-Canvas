@@ -14,11 +14,11 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
   children,
 }) => {
   return (
-    <div className="min-h-screen lg:h-screen w-full bg-[#FAF9F6] flex flex-col lg:flex-row font-sans text-[#0B192C] selection:bg-amber-100 lg:overflow-hidden">
+    <div className="min-h-dvh lg:h-screen w-full bg-[#FAF9F6] flex flex-col lg:flex-row font-sans text-[#0B192C] selection:bg-amber-100 lg:overflow-hidden">
       {/* =========================================================================
           LEFT PANEL: Clean Luxury Authentication Form (Tông Sáng Sang Trọng)
           ========================================================================= */}
-      <div className="w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 bg-[#FAF9F6] border-r border-slate-200/80 z-10 lg:h-full lg:overflow-y-auto">
+      <div className="w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-between p-4 sm:p-8 lg:p-12 xl:p-14 pt-safe pb-safe bg-[#FAF9F6] border-r border-slate-200/80 z-10 lg:h-full lg:overflow-y-auto">
         {/* Top Header: Logo */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 select-none">
@@ -39,7 +39,7 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
         </div>
 
         {/* Center Content: Mode Tabs + Sliding Form Track */}
-        <div className="max-w-md w-full mx-auto my-auto py-6 shrink-0">
+        <div className="max-w-md w-full mx-auto my-auto py-4 sm:py-6 shrink-0">
           {/* Segmented Mode Switcher */}
           <div className="grid grid-cols-2 p-1 bg-slate-200/70 rounded-xl mb-6 border border-slate-200/90 select-none">
             <button

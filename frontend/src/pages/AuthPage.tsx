@@ -27,7 +27,7 @@ export const AuthPage: FC = () => {
             )}
           >
             <div className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B192C] tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0B192C] tracking-tight">
                 Welcome Back
               </h1>
               <p className="mt-1.5 text-xs sm:text-sm text-slate-500 leading-relaxed">
@@ -35,7 +35,7 @@ export const AuthPage: FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs min-h-[390px] flex flex-col justify-center">
+            <div className="bg-white p-4 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs min-h-[360px] sm:min-h-[390px] flex flex-col justify-center">
               <LoginForm onSwitchToRegister={() => setMode('register')} />
             </div>
           </div>
@@ -50,7 +50,7 @@ export const AuthPage: FC = () => {
             )}
           >
             <div className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B192C] tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0B192C] tracking-tight">
                 Create Account
               </h1>
               <p className="mt-1.5 text-xs sm:text-sm text-slate-500 leading-relaxed">
@@ -58,7 +58,7 @@ export const AuthPage: FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs min-h-[390px] flex flex-col justify-center">
+            <div className="bg-white p-4 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs min-h-[360px] sm:min-h-[390px] flex flex-col justify-center">
               <RegisterForm onSwitchToLogin={() => setMode('login')} />
             </div>
           </div>

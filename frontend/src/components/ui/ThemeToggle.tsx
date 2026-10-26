@@ -24,7 +24,7 @@ export const ThemeToggle: FC<ThemeToggleProps> = ({ className, showLabel = false
       type="button"
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       className={cn(
-        'relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border shadow-xs cursor-pointer select-none active:scale-95 z-30',
+        'relative inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border shadow-xs cursor-pointer select-none active:scale-95 z-30 touch-manipulation',
         isDark
           ? 'bg-slate-900 border-amber-500/40 text-amber-300 hover:bg-slate-800 hover:border-amber-400'
           : 'bg-white border-slate-300 text-navy-900 hover:bg-slate-50 hover:border-amber-500/50 shadow-xs',
@@ -45,7 +45,7 @@ export const ThemeToggle: FC<ThemeToggleProps> = ({ className, showLabel = false
           )}
         />
       </div>
-      <span className="font-semibold text-xs tracking-wide">
+      <span className={cn('font-semibold text-xs tracking-wide', !showLabel && 'hidden sm:inline')}>
         {showLabel ? (isDark ? 'Dark Mode' : 'Light Mode') : (isDark ? 'Dark' : 'Light')}
       </span>
     </button>
