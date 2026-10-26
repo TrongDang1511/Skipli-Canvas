@@ -247,9 +247,9 @@ export const ImageReplacerModal: FC<ImageReplacerModalProps> = ({
             type="button"
             onClick={handleApply}
             disabled={!previewUrl}
-            className="px-4 py-1.5 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 font-bold text-xs rounded-lg transition shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="px-4 py-1.5 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold text-xs rounded-lg transition shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 border border-[#16304d] dark:border-blue-400/30"
           >
-            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+            <Check className="w-3.5 h-3.5 stroke-[2.5] text-[#D4AF37] dark:text-amber-300" />
             <span>Apply Image</span>
           </button>
         </div>

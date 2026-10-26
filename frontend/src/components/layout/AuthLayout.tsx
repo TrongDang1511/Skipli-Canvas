@@ -1,5 +1,5 @@
 import { ReactNode, FC } from 'react';
-import { Sparkles, Globe, ShieldCheck, Zap, Layers, ArrowUpRight } from 'lucide-react';
+import { Globe, ShieldCheck, Zap, Layers } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface AuthLayoutProps {
@@ -36,11 +36,6 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
               </span>
             </div>
           </div>
-
-          <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-white border border-slate-200/80 px-2.5 py-1 rounded-full shadow-2xs">
-            <Sparkles className="w-3 h-3 text-[#D4AF37]" />
-            AI Web Architect
-          </span>
         </div>
 
         {/* Center Content: Mode Tabs + Sliding Form Track */}
@@ -75,14 +70,6 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
 
           {children}
         </div>
-
-        {/* Bottom Footer */}
-        <div className="max-w-md w-full mx-auto pt-4 border-t border-slate-200/70 text-[11px] text-slate-400 flex items-center justify-between shrink-0">
-          <span>© 2026 Skipli Inc. All rights reserved.</span>
-          <span className="flex items-center gap-1 hover:text-slate-700 cursor-pointer transition-colors">
-            Terms & Privacy <ArrowUpRight className="w-3 h-3" />
-          </span>
-        </div>
       </div>
 
       {/* =========================================================================
@@ -100,11 +87,6 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
           <div className="flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs text-amber-200">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-semibold text-[11px]">Production Live Preview Engine</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-            <span className="text-[#D4AF37]">✦</span>
-            <span>Skipli Canvas Engine</span>
           </div>
         </div>
 

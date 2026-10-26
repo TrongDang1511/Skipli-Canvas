@@ -152,10 +152,10 @@ export const WorkspaceHeader: FC<WorkspaceHeaderProps> = ({
         <button
           type="button"
           onClick={onNewProject}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37] text-slate-950 hover:bg-amber-400 dark:bg-[#1E3E62] dark:text-[#D4AF37] dark:hover:bg-[#28507e] rounded-xl text-xs font-bold transition shadow-xs cursor-pointer border border-amber-400/60 active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1E3E62] text-white hover:bg-[#28507e] dark:bg-[#1E3E62] dark:text-white dark:hover:bg-[#28507e] rounded-xl text-xs font-bold transition shadow-xs cursor-pointer border border-[#16304d] dark:border-blue-400/30 active:scale-95"
           title="Create a new project"
         >
-          <Plus className="w-3.5 h-3.5 text-slate-950 dark:text-[#D4AF37]" />
+          <Plus className="w-3.5 h-3.5 text-[#D4AF37] dark:text-amber-300" />
           <span className="hidden md:inline">New Project</span>
         </button>
 

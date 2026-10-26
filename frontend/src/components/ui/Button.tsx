@@ -20,7 +20,7 @@ export const Button: FC<ButtonProps> = ({
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 
   const variants = {
-    navy: 'bg-navy-900 hover:bg-navy-800 text-white focus:ring-navy-900 shadow-sm active:scale-[0.99]',
+    navy: 'bg-[#1E3E62] hover:bg-[#28507e] text-white focus:ring-[#1E3E62] shadow-sm active:scale-[0.99]',
     gold: 'bg-gold-400 hover:bg-gold-500 text-navy-950 font-semibold focus:ring-gold-400 shadow-sm shadow-gold-400/20 active:scale-[0.99]',
     outline: 'border border-navy-200 hover:border-navy-900 text-navy-900 bg-white hover:bg-beige-50 focus:ring-navy-900',
     ghost: 'text-navy-700 hover:text-navy-950 hover:bg-beige-100 focus:ring-navy-500'

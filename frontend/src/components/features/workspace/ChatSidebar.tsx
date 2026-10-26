@@ -303,13 +303,13 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
                   className={cn(
                     'flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl transition shadow-xs active:scale-95',
                     inputText.trim()
-                      ? 'bg-[#D4AF37] text-slate-950 hover:bg-[#c59e2b] font-bold cursor-pointer'
+                      ? 'bg-[#1E3E62] text-white hover:bg-[#28507e] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 font-bold cursor-pointer'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700'
                   )}
                 >
-                  <Wand2 className="w-3.5 h-3.5 text-slate-950" />
+                  <Wand2 className="w-3.5 h-3.5 text-[#D4AF37] dark:text-amber-300" />
                   <span>Generate</span>
-                  <Send className="w-3 h-3 ml-0.5 text-slate-950" />
+                  <Send className="w-3 h-3 ml-0.5 text-[#D4AF37] dark:text-amber-300" />
                 </button>
               )}
             </div>

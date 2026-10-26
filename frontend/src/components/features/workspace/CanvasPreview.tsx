@@ -383,9 +383,9 @@ export const CanvasPreview: FC<CanvasPreviewProps> = ({
 
               <button
                 onClick={handleRefresh}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-[#D4AF37] rounded-xl font-bold text-xs transition border border-amber-400/60 cursor-pointer shadow-xs active:scale-95"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-white rounded-xl font-bold text-xs transition border border-[#16304d] dark:border-blue-400/30 cursor-pointer shadow-xs active:scale-95"
               >
-                <RotateCw className="w-3.5 h-3.5 stroke-[1.75]" />
+                <RotateCw className="w-3.5 h-3.5 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
                 <span>Check Again</span>
               </button>
             </div>

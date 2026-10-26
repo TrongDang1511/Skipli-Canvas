@@ -124,12 +124,12 @@ export const StoragePreviewModal: FC<StoragePreviewModalProps> = ({
               onClick={handleDownloadClick}
               disabled={isDownloading}
               title="Download HTML file directly from Cloud Storage"
-              className="py-2 px-3.5 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs border border-amber-400/50 transition active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="py-2 px-3.5 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold text-xs rounded-xl shadow-xs border border-[#16304d] dark:border-blue-400/30 transition active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
               ) : (
-                <Download className="w-4 h-4 text-slate-950" />
+                <Download className="w-4 h-4 text-[#D4AF37] dark:text-amber-300" />
               )}
               <span>Download HTML</span>
             </button>

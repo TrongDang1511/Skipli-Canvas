@@ -249,13 +249,13 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               className={cn(
                 'flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-xs active:scale-95 cursor-pointer ml-auto',
                 promptInput.trim() && !isStreaming
-                  ? 'bg-[#D4AF37] text-slate-950 hover:bg-[#c59e2b]'
+                  ? 'bg-[#1E3E62] text-white hover:bg-[#28507e] dark:bg-[#1E3E62] dark:text-white dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
               )}
             >
-              <Wand2 className="w-4 h-4 text-slate-950" />
+              <Wand2 className="w-4 h-4 text-[#D4AF37] dark:text-amber-300" />
               <span>Generate Website</span>
-              <Send className="w-3.5 h-3.5 ml-0.5 text-slate-950" />
+              <Send className="w-3.5 h-3.5 ml-0.5 text-[#D4AF37] dark:text-amber-300" />
             </button>
           </div>
         </div>
@@ -338,9 +338,9 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
           <button
             type="button"
             onClick={focusPromptInput}
-            className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-400/80"
+            className="flex items-center gap-2 px-4 py-2 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95 cursor-pointer border border-[#16304d] dark:border-blue-400/30"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4 stroke-[2.5] text-[#D4AF37] dark:text-amber-300" />
             <span>New Project</span>
           </button>
         </div>
@@ -372,7 +372,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
                 <button
                   type="button"
                   onClick={focusPromptInput}
-                  className="px-5 py-2.5 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer border border-[#16304d] dark:border-blue-400/30"
                 >
                   Create First Website
                 </button>

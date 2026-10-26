@@ -235,25 +235,25 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border',
               isDirty
-                ? 'bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 border-[#D4AF37] shadow-xs'
+                ? 'bg-[#1E3E62] hover:bg-[#28507e] text-white border-[#16304d] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border-blue-400/30 shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed'
             )}
           >
             {isSaving ? (
-              <Loader2 className="w-3 h-3 stroke-[1.75] animate-spin text-slate-950" />
+              <Loader2 className="w-3 h-3 stroke-[1.75] animate-spin text-[#D4AF37]" />
             ) : (
-              <Save className="w-3 h-3 stroke-[1.75]" />
+              <Save className="w-3 h-3 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
             )}
             <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
             <kbd className={cn(
               'text-[9px] font-medium px-1 py-0.2 rounded border transition',
               isDirty
-                ? 'bg-amber-400/40 border-amber-600/30 text-slate-950'
+                ? 'bg-white/15 border-white/25 text-white'
                 : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
             )}>
               Ctrl+S
             </kbd>
-            {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-800 dark:bg-amber-400 ml-0.5 animate-pulse" />}
+            {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] dark:bg-amber-400 ml-0.5 animate-pulse" />}
           </button>
         )}
 
@@ -333,9 +333,9 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           onClick={onExport}
           disabled={!presignedUrl}
           title="Download HTML file"
-          className="flex items-center gap-1.5 px-3 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+          className="flex items-center gap-1.5 px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
         >
-          <Download className="w-3.5 h-3.5 stroke-[1.75]" />
+          <Download className="w-3.5 h-3.5 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
           <span>Export HTML</span>
         </button>
       </div>

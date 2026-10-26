@@ -282,9 +282,9 @@ export const StandalonePreviewPage: FC = () => {
 
             <button
               onClick={() => navigate(`/workspace/${session.id}`)}
-              className="flex items-center gap-1 px-3 py-1 bg-[#D4AF37] hover:bg-[#c59e2b] text-slate-950 rounded-full font-bold text-[11px] transition shadow-xs cursor-pointer ml-1"
+              className="flex items-center gap-1 px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white border border-slate-700 rounded-full font-bold text-[11px] transition shadow-xs cursor-pointer ml-1"
             >
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="w-3 h-3 text-[#D4AF37]" />
               <span>Open in Editor</span>
             </button>
 

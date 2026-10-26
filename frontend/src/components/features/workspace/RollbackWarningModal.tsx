@@ -151,12 +151,12 @@ export const RollbackWarningModal: FC<RollbackWarningModalProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-amber-400 text-slate-950 dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-[#D4AF37] border border-amber-400/60 shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:text-white border border-[#16304d] dark:border-blue-400/30 shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
             ) : (
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 text-[#D4AF37] dark:text-amber-300" />
             )}
             <span>{isMilestone ? 'Confirm Revert' : 'Confirm Rollback ↵'}</span>
           </button>
