@@ -26,6 +26,7 @@ interface ChatSidebarProps {
   onStartRollback?: (message: ChatMessage, index: number) => void;
   onRollbackMilestone?: (message: ChatMessage, index: number) => void;
   prefillPrompt?: string;
+  width?: number;
 }
 
 export const ChatSidebar: FC<ChatSidebarProps> = ({
@@ -38,6 +39,7 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   onStartRollback,
   onRollbackMilestone,
   prefillPrompt,
+  width,
 }) => {
   const [inputText, setInputText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -96,7 +98,10 @@ export const ChatSidebar: FC<ChatSidebarProps> = ({
   };
 
   return (
-    <aside className="w-[400px] max-w-[400px] bg-white dark:bg-[#0B192C] border-r border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-stone-100 flex flex-col h-full shrink-0 select-none shadow-xs dark:shadow-xl z-20 transition-colors duration-200">
+    <aside
+      style={{ width: width ? `${width}px` : undefined }}
+      className="w-full md:w-[400px] bg-white dark:bg-[#0B192C] border-r border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-stone-100 flex flex-col h-full shrink-0 select-none shadow-xs dark:shadow-xl z-20 transition-colors duration-200"
+    >
       <div className="h-12 px-3.5 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-stone-300 bg-slate-50/80 dark:bg-[#070F1E]/80">
         <div className="flex items-center gap-2 min-w-0 pr-2">
           {sessionTitle ? (

@@ -57,6 +57,69 @@ export const WorkspacePreviewPage: FC = () => {
     message: '',
   });
 
+  // Quản lý kéo thả tùy chỉnh độ rộng giữa Chat và Preview
+  const DEFAULT_CHAT_WIDTH = 400;
+  const MIN_CHAT_WIDTH = 280;
+  const MAX_CHAT_WIDTH = 750;
+
+  const [chatWidth, setChatWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('skipli_workspace_chat_width');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= MIN_CHAT_WIDTH && parsed <= MAX_CHAT_WIDTH) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage error
+    }
+    return DEFAULT_CHAT_WIDTH;
+  });
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const maxAllowed = Math.min(MAX_CHAT_WIDTH, window.innerWidth * 0.65);
+      const newWidth = Math.max(MIN_CHAT_WIDTH, Math.min(e.clientX, maxAllowed));
+      setChatWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      try {
+        localStorage.setItem('skipli_workspace_chat_width', chatWidth.toString());
+      } catch {
+        // Ignore
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, chatWidth]);
+
+  const handleMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDoubleClickReset = () => {
+    setChatWidth(DEFAULT_CHAT_WIDTH);
+    try {
+      localStorage.setItem('skipli_workspace_chat_width', DEFAULT_CHAT_WIDTH.toString());
+    } catch {
+      // Ignore
+    }
+  };
+
   const {
     messages,
     hasStartedChat,
@@ -316,10 +379,11 @@ export const WorkspacePreviewPage: FC = () => {
             }}
           />
 
-          {/* 2 Cột Làm Việc Tập Trung: Chat Bên Trái (35%) & Live Preview / Code Bên Phải (65%) */}
-          <div className="flex-1 flex overflow-hidden">
+          {/* 2 Cột Làm Việc Tập Trung: Chat Bên Trái & Live Preview / Code Bên Phải có thể Kéo Resize */}
+          <div className="flex-1 flex overflow-hidden relative">
             {/* Khung Chat Riêng Của Dự Án */}
             <ChatSidebar
+              width={chatWidth}
               messages={messages}
               isStreaming={isStreaming}
               isLoadingSession={isLoadingSession}
@@ -331,28 +395,71 @@ export const WorkspacePreviewPage: FC = () => {
               prefillPrompt={prefillPrompt}
             />
 
+            {/* Thanh Kéo Tinh Chỉnh Kích Thước (Draggable Resizer) */}
+            <div
+              onMouseDown={handleMouseDownResize}
+              onDoubleClick={handleDoubleClickReset}
+              className={cn(
+                'relative flex items-center justify-center w-2 -ml-1 z-30 group cursor-col-resize select-none transition-colors shrink-0',
+                isDragging
+                  ? 'bg-[#1E3E62] dark:bg-[#D4AF37]'
+                  : 'bg-transparent hover:bg-[#1E3E62]/30 dark:hover:bg-[#D4AF37]/30'
+              )}
+              title="Kéo để tinh chỉnh kích thước 2 bên (Nhấp đúp chuột để reset về 400px)"
+            >
+              {/* Đường kẻ trung tâm */}
+              <div
+                className={cn(
+                  'w-[2px] h-full transition-colors',
+                  isDragging
+                    ? 'bg-[#1E3E62] dark:bg-[#D4AF37]'
+                    : 'bg-slate-200 dark:bg-slate-800 group-hover:bg-[#1E3E62] dark:group-hover:bg-[#D4AF37]'
+                )}
+              />
+              {/* Grip Indicator dạng viên thuốc có chấm */}
+              <div
+                className={cn(
+                  'absolute w-1.5 h-8 rounded-full transition-all duration-150 shadow-xs flex flex-col items-center justify-center gap-0.5',
+                  isDragging
+                    ? 'bg-[#1E3E62] dark:bg-[#D4AF37] scale-110'
+                    : 'bg-slate-300 dark:bg-slate-700 group-hover:bg-[#1E3E62] dark:group-hover:bg-[#D4AF37]'
+                )}
+              >
+                <div className="w-0.5 h-0.5 rounded-full bg-white dark:bg-slate-950" />
+                <div className="w-0.5 h-0.5 rounded-full bg-white dark:bg-slate-950" />
+                <div className="w-0.5 h-0.5 rounded-full bg-white dark:bg-slate-950" />
+              </div>
+            </div>
+
             {/* Khung Live Preview Canvas hoặc Code Viewer Cực Rộng Rãi */}
-            {viewMode === 'preview' ? (
-              <CanvasPreview
-                sessionId={currentSession?.id || activeSessionId || routeSessionId}
-                presignedUrl={presignedUrl || activeSession?.presignedUrl}
-                htmlContent={extractedHtml || activeSession?.latestHtml}
-                onSaveHtml={handleSaveHtml}
-                viewport={viewport}
-                setViewport={setViewport}
-                viewMode={viewMode}
-                setViewMode={handleSetViewMode}
-                onExport={handleExportHtml}
-                isStreaming={isStreaming}
-                isLoadingSession={isLoadingSession}
-              />
-            ) : (
-              <CodeViewer
-                code={extractedHtml}
-                presignedUrl={presignedUrl || activeSession?.presignedUrl}
-                viewMode={viewMode}
-                setViewMode={handleSetViewMode}
-              />
+            <div className="flex-1 min-w-0 h-full overflow-hidden">
+              {viewMode === 'preview' ? (
+                <CanvasPreview
+                  sessionId={currentSession?.id || activeSessionId || routeSessionId}
+                  presignedUrl={presignedUrl || activeSession?.presignedUrl}
+                  htmlContent={extractedHtml || activeSession?.latestHtml}
+                  onSaveHtml={handleSaveHtml}
+                  viewport={viewport}
+                  setViewport={setViewport}
+                  viewMode={viewMode}
+                  setViewMode={handleSetViewMode}
+                  onExport={handleExportHtml}
+                  isStreaming={isStreaming}
+                  isLoadingSession={isLoadingSession}
+                />
+              ) : (
+                <CodeViewer
+                  code={extractedHtml}
+                  presignedUrl={presignedUrl || activeSession?.presignedUrl}
+                  viewMode={viewMode}
+                  setViewMode={handleSetViewMode}
+                />
+              )}
+            </div>
+
+            {/* Tấm chắn chuột trong suốt khi đang kéo để iframe không nuốt mất sự kiện chuột */}
+            {isDragging && (
+              <div className="fixed inset-0 z-50 cursor-col-resize select-none pointer-events-auto" />
             )}
           </div>
         </div>
