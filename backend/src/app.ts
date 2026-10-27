@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import { corsMiddleware } from './middlewares/cors.middleware';
 import cookieParser from 'cookie-parser';
 import routes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
@@ -14,12 +14,7 @@ if (env.trustProxy) {
 }
 
 // Global Middlewares
-app.use(cors({
-  origin: env.frontendUrl,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(corsMiddleware);
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

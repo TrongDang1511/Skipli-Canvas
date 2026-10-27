@@ -42,4 +42,11 @@ export const env = {
   rateLimitAuthMax: parseInt(process.env.RATE_LIMIT_AUTH_MAX || '10', 10),
   rateLimitAiWindowMs: parseInt(process.env.RATE_LIMIT_AI_WINDOW_MS || '60000', 10),
   rateLimitAiMax: parseInt(process.env.RATE_LIMIT_AI_MAX || '15', 10),
+
+  // CORS Configuration (Zero Hardcoding)
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  corsMaxAge: parseInt(process.env.CORS_MAX_AGE || '86400', 10),
 };
