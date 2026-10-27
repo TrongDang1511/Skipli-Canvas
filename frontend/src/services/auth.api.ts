@@ -39,3 +39,11 @@ export async function logoutApi(): Promise<void> {
     // Ignore error on logout endpoint and clear local storage anyway
   }
 }
+
+export async function refreshTokenApi(): Promise<{ accessToken: string }> {
+  const response = await apiClient.post<ApiResponse<{ accessToken: string }>>('/auth/refresh-token', {});
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Failed to refresh token');
+  }
+  return response.data.data;
+}

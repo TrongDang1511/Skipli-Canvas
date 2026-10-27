@@ -5,7 +5,8 @@ export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Request Interceptor: Tự động đính kèm accessToken vào Header
@@ -67,21 +68,15 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-
-      if (!refreshToken) {
-        isRefreshing = false;
-        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        return Promise.reject(error);
-      }
-
       try {
-        const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = res.data.data;
+        const res = await axios.post(
+          `${apiClient.defaults.baseURL || API_BASE_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
+        const { accessToken: newAccessToken } = res.data.data;
 
         localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
 
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -92,8 +87,6 @@ apiClient.interceptors.response.use(
       } catch (refreshErr) {
         processQueue(refreshErr as AxiosError, null);
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        window.location.reload();
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

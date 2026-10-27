@@ -1,6 +1,6 @@
 import { ChatApiResponse } from '../types/chat.types';
-import axios from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../config/env.config';
+import { refreshTokenApi } from './auth.api';
 
 export class ChatService {
   public async sendChat(
@@ -23,24 +23,17 @@ export class ChatService {
       });
 
       if (response.status === 401 && !isRetryAfterRefresh) {
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-        if (refreshToken) {
-          try {
-            const refreshRes = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
-            const newAccessToken = refreshRes.data?.data?.accessToken;
-            const newRefreshToken = refreshRes.data?.data?.refreshToken;
-
-            if (newAccessToken && newRefreshToken) {
-              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
-              localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
-              return this.sendChat(prompt, sessionId, signal, true);
-            }
-          } catch {
-            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-            window.location.reload();
-            throw new Error('Session expired.');
+        try {
+          const refreshRes = await refreshTokenApi();
+          const newAccessToken = refreshRes.accessToken;
+          if (newAccessToken) {
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+            return this.sendChat(prompt, sessionId, signal, true);
           }
+        } catch {
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          window.location.reload();
+          throw new Error('Session expired.');
         }
       }
 

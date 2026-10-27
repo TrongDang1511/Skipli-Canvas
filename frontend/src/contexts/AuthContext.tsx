@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '../types/auth';
-import { loginApi, registerApi, logoutApi, getMeApi } from '../services/auth.api';
+import { loginApi, registerApi, logoutApi, getMeApi, refreshTokenApi } from '../services/auth.api';
 import { STORAGE_KEYS } from '../config/env.config';
 
 interface AuthContextType {
@@ -32,8 +32,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
       if (!accessToken) {
-        setIsLoading(false);
+        // Thử khôi phục phiên bằng HttpOnly Cookie (Silent Refresh) nếu có cookie hợp lệ
+        try {
+          const refreshData = await refreshTokenApi();
+          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.accessToken);
+          const userProfile = await getMeApi();
+          setUser(userProfile);
+        } catch {
+          setUser(null);
+        } finally {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -42,7 +53,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userProfile);
       } catch {
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -58,7 +68,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const authData = await loginApi({ email, password });
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
       setUser(authData.user);
     } catch (err: unknown) {
       const errorMsg =
@@ -80,7 +89,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const authData = await registerApi({ email, password, displayName });
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
       setUser(authData.user);
     } catch (err: unknown) {
       const errorMsg =
@@ -102,7 +110,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await logoutApi();
     } finally {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       setUser(null);
       setIsLoading(false);
     }
