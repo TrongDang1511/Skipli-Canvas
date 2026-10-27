@@ -165,6 +165,12 @@ export class StorageService {
     );
 
     const s3KeyToDelete = target ? target.s3Key : fileIdOrS3Key;
+
+    // Chặn triệt để lỗ hổng IDOR: Bắt buộc s3Key phải bắt đầu bằng prefix của chính user đó
+    if (!s3KeyToDelete || !s3KeyToDelete.startsWith(`users/${userId}/`)) {
+      return false;
+    }
+
     if (s3KeyToDelete.endsWith('/index.html')) {
       const sessionPrefix = s3KeyToDelete.replace(/\/index\.html$/, '/');
       await s3Service.deleteObjectsByPrefix(sessionPrefix);

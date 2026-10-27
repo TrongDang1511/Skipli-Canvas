@@ -4,7 +4,7 @@ import { env } from '../config/env.config';
 import { userRepository } from '../repositories/user.repository';
 import { User } from '../models/user.model';
 import { AuthUserPayload, TokenPair } from '../types/auth.types';
-import { RegisterDTO, LoginDTO, AuthResponseData, UserResponseDTO } from '../dtos/auth.dto';
+import { RegisterDTO, LoginDTO, AuthResultWithTokens, UserResponseDTO } from '../dtos/auth.dto';
 
 interface HttpError extends Error {
   status?: number;
@@ -20,7 +20,7 @@ export class AuthService {
   private accessSecret: Secret = env.jwtAccessSecret;
   private refreshSecret: Secret = env.jwtRefreshSecret;
 
-  async register(dto: RegisterDTO): Promise<AuthResponseData> {
+  async register(dto: RegisterDTO): Promise<AuthResultWithTokens> {
     const email = dto.email.toLowerCase().trim();
     
     const existingUser = await userRepository.findByEmail(email);
@@ -58,7 +58,7 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDTO): Promise<AuthResponseData> {
+  async login(dto: LoginDTO): Promise<AuthResultWithTokens> {
     const email = dto.email.toLowerCase().trim();
 
     const user = await userRepository.findByEmail(email);

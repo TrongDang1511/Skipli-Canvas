@@ -30,15 +30,6 @@ export const LoginSchema = z.object({
 
 export type LoginDTO = z.infer<typeof LoginSchema>;
 
-export const RefreshTokenSchema = z.object({
-  refreshToken: z
-    .string({ message: 'Refresh token is required' })
-    .min(1, 'Refresh token cannot be empty')
-    .trim()
-});
-
-export type RefreshTokenDTO = z.infer<typeof RefreshTokenSchema>;
-
 export interface UserResponseDTO {
   id: string;
   email: string;
@@ -48,6 +39,11 @@ export interface UserResponseDTO {
 }
 
 export interface AuthResponseData {
+  user: UserResponseDTO;
+  accessToken: string;
+}
+
+export interface AuthResultWithTokens {
   user: UserResponseDTO;
   accessToken: string;
   refreshToken: string;

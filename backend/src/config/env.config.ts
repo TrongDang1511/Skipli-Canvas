@@ -24,5 +24,13 @@ export const env = {
   s3BucketName: process.env.S3_BUCKET_NAME || 'skipli-canvas-storage',
   s3AccessKeyId: process.env.S3_ACCESS_KEY_ID || '',
   s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
-  s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true' || process.env.S3_FORCE_PATH_STYLE === '1'
+  s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true' || process.env.S3_FORCE_PATH_STYLE === '1',
+
+  // Client & Cookie Configuration (100% Config - Zero Hardcoding)
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  cookieName: process.env.COOKIE_NAME || 'refreshToken',
+  cookieSecure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false'),
+  cookieSameSite: (process.env.COOKIE_SAME_SITE as 'lax' | 'strict' | 'none') || 'lax',
+  cookiePath: process.env.COOKIE_PATH || '/api/auth',
+  cookieMaxAgeMs: parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7', 10) * 24 * 60 * 60 * 1000
 };
