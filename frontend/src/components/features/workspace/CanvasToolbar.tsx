@@ -94,9 +94,9 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
   isStreaming,
 }) => {
   return (
-    <div className="h-10 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-2.5 flex items-center justify-between text-xs text-slate-700 dark:text-stone-300 mb-2 shrink-0 shadow-xs dark:shadow-md min-w-0 gap-2 transition-colors duration-200">
+    <div className="h-10 bg-white dark:bg-[#0B192C] border border-slate-200/90 dark:border-slate-800 rounded-lg px-2 sm:px-2.5 flex items-center justify-between text-xs text-slate-700 dark:text-stone-300 mb-2 shrink-0 shadow-xs dark:shadow-md min-w-0 gap-1.5 sm:gap-2 transition-colors duration-200 overflow-x-auto overflow-y-hidden no-scrollbar">
       {/* Cụm trái: Điều khiển chế độ & Viewport */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         <button
           onClick={onRefresh}
           title="Reload preview"
@@ -233,7 +233,7 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             disabled={isSaving || !isDirty}
             title={isDirty ? 'Save changes (Ctrl+S)' : 'All changes saved'}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border',
+              'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border shrink-0',
               isDirty
                 ? 'bg-[#1E3E62] hover:bg-[#28507e] text-white border-[#16304d] dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border-blue-400/30 shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed'
@@ -244,9 +244,10 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
             ) : (
               <Save className="w-3 h-3 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
             )}
-            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+            <span>{isSaving ? 'Saving...' : 'Save'}</span>
+            <span className="hidden xl:inline">{!isSaving && ' Changes'}</span>
             <kbd className={cn(
-              'text-[9px] font-medium px-1 py-0.2 rounded border transition',
+              'hidden 2xl:inline text-[9px] font-medium px-1 py-0.2 rounded border transition',
               isDirty
                 ? 'bg-white/15 border-white/25 text-white'
                 : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
@@ -257,10 +258,10 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
           </button>
         )}
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0" />
 
         {/* 3. Bộ chọn Viewport (Ẩn trên mobile < sm vì người dùng đang dùng thiết bị thật) */}
-        <div className="hidden sm:flex items-center gap-0.5 bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80">
+        <div className="hidden sm:flex items-center gap-0.5 bg-slate-100 dark:bg-[#112240] p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
           <button
             type="button"
             onClick={() => setViewport('desktop')}
@@ -303,8 +304,11 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
         </div>
       </div>
 
-      {/* Cụm giữa: Địa chỉ URL giả lập */}
-      <div className="hidden lg:flex flex-1 max-w-[200px] xl:max-w-xs min-w-0 mx-2 bg-slate-100 dark:bg-[#112240] border border-slate-200 dark:border-slate-700/80 rounded-md px-2.5 py-1 items-center gap-1.5 text-[11px] text-slate-700 dark:text-stone-300 font-mono">
+      {/* Cụm giữa: Địa chỉ URL giả lập - Ẩn khi không đủ không gian hoặc đang ở chế độ Visual Edit */}
+      <div className={cn(
+        'flex-1 max-w-[180px] xl:max-w-xs min-w-0 mx-2 bg-slate-100 dark:bg-[#112240] border border-slate-200 dark:border-slate-700/80 rounded-md px-2.5 py-1 items-center gap-1.5 text-[11px] text-slate-700 dark:text-stone-300 font-mono shrink-0',
+        editorMode === 'visual_edit' ? 'hidden 2xl:flex' : 'hidden xl:flex'
+      )}>
         <Globe className="w-3 h-3 stroke-[1.75] text-[#D4AF37] shrink-0" />
         <span className="truncate">https://preview.skipli-canvas.app/landing-page</span>
         {isStreaming && (
@@ -316,28 +320,28 @@ export const CanvasToolbar: FC<CanvasToolbarProps> = ({
       </div>
 
       {/* Cụm phải: Toàn màn hình & Tải HTML */}
-      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
         <button
           onClick={onOpenNewTab}
           disabled={!presignedUrl || hasStorageError}
           title="Open in new tab (Full screen)"
-          className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-slate-900 dark:hover:text-white font-medium transition cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-stone-300 hover:text-slate-900 dark:hover:text-white font-medium transition cursor-pointer px-1.5 sm:px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
-          <span className="hidden md:inline">Full Screen</span>
           <ExternalLink className="w-3.5 h-3.5 stroke-[1.75] text-slate-400 dark:text-stone-400" />
+          <span className="hidden xl:inline">Full Screen</span>
         </button>
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
 
         <button
           onClick={onExport}
           disabled={!presignedUrl}
           title="Download HTML file"
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap touch-manipulation"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#1E3E62] hover:bg-[#28507e] text-white dark:bg-[#1E3E62] dark:hover:bg-[#28507e] dark:border dark:border-blue-400/30 rounded-md font-semibold text-[11px] transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap touch-manipulation shrink-0"
         >
           <Download className="w-3.5 h-3.5 stroke-[1.75] text-[#D4AF37] dark:text-amber-300" />
-          <span className="hidden sm:inline">Export HTML</span>
-          <span className="sm:hidden">Export</span>
+          <span className="hidden md:inline">Export HTML</span>
+          <span className="md:hidden">Export</span>
         </button>
       </div>
     </div>
