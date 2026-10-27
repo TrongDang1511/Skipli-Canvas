@@ -5,8 +5,13 @@ import routes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { isFirebaseInitialized } from './config/firebase.config';
 import { env } from './config/env.config';
+import { globalRateLimiter } from './middlewares/rateLimit.middleware';
 
 const app = express();
+
+if (env.trustProxy) {
+  app.set('trust proxy', 1);
+}
 
 // Global Middlewares
 app.use(cors({
@@ -25,11 +30,14 @@ app.get('/health', (req, res) => {
     status: 'ok',
     message: 'Skipli Canvas Backend is running',
     timestamp: new Date().toISOString(),
-    firebaseConnected: isFirebaseInitialized
+    firebaseConnected: isFirebaseInitialized,
+    clientIp: req.ip,
+    trustProxy: !!env.trustProxy
   });
 });
 
 // API Routes
+app.use('/api', globalRateLimiter);
 app.use('/api', routes);
 
 // Global Error Handling Middleware

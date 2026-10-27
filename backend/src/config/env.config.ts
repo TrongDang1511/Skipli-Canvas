@@ -32,5 +32,14 @@ export const env = {
   cookieSecure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false'),
   cookieSameSite: (process.env.COOKIE_SAME_SITE as 'lax' | 'strict' | 'none') || 'lax',
   cookiePath: process.env.COOKIE_PATH || '/api/auth',
-  cookieMaxAgeMs: parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7', 10) * 24 * 60 * 60 * 1000
+  cookieMaxAgeMs: parseInt(process.env.COOKIE_MAX_AGE_DAYS || '7', 10) * 24 * 60 * 60 * 1000,
+
+  // Rate Limiter Configuration (Zero Hardcoding)
+  trustProxy: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
+  rateLimitGlobalWindowMs: parseInt(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS || '900000', 10),
+  rateLimitGlobalMax: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '300', 10),
+  rateLimitAuthWindowMs: parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS || '900000', 10),
+  rateLimitAuthMax: parseInt(process.env.RATE_LIMIT_AUTH_MAX || '10', 10),
+  rateLimitAiWindowMs: parseInt(process.env.RATE_LIMIT_AI_WINDOW_MS || '60000', 10),
+  rateLimitAiMax: parseInt(process.env.RATE_LIMIT_AI_MAX || '15', 10),
 };

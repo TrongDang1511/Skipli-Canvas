@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { chatController } from '../controllers/chat.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody } from '../middlewares/validate.middleware';
+import { aiRateLimiter } from '../middlewares/rateLimit.middleware';
 import { chatRequestSchema } from '../dtos/chat.dto';
 
 const router = Router();
@@ -13,6 +14,7 @@ const router = Router();
  */
 router.post(
   '/',
+  aiRateLimiter,
   authenticate,
   validateBody(chatRequestSchema),
   chatController.sendChat
