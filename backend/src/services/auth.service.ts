@@ -1,10 +1,20 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.config';
 import { userRepository } from '../repositories/user.repository';
 import { User } from '../models/user.model';
 import { AuthUserPayload, TokenPair } from '../types/auth.types';
-import { RegisterDTO, LoginDTO, AuthResultWithTokens, UserResponseDTO } from '../dtos/auth.dto';
+import {
+  RegisterDTO,
+  LoginDTO,
+  ForgotPasswordDTO,
+  ResetPasswordDTO,
+  AuthResultWithTokens,
+  UserResponseDTO
+} from '../dtos/auth.dto';
+import { emailService } from './email.service';
+
 
 interface HttpError extends Error {
   status?: number;
@@ -113,6 +123,54 @@ export class AuthService {
 
   async logout(userId: string): Promise<void> {
     await userRepository.updateRefreshToken(userId, null);
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDTO): Promise<void> {
+    const email = dto.email.toLowerCase().trim();
+    const user = await userRepository.findByEmail(email);
+
+    // User Enumeration Defense: Always resolve cleanly without throwing error
+    if (!user) {
+      return;
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const durationMinutes = parseInt(env.passwordResetTokenExpiresIn, 10) || 15;
+    const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+
+    await userRepository.savePasswordResetToken(user.id, tokenHash, expiresAt);
+
+    try {
+      await emailService.sendPasswordResetEmail(user.email, user.displayName, rawToken);
+    } catch (emailErr) {
+      console.warn('[AuthService Warning] Failed to dispatch email via SMTP. Dev link was printed above.');
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDTO): Promise<void> {
+    const tokenHash = crypto.createHash('sha256').update(dto.token.trim()).digest('hex');
+    const user = await userRepository.findByResetTokenHash(tokenHash);
+
+    if (!user) {
+      throw createHttpError('Invalid or expired password reset link', 400);
+    }
+
+    if (!user.resetPasswordExpiresAt || new Date(user.resetPasswordExpiresAt).getTime() < Date.now()) {
+      throw createHttpError('Password reset link has expired', 400);
+    }
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(dto.newPassword, saltRounds);
+
+    // Invalidate reset token and revoke existing refresh tokens (Session Invalidation)
+    await userRepository.update(user.id, {
+      passwordHash,
+      resetPasswordTokenHash: null,
+      resetPasswordExpiresAt: null,
+      refreshTokenHash: null
+    });
   }
 
   async getUserProfile(userId: string): Promise<UserResponseDTO> {

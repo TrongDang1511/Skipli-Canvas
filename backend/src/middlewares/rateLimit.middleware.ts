@@ -36,3 +36,10 @@ export const aiRateLimiter = createLimiter(
   env.rateLimitAiMax,
   'AI generation rate limit exceeded. Please wait a moment before trying again.'
 );
+
+export const forgotPasswordRateLimiter = createLimiter(
+  env.rateLimitForgotPasswordWindowMs,
+  env.rateLimitForgotPasswordMax,
+  'Too many password reset requests from this IP. Please try again after 15 minutes.'
+);
+

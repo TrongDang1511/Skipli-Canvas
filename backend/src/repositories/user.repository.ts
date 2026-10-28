@@ -68,6 +68,53 @@ export class UserRepository {
     }
   }
 
+  async savePasswordResetToken(
+    userId: string,
+    tokenHash: string | null,
+    expiresAt: string | null
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    if (isFirebaseInitialized && db) {
+      await db.collection(this.collectionName).doc(userId).update({
+        resetPasswordTokenHash: tokenHash,
+        resetPasswordExpiresAt: expiresAt,
+        updatedAt: now
+      });
+    } else {
+      const existing = this.memoryUsers.get(userId);
+      if (existing) {
+        this.memoryUsers.set(userId, {
+          ...existing,
+          resetPasswordTokenHash: tokenHash,
+          resetPasswordExpiresAt: expiresAt,
+          updatedAt: now
+        });
+      }
+    }
+  }
+
+  async findByResetTokenHash(tokenHash: string): Promise<User | null> {
+    if (isFirebaseInitialized && db) {
+      const snapshot = await db
+        .collection(this.collectionName)
+        .where('resetPasswordTokenHash', '==', tokenHash)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      return doc.data() as User;
+    }
+
+    for (const user of this.memoryUsers.values()) {
+      if (user.resetPasswordTokenHash === tokenHash) {
+        return user;
+      }
+    }
+    return null;
+  }
+
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const now = new Date().toISOString();
     const updateData = { ...updates, updatedAt: now };

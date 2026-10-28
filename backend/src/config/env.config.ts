@@ -49,4 +49,16 @@ export const env = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   corsMaxAge: parseInt(process.env.CORS_MAX_AGE || '86400', 10),
+
+  // Email & Password Reset Configuration (Zero Hardcoding)
+  smtpHost: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpSecure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  emailFrom: process.env.EMAIL_FROM || 'Skipli Canvas <no-reply@skipli.com>',
+  passwordResetTokenExpiresIn: process.env.PASSWORD_RESET_TOKEN_EXPIRES_IN || '15m',
+  rateLimitForgotPasswordWindowMs: parseInt(process.env.RATE_LIMIT_FORGOT_PASSWORD_WINDOW_MS || '900000', 10),
+  rateLimitForgotPasswordMax: parseInt(process.env.RATE_LIMIT_FORGOT_PASSWORD_MAX || '5', 10),
 };
+

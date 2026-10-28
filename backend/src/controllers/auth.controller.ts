@@ -119,6 +119,34 @@ export class AuthController {
       next(error);
     }
   }
+
+  forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await authService.requestPasswordReset(req.body);
+
+      // User Enumeration Defense: always return generic 200 message
+      res.json({
+        success: true,
+        message: 'If your email is registered, you will receive a password reset link shortly.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await authService.resetPassword(req.body);
+
+      res.json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
+
 
 export const authController = new AuthController();
