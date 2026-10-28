@@ -47,3 +47,20 @@ export async function refreshTokenApi(): Promise<{ accessToken: string }> {
   }
   return response.data.data;
 }
+
+export async function forgotPasswordApi(email: string): Promise<string> {
+  const response = await apiClient.post<ApiResponse<void>>('/auth/forgot-password', { email });
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to process password reset request');
+  }
+  return response.data.message || 'If your email is registered, you will receive a reset link shortly.';
+}
+
+export async function resetPasswordApi(data: { token: string; newPassword: string }): Promise<string> {
+  const response = await apiClient.post<ApiResponse<void>>('/auth/reset-password', data);
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to reset password');
+  }
+  return response.data.message || 'Password has been reset successfully.';
+}
+

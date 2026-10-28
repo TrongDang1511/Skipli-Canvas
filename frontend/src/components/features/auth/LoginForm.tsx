@@ -1,4 +1,5 @@
 import { useState, FC, FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
@@ -69,6 +70,15 @@ export const LoginForm: FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         required
         autoComplete="current-password"
       />
+
+      <div className="flex items-center justify-end -mt-1">
+        <Link
+          to="/forgot-password"
+          className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline transition-colors cursor-pointer"
+        >
+          Forgot password?
+        </Link>
+      </div>
 
       <Button
         type="submit"

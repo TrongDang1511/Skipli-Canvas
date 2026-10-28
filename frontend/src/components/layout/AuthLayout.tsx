@@ -158,9 +158,12 @@ export const AuthLayout: FC<AuthLayoutProps> = ({
 
                 {/* Mock Card */}
                 <div className="col-span-2 bg-white p-2.5 rounded-xl border border-slate-200/90 shadow-xs space-y-1.5">
-                  <div className="w-full h-16 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
-                    📷 Signature Roast
-                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=400&auto=format&fit=crop"
+                    alt="Signature Roast Sumatra Mandheling"
+                    className="w-full h-16 object-cover rounded-lg shadow-2xs"
+                    loading="lazy"
+                  />
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-bold text-[#0B192C]">Sumatra Mandheling</span>
                     <span className="font-extrabold text-amber-600">$22.00</span>

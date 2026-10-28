@@ -5,6 +5,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { useAuth } from './hooks/useAuth';
 import { AuthPage } from './pages/AuthPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { WorkspacePreviewPage } from './pages/WorkspacePreviewPage';
 import { StandalonePreviewPage } from './pages/StandalonePreviewPage';
 import { LoadingScreen } from './components/ui/LoadingScreen';
@@ -50,6 +52,22 @@ export default function App() {
                 element={
                   <PublicOnlyRoute>
                     <AuthPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicOnlyRoute>
+                    <ForgotPasswordPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicOnlyRoute>
+                    <ResetPasswordPage />
                   </PublicOnlyRoute>
                 }
               />
