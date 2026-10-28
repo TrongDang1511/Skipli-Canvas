@@ -3,6 +3,7 @@ import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowRight } from 'lucide-re
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
 import { Alert } from '../../ui/Alert';
+import { PasswordStrengthMeter } from '../../ui/PasswordStrengthMeter';
 import { useAuth } from '../../../hooks/useAuth';
 
 interface RegisterFormProps {
@@ -84,6 +85,8 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         required
         autoComplete="new-password"
       />
+
+      <PasswordStrengthMeter password={password} />
 
       <Button
         type="submit"

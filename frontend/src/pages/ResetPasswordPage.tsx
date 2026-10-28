@@ -4,6 +4,7 @@ import { Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle } from 'lucide
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
+import { PasswordStrengthMeter } from '../components/ui/PasswordStrengthMeter';
 import { resetPasswordApi } from '../services/auth.api';
 
 export const ResetPasswordPage: FC = () => {
@@ -158,6 +159,8 @@ export const ResetPasswordPage: FC = () => {
                   autoFocus
                   autoComplete="new-password"
                 />
+
+                <PasswordStrengthMeter password={newPassword} />
 
                 <Input
                   label="Confirm New Password"
