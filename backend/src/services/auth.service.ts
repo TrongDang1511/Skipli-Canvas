@@ -10,6 +10,8 @@ import {
   LoginDTO,
   ForgotPasswordDTO,
   ResetPasswordDTO,
+  UpdateProfileDTO,
+  ChangePasswordWithOtpDTO,
   AuthResultWithTokens,
   UserResponseDTO
 } from '../dtos/auth.dto';
@@ -180,6 +182,83 @@ export class AuthService {
     }
     return this.sanitizeUser(user);
   }
+
+  async updateUserProfile(userId: string, dto: UpdateProfileDTO): Promise<UserResponseDTO> {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw createHttpError('User not found', 404);
+    }
+
+    const updatedUser = await userRepository.update(userId, {
+      displayName: dto.displayName.trim()
+    });
+
+    if (!updatedUser) {
+      throw createHttpError('Failed to update user profile', 500);
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
+
+  async requestPasswordChangeOtp(userId: string): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw createHttpError('User not found', 404);
+    }
+
+    // Sinh mã OTP 6 chữ số ngẫu nhiên
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // Hạn 10 phút
+
+    await userRepository.savePasswordChangeOtp(userId, otpHash, expiresAt);
+
+    // Dev log tiện lợi để kiểm thử
+    console.log('\n======================================================');
+    console.log('🔑 [PASSWORD CHANGE OTP]');
+    console.log(`Recipient: ${user.email} (${user.displayName})`);
+    console.log(`Code: ${otpCode}`);
+    console.log(`Expires in: 10 minutes`);
+    console.log('======================================================\n');
+
+    try {
+      await emailService.sendEmailVerificationOtp(user.email, user.displayName, otpCode, 10);
+    } catch (err) {
+      console.warn('[AuthService Warning] Failed to dispatch OTP email via SMTP, dev code logged above.');
+    }
+  }
+
+  async verifyOtpAndChangePassword(userId: string, dto: ChangePasswordWithOtpDTO): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw createHttpError('User not found', 404);
+    }
+
+    if (!user.passwordChangeOtpHash || !user.passwordChangeOtpExpiresAt) {
+      throw createHttpError('No password change request found. Please request a verification code first.', 400);
+    }
+
+    if (new Date(user.passwordChangeOtpExpiresAt).getTime() < Date.now()) {
+      throw createHttpError('Verification code has expired. Please request a new code.', 400);
+    }
+
+    const inputOtpHash = crypto.createHash('sha256').update(dto.otp.trim()).digest('hex');
+    if (inputOtpHash !== user.passwordChangeOtpHash) {
+      throw createHttpError('Invalid verification code.', 400);
+    }
+
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, saltRounds);
+
+    // Invalidate OTP and revoke existing refresh tokens (Session Invalidation)
+    await userRepository.update(userId, {
+      passwordHash: newPasswordHash,
+      passwordChangeOtpHash: null,
+      passwordChangeOtpExpiresAt: null,
+      refreshTokenHash: null
+    });
+  }
+
 
   verifyAccessToken(token: string): AuthUserPayload {
     try {

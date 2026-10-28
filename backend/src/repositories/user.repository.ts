@@ -115,6 +115,32 @@ export class UserRepository {
     return null;
   }
 
+  async savePasswordChangeOtp(
+    userId: string,
+    otpHash: string | null,
+    expiresAt: string | null
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    if (isFirebaseInitialized && db) {
+      await db.collection(this.collectionName).doc(userId).update({
+        passwordChangeOtpHash: otpHash,
+        passwordChangeOtpExpiresAt: expiresAt,
+        updatedAt: now
+      });
+    } else {
+      const existing = this.memoryUsers.get(userId);
+      if (existing) {
+        this.memoryUsers.set(userId, {
+          ...existing,
+          passwordChangeOtpHash: otpHash,
+          passwordChangeOtpExpiresAt: expiresAt,
+          updatedAt: now
+        });
+      }
+    }
+  }
+
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const now = new Date().toISOString();
     const updateData = { ...updates, updatedAt: now };

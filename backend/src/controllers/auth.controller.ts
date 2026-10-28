@@ -146,6 +146,61 @@ export class AuthController {
       next(error);
     }
   };
+
+  updateProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.id) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const updatedProfile = await authService.updateUserProfile(req.user.id, req.body);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedProfile
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  requestPasswordChangeOtp = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.id) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      await authService.requestPasswordChangeOtp(req.user.id);
+
+      res.json({
+        success: true,
+        message: 'Verification code has been sent to your email.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  changePasswordWithOtp = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.id) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      await authService.verifyOtpAndChangePassword(req.user.id, req.body);
+
+      res.json({
+        success: true,
+        message: 'Password changed successfully. All previous sessions have been signed out.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 

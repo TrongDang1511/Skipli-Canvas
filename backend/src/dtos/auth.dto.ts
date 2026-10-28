@@ -52,6 +52,29 @@ export const ResetPasswordSchema = z.object({
 
 export type ResetPasswordDTO = z.infer<typeof ResetPasswordSchema>;
 
+export const UpdateProfileSchema = z.object({
+  displayName: z
+    .string({ message: 'Display name is required' })
+    .trim()
+    .min(1, 'Display name cannot be empty')
+    .max(50, 'Display name cannot exceed 50 characters')
+});
+
+export type UpdateProfileDTO = z.infer<typeof UpdateProfileSchema>;
+
+export const ChangePasswordWithOtpSchema = z.object({
+  otp: z
+    .string({ message: 'Verification code is required' })
+    .trim()
+    .length(6, 'Verification code must be exactly 6 digits'),
+  newPassword: z
+    .string({ message: 'New password is required' })
+    .min(6, 'New password must be at least 6 characters long')
+});
+
+export type ChangePasswordWithOtpDTO = z.infer<typeof ChangePasswordWithOtpSchema>;
+
+
 
 export interface UserResponseDTO {
   id: string;

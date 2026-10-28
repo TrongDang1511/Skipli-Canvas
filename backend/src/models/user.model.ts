@@ -6,6 +6,8 @@ export interface User {
   refreshTokenHash?: string | null;
   resetPasswordTokenHash?: string | null;
   resetPasswordExpiresAt?: string | null;
+  passwordChangeOtpHash?: string | null;
+  passwordChangeOtpExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
   // Thiết kế mở rộng sẵn sàng cho các trường bổ sung sau này (avatar, role, credits, v.v.)
