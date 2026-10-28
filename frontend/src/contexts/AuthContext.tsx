@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (email: string, password: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  updateUserDisplayName: (newDisplayName: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,6 +116,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateUserDisplayName = useCallback((newDisplayName: string) => {
+    setUser((prev) => (prev ? { ...prev, displayName: newDisplayName } : null));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -125,7 +130,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         register,
         logout,
-        clearError
+        clearError,
+        updateUserDisplayName
       }}
     >
       {children}

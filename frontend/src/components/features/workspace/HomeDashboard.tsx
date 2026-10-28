@@ -24,6 +24,7 @@ import { GroupedStorageList } from '../storage/GroupedStorageList';
 import { StoragePreviewModal, StoragePreviewableItem } from '../storage/StoragePreviewModal';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { cn } from '../../../utils/cn';
+import { ProfileSettingsModal } from '../auth/ProfileSettingsModal';
 
 interface HomeDashboardProps {
   userName?: string;
@@ -73,6 +74,7 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
   const [promptInput, setPromptInput] = useState('');
   const [activeTab, setActiveTab] = useState<'projects' | 'storage'>('projects');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedPreviewFile, setSelectedPreviewFile] = useState<StoragePreviewableItem | null>(null);
@@ -187,14 +189,19 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
 
           {user && (
             <div className="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-800 dark:text-[#D4AF37] border border-amber-500/30 flex items-center justify-center text-xs font-bold">
-                  {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="flex items-center gap-2 group cursor-pointer rounded-xl p-1 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
+                title="Profile & Security Settings"
+              >
+                <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-800 dark:text-[#D4AF37] border border-amber-500/30 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition">
+                  {user.displayName?.[0]?.toUpperCase() || user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-stone-300 hidden sm:inline max-w-[120px] truncate">
-                  {user.name || user.email?.split('@')[0]}
+                <span className="text-xs font-semibold text-slate-700 dark:text-stone-300 hidden sm:inline max-w-[120px] truncate group-hover:text-amber-600 dark:group-hover:text-[#D4AF37] transition">
+                  {user.displayName || user.name || user.email?.split('@')[0]}
                 </span>
-              </div>
+              </button>
               <button
                 type="button"
                 onClick={logout}
@@ -203,6 +210,11 @@ export const HomeDashboard: FC<HomeDashboardProps> = ({
               >
                 <LogOut className="w-4 h-4" />
               </button>
+
+              <ProfileSettingsModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+              />
             </div>
           )}
         </div>

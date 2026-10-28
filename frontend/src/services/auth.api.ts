@@ -64,3 +64,30 @@ export async function resetPasswordApi(data: { token: string; newPassword: strin
   return response.data.message || 'Password has been reset successfully.';
 }
 
+export async function updateProfileApi(data: { displayName: string }): Promise<User> {
+  const response = await apiClient.put<ApiResponse<User>>('/auth/profile', data);
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Failed to update profile');
+  }
+  return response.data.data;
+}
+
+export async function requestPasswordOtpApi(): Promise<string> {
+  const response = await apiClient.post<ApiResponse<void>>('/auth/password-otp/request');
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to send verification code');
+  }
+  return response.data.message || 'Verification code has been sent to your email.';
+}
+
+export async function verifyOtpAndChangePasswordApi(data: {
+  otp: string;
+  newPassword: string;
+}): Promise<string> {
+  const response = await apiClient.post<ApiResponse<void>>('/auth/password-otp/verify-and-change', data);
+  if (!response.data.success) {
+    throw new Error(response.data.error || 'Failed to change password');
+  }
+  return response.data.message || 'Password changed successfully.';
+}
+

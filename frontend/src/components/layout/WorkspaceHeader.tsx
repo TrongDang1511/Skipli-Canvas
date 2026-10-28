@@ -3,6 +3,7 @@ import { ArrowLeft, Pencil, Check, X, Plus, LogOut, MessageSquare, Globe } from 
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../utils/cn';
+import { ProfileSettingsModal } from '../features/auth/ProfileSettingsModal';
 
 interface WorkspaceHeaderProps {
   sessionTitle?: string;
@@ -27,6 +28,7 @@ export const WorkspaceHeader: FC<WorkspaceHeaderProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [titleInput, setTitleInput] = useState(sessionTitle);
 
   const handleStartRename = (e: MouseEvent) => {
@@ -203,9 +205,14 @@ export const WorkspaceHeader: FC<WorkspaceHeaderProps> = ({
 
         {user && (
           <div className="flex items-center gap-1 sm:gap-2 pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
-            <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-800 dark:text-[#D4AF37] border border-amber-500/30 flex items-center justify-center text-xs font-bold shrink-0">
-              {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsProfileModalOpen(true)}
+              className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-800 dark:text-[#D4AF37] border border-amber-500/30 flex items-center justify-center text-xs font-bold shrink-0 hover:border-amber-500/60 hover:scale-105 active:scale-95 transition cursor-pointer"
+              title="Profile & Security Settings"
+            >
+              {user.displayName?.[0]?.toUpperCase() || user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+            </button>
             <button
               type="button"
               onClick={logout}
@@ -214,6 +221,11 @@ export const WorkspaceHeader: FC<WorkspaceHeaderProps> = ({
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
+
+            <ProfileSettingsModal
+              isOpen={isProfileModalOpen}
+              onClose={() => setIsProfileModalOpen(false)}
+            />
           </div>
         )}
       </div>
