@@ -1,15 +1,19 @@
 export interface User {
   id: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string | null;
   displayName: string;
   refreshTokenHash?: string | null;
   resetPasswordTokenHash?: string | null;
   resetPasswordExpiresAt?: string | null;
   passwordChangeOtpHash?: string | null;
   passwordChangeOtpExpiresAt?: string | null;
+
+  isEmailVerified?: boolean;
+  loginOtpHash?: string | null;
+  loginOtpExpiresAt?: string | null;
+
   createdAt: string;
   updatedAt: string;
-  // Thiết kế mở rộng sẵn sàng cho các trường bổ sung sau này (avatar, role, credits, v.v.)
   [key: string]: any;
 }

@@ -141,6 +141,54 @@ export class UserRepository {
     }
   }
 
+  async saveLoginOtp(
+    userId: string,
+    otpHash: string | null,
+    expiresAt: string | null
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    if (isFirebaseInitialized && db) {
+      await db.collection(this.collectionName).doc(userId).update({
+        loginOtpHash: otpHash,
+        loginOtpExpiresAt: expiresAt,
+        updatedAt: now
+      });
+    } else {
+      const existing = this.memoryUsers.get(userId);
+      if (existing) {
+        this.memoryUsers.set(userId, {
+          ...existing,
+          loginOtpHash: otpHash,
+          loginOtpExpiresAt: expiresAt,
+          updatedAt: now
+        });
+      }
+    }
+  }
+
+  async clearLoginOtp(userId: string): Promise<void> {
+    const now = new Date().toISOString();
+
+    if (isFirebaseInitialized && db) {
+      await db.collection(this.collectionName).doc(userId).update({
+        loginOtpHash: null,
+        loginOtpExpiresAt: null,
+        updatedAt: now
+      });
+    } else {
+      const existing = this.memoryUsers.get(userId);
+      if (existing) {
+        this.memoryUsers.set(userId, {
+          ...existing,
+          loginOtpHash: null,
+          loginOtpExpiresAt: null,
+          updatedAt: now
+        });
+      }
+    }
+  }
+
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const now = new Date().toISOString();
     const updateData = { ...updates, updatedAt: now };

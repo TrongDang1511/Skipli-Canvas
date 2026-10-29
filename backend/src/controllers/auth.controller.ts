@@ -23,14 +23,93 @@ export class AuthController {
     });
   }
 
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  /**
+   * Bước 1 Register: Người dùng nhập email, hệ thống gửi OTP về email
+   */
+  requestRegisterOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await authService.register(req.body);
+      const result = await authService.requestRegisterOtp(req.body);
+      res.json({
+        success: true,
+        message: result.message,
+        data: {
+          email: result.email,
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Bước 2 Register: Người dùng nhập OTP -> Xác thực -> Tạo User trong DB -> Cấp Token
+   */
+  verifyRegisterOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await authService.verifyRegisterOtp(req.body);
       this.setRefreshTokenCookie(res, result.refreshToken);
 
       res.status(201).json({
         success: true,
-        message: 'Registration successful',
+        message: 'Email verified and account initialized successfully',
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          isProfileComplete: result.isProfileComplete,
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Bước 3 Register: Chuyển hướng sang nhập Tên hiển thị và Mật khẩu hoàn thiện tài khoản
+   */
+  setCredentials = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.id) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const updatedUser = await authService.setCredentials(req.user.id, req.body);
+
+      res.json({
+        success: true,
+        message: 'Account credentials set successfully. Welcome to Skipli Canvas!',
+        data: updatedUser
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await authService.login(req.body);
+
+      res.json({
+        success: true,
+        message: 'A 6-digit verification code has been sent to your email.',
+        data: {
+          requiresLoginOtp: result.requiresLoginOtp,
+          email: result.email,
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyLoginOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await authService.verifyLoginOtp(req.body);
+      this.setRefreshTokenCookie(res, result.refreshToken);
+
+      res.json({
+        success: true,
+        message: 'Login successful',
         data: {
           user: result.user,
           accessToken: result.accessToken,
@@ -41,18 +120,13 @@ export class AuthController {
     }
   };
 
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  resendLoginOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await authService.login(req.body);
-      this.setRefreshTokenCookie(res, result.refreshToken);
+      await authService.resendLoginOtp(req.body);
 
       res.json({
         success: true,
-        message: 'Login successful',
-        data: {
-          user: result.user,
-          accessToken: result.accessToken,
-        }
+        message: 'Login code resent successfully'
       });
     } catch (error) {
       next(error);
@@ -124,7 +198,6 @@ export class AuthController {
     try {
       await authService.requestPasswordReset(req.body);
 
-      // User Enumeration Defense: always return generic 200 message
       res.json({
         success: true,
         message: 'If your email is registered, you will receive a password reset link shortly.'
@@ -202,6 +275,5 @@ export class AuthController {
     }
   };
 }
-
 
 export const authController = new AuthController();

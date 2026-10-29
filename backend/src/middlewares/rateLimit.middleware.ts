@@ -22,13 +22,14 @@ export const globalRateLimiter = createLimiter(
   env.rateLimitGlobalWindowMs,
   env.rateLimitGlobalMax,
   'Too many requests from this IP address. Please try again later.',
-  (req: Request) => req.path === '/health'
+  (req: Request) => req.path === '/health' || process.env.NODE_ENV === 'test'
 );
 
 export const authRateLimiter = createLimiter(
   env.rateLimitAuthWindowMs,
   env.rateLimitAuthMax,
-  'Too many authentication attempts. Please try again after 15 minutes.'
+  'Too many authentication attempts. Please try again after 15 minutes.',
+  () => process.env.NODE_ENV === 'test'
 );
 
 export const aiRateLimiter = createLimiter(
