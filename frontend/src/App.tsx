@@ -12,13 +12,13 @@ import { StandalonePreviewPage } from './pages/StandalonePreviewPage';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 
 const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isInitializing } = useAuth();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <LoadingScreen />;
   }
 
-  if (!user) {
+  if (!user || user.hasPassword === false) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -26,13 +26,13 @@ const ProtectedRoute: FC<{ children: ReactNode }> = ({ children }) => {
 };
 
 const PublicOnlyRoute: FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isInitializing } = useAuth();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <LoadingScreen />;
   }
 
-  if (user) {
+  if (user && user.hasPassword !== false) {
     return <Navigate to="/dashboard" replace />;
   }
 
